@@ -22,6 +22,12 @@ pnpm dev
 
 The frontend displays a blank application shell with Tailwind and shadcn support.
 
+`pnpm dev` reads `VITE_PORT` and `API_PORT` from the root `.env`. A shell variable overrides the `.env` value.
+The dev server uses `VITE_PORT` and stops if that port is not available.
+It sends `/api` and `/files` requests to the backend at `http://127.0.0.1:<API_PORT>`.
+If a port is missing or not correct, `pnpm dev` stops and shows the name of the variable.
+`pnpm build` and `pnpm test` do not use the ports.
+
 ## Structure
 
 - `src/hannovators_deep_researcher/`: Python packages for models, configuration, services, adapters, infrastructure, persistence, and routers.
@@ -94,10 +100,15 @@ See [PLAN.md](PLAN.md) for the planned schema and the `data/workspaces/` layout 
 Tailwind uses the Vite plugin and `frontend/src/index.css`. The CSS file defines shadcn theme tokens.
 The `@/` alias points to `frontend/src/`. The shadcn configuration places UI components in `src/shared/ui/`.
 
-From `frontend/`, add a component when the product needs it:
+`src/shared/ui/` contains these shadcn primitives: badge, button, card, dialog, input, progress, resizable, scroll-area, separator, sonner, table, tabs, textarea, and tooltip.
+The primitives use the `cn` package for class names. Dialog and tooltip animations use `tw-animate-css`.
+The frontend also includes `zod` for wire decoders and `cytoscape` for the citation graph.
+
+Feature lanes must not change `frontend/package.json` or `frontend/pnpm-lock.yaml`.
+To add a primitive, use the shadcn CLI version that made the current primitives:
 
 ```sh
-pnpm dlx shadcn@latest add button
+pnpm dlx shadcn@4.21.4 add <component>
 ```
 
-The scaffold contains no example UI components. Use `pnpm format` to apply the frontend format rules.
+Use `pnpm format` to apply the frontend format rules.

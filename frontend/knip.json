@@ -1,10 +1,12 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["index.html", "src/shared/lib/cn.ts"],
+  "entry": ["index.html", "src/shared/lib/cn.ts", "src/shared/ui/*.tsx"],
   "project": ["src/**/*.{ts,tsx,css}"],
   "ignoreDependencies": [
     "@testing-library/react",
-    "@testing-library/user-event"
+    "@testing-library/user-event",
+    "cytoscape",
+    "zod"
   ],
   "ignoreExportsUsedInFile": true,
   "rules": {
