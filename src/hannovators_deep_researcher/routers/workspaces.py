@@ -1,0 +1,52 @@
+"""Workspace lifecycle: create, run or continue, review the decomposition, read the state."""
+
+from fastapi import APIRouter, status
+
+from hannovators_deep_researcher.models.contracts import (
+    CreateWorkspaceRequest,
+    Decomposition,
+    WorkspaceSettings,
+    WorkspaceState,
+    WorkspaceView,
+)
+from hannovators_deep_researcher.routers.dependencies import Container
+from hannovators_deep_researcher.services.workspace_state import workspace_view
+
+router = APIRouter(prefix="/workspaces", tags=["workspaces"])
+
+
+@router.post("", status_code=status.HTTP_201_CREATED)
+async def create_workspace(body: CreateWorkspaceRequest, container: Container) -> WorkspaceView:
+    embedder = container.services.embedder
+    settings = (body.settings or WorkspaceSettings()).model_copy(
+        update={"embedding_model": embedder.model, "embedding_dimensions": embedder.dimensions}
+    )
+    row = await container.services.repositories.create_workspace(
+        research_question=body.research_question,
+        domain_mode=body.domain_mode,
+        settings=settings,
+        auto_continue=body.auto_continue,
+    )
+    return workspace_view(row)
+
+
+@router.post("/{workspace_id}/run", status_code=status.HTTP_202_ACCEPTED)
+async def run_workspace(workspace_id: str, container: Container) -> WorkspaceView:
+    """Start, or continue from AWAITING_REVIEW. 409 when it is running or finished."""
+
+    await container.state.require_workspace(workspace_id)
+    start = await container.orchestrator.begin_run(workspace_id)
+    container.start_run(workspace_id, start)
+    return workspace_view(await container.state.require_workspace(workspace_id))
+
+
+@router.put("/{workspace_id}/decomposition")
+async def replace_decomposition(
+    workspace_id: str, decomposition: Decomposition, container: Container
+) -> WorkspaceState:
+    return await container.state.replace_decomposition(workspace_id, decomposition)
+
+
+@router.get("/{workspace_id}")
+async def get_workspace(workspace_id: str, container: Container) -> WorkspaceState:
+    return await container.state.build_state(workspace_id)
