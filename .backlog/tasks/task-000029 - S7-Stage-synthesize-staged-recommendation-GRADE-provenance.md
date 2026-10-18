@@ -1,9 +1,11 @@
 ---
 id: TASK-000029
 title: 'S7 Stage synthesize: staged recommendation, GRADE, provenance'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@devin'
 created_date: '2026-10-18 12:21'
+updated_date: '2026-10-18 14:21'
 labels:
   - phase-2
   - backend
@@ -43,3 +45,9 @@ Worktree: lane/s7-synthesize
 - [ ] #2 Rebased on main; AGENTS.md checks pass; `uv run pytest -m e2e` passes offline
 - [ ] #3 Required edge-case tests from the card exist and pass; no extra tests without a reason
 <!-- DOD:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+One-call synthesis with GRADE pairs, S-label source mapping, canary provenance, insufficient-evidence path, RECOMMENDATION claim. PR: https://github.com/sharathnirmala16/hannovators-deep-researcher/pull/10
+<!-- SECTION:FINAL_SUMMARY:END -->

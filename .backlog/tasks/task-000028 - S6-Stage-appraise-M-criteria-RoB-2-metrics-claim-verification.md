@@ -1,9 +1,11 @@
 ---
 id: TASK-000028
 title: 'S6 Stage appraise: M-criteria, RoB 2, metrics, claim verification'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@devin'
 created_date: '2026-10-18 12:21'
+updated_date: '2026-10-18 14:21'
 labels:
   - phase-2
   - backend
@@ -45,3 +47,9 @@ Worktree: lane/s6-appraise
 - [ ] #2 Rebased on main; AGENTS.md checks pass; `uv run pytest -m e2e` passes offline
 - [ ] #3 Required edge-case tests from the card exist and pass; no extra tests without a reason
 <!-- DOD:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Abstract-only appraise: M-criteria, RoB 2, verbatim-quote METRIC/CLAIM verification, top K promotion. PR: https://github.com/sharathnirmala16/hannovators-deep-researcher/pull/10
+<!-- SECTION:FINAL_SUMMARY:END -->
