@@ -1,0 +1,511 @@
+{
+  "nodes": [
+    {
+      "id": "23dac526-cc94-5feb-bd2b-b7ba0ca69c69",
+      "label": "AHA/ACC/HFSA 2022 (seed)",
+      "status": "SEED",
+      "origin": "SEED"
+    },
+    {
+      "id": "ab702b49-7ac2-5b3d-9b50-a71796cd215d",
+      "label": "Local HFrEF protocol (seed)",
+      "status": "SEED",
+      "origin": "SEED"
+    },
+    {
+      "id": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "label": "McMurray 2019 (DAPA-HF)",
+      "status": "APPRAISE_PROMOTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "label": "Packer 2020 (EMPEROR-Reduced)",
+      "status": "APPRAISE_PROMOTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "label": "Bhatt 2021 (SOLOIST-WHF)",
+      "status": "APPRAISE_PROMOTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "cb50cbc4-94e7-5972-b16f-628fa5421f9b",
+      "label": "Anker 2021 (EMPEROR-Preserved)",
+      "status": "APPRAISE_PROMOTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "0dfdbf73-8775-5ed9-af62-72035fda7490",
+      "label": "Voors 2022 (EMPULSE)",
+      "status": "APPRAISE_PROMOTED",
+      "origin": "EUROPEPMC"
+    },
+    {
+      "id": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "label": "Solomon 2022 (DELIVER)",
+      "status": "APPRAISE_PROMOTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "71a28183-34cd-50fc-a22b-10c2c3bc5afc",
+      "label": "Lindqvist 2021",
+      "status": "APPRAISE_DISCOUNTED",
+      "origin": "EUROPEPMC"
+    },
+    {
+      "id": "82dba556-660e-5dce-8836-86e41a89fb44",
+      "label": "Okafor 2019",
+      "status": "APPRAISE_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "fa46502a-fc03-578f-9d63-5d93b8900806",
+      "label": "Nakamura 2017",
+      "status": "APPRAISE_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "415a9fa6-08a2-5489-aa28-bac078fe5d5b",
+      "label": "Kowalski 2022",
+      "status": "APPRAISE_DISCOUNTED",
+      "origin": "EUROPEPMC"
+    },
+    {
+      "id": "2b7fd72c-e86f-5c8b-8a33-e8eae4603418",
+      "label": "Varga 2020",
+      "status": "APPRAISE_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "70b71daf-4244-5e97-84ef-1ff99cf40949",
+      "label": "Hansen 2022",
+      "status": "APPRAISE_DISCOUNTED",
+      "origin": "EUROPEPMC"
+    },
+    {
+      "id": "c793d038-3f39-5f08-8dcf-288608c6308b",
+      "label": "Dubois 2023",
+      "status": "APPRAISE_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "1a03aaeb-613c-542c-9edf-8a8329911e63",
+      "label": "Petrov 2021",
+      "status": "ACQUIRE_FAILED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "99c7b627-1f6e-5a85-b062-3d349540d518",
+      "label": "Sato 2021",
+      "status": "ACQUIRE_FAILED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "23a9bc39-3951-5cdb-a844-4d8cffadd52e",
+      "label": "Hartmann 2018",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "5fa9889e-854a-5517-8073-66247996e890",
+      "label": "Moreno 2021",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "EUROPEPMC"
+    },
+    {
+      "id": "5fb0f79f-954f-5865-b246-76bb31652d65",
+      "label": "Kaur 2020",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "1c178a04-8e4c-5dd6-be09-f1d40ed63376",
+      "label": "Whitfield 2023",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "EUROPEPMC"
+    },
+    {
+      "id": "f893c813-8216-5177-b133-0f03fd7b93a2",
+      "label": "Berg 2020",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "04465a49-0a44-557a-8d41-1801274cf67a",
+      "label": "Ivanova 2022",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "EUROPEPMC"
+    },
+    {
+      "id": "d1ae8306-7426-56f2-92df-fb6d1a2a1c30",
+      "label": "Laine 2023",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "28ee3d83-7abd-5a45-a2dc-6c283bad1b3b",
+      "label": "Ortega 2023",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "1d823e1a-c447-59c6-9a7d-3fb87d52ebe2",
+      "label": "Fernandes 2024",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "EUROPEPMC"
+    },
+    {
+      "id": "941ebedc-dbdd-5d33-84cc-29e7e9677746",
+      "label": "Zhou 2019",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "5da5b520-7981-5f7e-9fa0-c53a16961744",
+      "label": "Park 2020",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "b0e5c856-65df-5d9d-9ee7-b2e0b7a445c7",
+      "label": "Santos-Lima 2021",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "EUROPEPMC"
+    },
+    {
+      "id": "297e2673-6659-5f9d-b73a-6d4d52106ae2",
+      "label": "Grant 2021",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "849ddbcf-c6ce-5fb9-87f0-6035d0d460eb",
+      "label": "Rossi 2022",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "4ab3d1cc-52dd-565e-916b-a13ac9b0930c",
+      "label": "Abebe 2023",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "EUROPEPMC"
+    },
+    {
+      "id": "de07c0db-400f-5d00-ac6e-6f18b2e15e89",
+      "label": "health-news.example.com",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "WEB"
+    },
+    {
+      "id": "7917023b-9d36-5137-b712-da7aad4992ec",
+      "label": "Murphy 2018",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "140f36c3-6029-5aa6-8ae0-ad5706eec44d",
+      "label": "Kim 2019",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "a901835c-4d6d-51cf-ad43-f2988856a12d",
+      "label": "hospital.example.org",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "WEB"
+    },
+    {
+      "id": "afad30e1-dfa4-5d58-90cd-fe8176773366",
+      "label": "McMurray 2019",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "EUROPEPMC"
+    },
+    {
+      "id": "45b62d55-c62b-5652-a786-e1ea6f06a2ed",
+      "label": "Packer 2020",
+      "status": "SCREEN_DISCOUNTED",
+      "origin": "EUROPEPMC"
+    },
+    {
+      "id": "9e5575b4-906a-575d-8f54-af973cc2753e",
+      "label": "Olsen 2024",
+      "status": "RAW",
+      "origin": "PUBMED"
+    },
+    {
+      "id": "3fc9740e-1d7d-56c9-b51a-de1d22daa46a",
+      "label": "Ahmed 2024",
+      "status": "RAW",
+      "origin": "EUROPEPMC"
+    }
+  ],
+  "edges": [
+    {
+      "source": "0dfdbf73-8775-5ed9-af62-72035fda7490",
+      "target": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "kind": "CITES"
+    },
+    {
+      "source": "0dfdbf73-8775-5ed9-af62-72035fda7490",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "CITES"
+    },
+    {
+      "source": "0dfdbf73-8775-5ed9-af62-72035fda7490",
+      "target": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "kind": "CITES"
+    },
+    {
+      "source": "0dfdbf73-8775-5ed9-af62-72035fda7490",
+      "target": "cb50cbc4-94e7-5972-b16f-628fa5421f9b",
+      "kind": "CITES"
+    },
+    {
+      "source": "1a03aaeb-613c-542c-9edf-8a8329911e63",
+      "target": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "kind": "CITES"
+    },
+    {
+      "source": "2b7fd72c-e86f-5c8b-8a33-e8eae4603418",
+      "target": "0dfdbf73-8775-5ed9-af62-72035fda7490",
+      "kind": "CITES"
+    },
+    {
+      "source": "415a9fa6-08a2-5489-aa28-bac078fe5d5b",
+      "target": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "kind": "CITES"
+    },
+    {
+      "source": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "CITES"
+    },
+    {
+      "source": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "target": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "kind": "CITES"
+    },
+    {
+      "source": "70b71daf-4244-5e97-84ef-1ff99cf40949",
+      "target": "0dfdbf73-8775-5ed9-af62-72035fda7490",
+      "kind": "CITES"
+    },
+    {
+      "source": "71a28183-34cd-50fc-a22b-10c2c3bc5afc",
+      "target": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "kind": "CITES"
+    },
+    {
+      "source": "82dba556-660e-5dce-8836-86e41a89fb44",
+      "target": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "kind": "CITES"
+    },
+    {
+      "source": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "CITES"
+    },
+    {
+      "source": "99c7b627-1f6e-5a85-b062-3d349540d518",
+      "target": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "kind": "CITES"
+    },
+    {
+      "source": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "target": "0dfdbf73-8775-5ed9-af62-72035fda7490",
+      "kind": "CITES"
+    },
+    {
+      "source": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "target": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "kind": "CITES"
+    },
+    {
+      "source": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "CITES"
+    },
+    {
+      "source": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "target": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "kind": "CITES"
+    },
+    {
+      "source": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "target": "cb50cbc4-94e7-5972-b16f-628fa5421f9b",
+      "kind": "CITES"
+    },
+    {
+      "source": "c793d038-3f39-5f08-8dcf-288608c6308b",
+      "target": "0dfdbf73-8775-5ed9-af62-72035fda7490",
+      "kind": "CITES"
+    },
+    {
+      "source": "cb50cbc4-94e7-5972-b16f-628fa5421f9b",
+      "target": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "kind": "CITES"
+    },
+    {
+      "source": "cb50cbc4-94e7-5972-b16f-628fa5421f9b",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "CITES"
+    },
+    {
+      "source": "cb50cbc4-94e7-5972-b16f-628fa5421f9b",
+      "target": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "kind": "CITES"
+    },
+    {
+      "source": "fa46502a-fc03-578f-9d63-5d93b8900806",
+      "target": "cb50cbc4-94e7-5972-b16f-628fa5421f9b",
+      "kind": "CITES"
+    },
+    {
+      "source": "04465a49-0a44-557a-8d41-1801274cf67a",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "RELATED"
+    },
+    {
+      "source": "140f36c3-6029-5aa6-8ae0-ad5706eec44d",
+      "target": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "kind": "RELATED"
+    },
+    {
+      "source": "1c178a04-8e4c-5dd6-be09-f1d40ed63376",
+      "target": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "kind": "RELATED"
+    },
+    {
+      "source": "1d823e1a-c447-59c6-9a7d-3fb87d52ebe2",
+      "target": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "kind": "RELATED"
+    },
+    {
+      "source": "23a9bc39-3951-5cdb-a844-4d8cffadd52e",
+      "target": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "kind": "RELATED"
+    },
+    {
+      "source": "28ee3d83-7abd-5a45-a2dc-6c283bad1b3b",
+      "target": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "kind": "RELATED"
+    },
+    {
+      "source": "297e2673-6659-5f9d-b73a-6d4d52106ae2",
+      "target": "cb50cbc4-94e7-5972-b16f-628fa5421f9b",
+      "kind": "RELATED"
+    },
+    {
+      "source": "3fc9740e-1d7d-56c9-b51a-de1d22daa46a",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "RELATED"
+    },
+    {
+      "source": "45b62d55-c62b-5652-a786-e1ea6f06a2ed",
+      "target": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "kind": "RELATED"
+    },
+    {
+      "source": "4ab3d1cc-52dd-565e-916b-a13ac9b0930c",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "RELATED"
+    },
+    {
+      "source": "5da5b520-7981-5f7e-9fa0-c53a16961744",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "RELATED"
+    },
+    {
+      "source": "5fa9889e-854a-5517-8073-66247996e890",
+      "target": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "kind": "RELATED"
+    },
+    {
+      "source": "5fb0f79f-954f-5865-b246-76bb31652d65",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "RELATED"
+    },
+    {
+      "source": "7917023b-9d36-5137-b712-da7aad4992ec",
+      "target": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "kind": "RELATED"
+    },
+    {
+      "source": "849ddbcf-c6ce-5fb9-87f0-6035d0d460eb",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "RELATED"
+    },
+    {
+      "source": "941ebedc-dbdd-5d33-84cc-29e7e9677746",
+      "target": "cb50cbc4-94e7-5972-b16f-628fa5421f9b",
+      "kind": "RELATED"
+    },
+    {
+      "source": "9e5575b4-906a-575d-8f54-af973cc2753e",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "RELATED"
+    },
+    {
+      "source": "a901835c-4d6d-51cf-ad43-f2988856a12d",
+      "target": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "kind": "RELATED"
+    },
+    {
+      "source": "afad30e1-dfa4-5d58-90cd-fe8176773366",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "RELATED"
+    },
+    {
+      "source": "b0e5c856-65df-5d9d-9ee7-b2e0b7a445c7",
+      "target": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "kind": "RELATED"
+    },
+    {
+      "source": "d1ae8306-7426-56f2-92df-fb6d1a2a1c30",
+      "target": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "kind": "RELATED"
+    },
+    {
+      "source": "de07c0db-400f-5d00-ac6e-6f18b2e15e89",
+      "target": "0dfdbf73-8775-5ed9-af62-72035fda7490",
+      "kind": "RELATED"
+    },
+    {
+      "source": "f893c813-8216-5177-b133-0f03fd7b93a2",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "RELATED"
+    },
+    {
+      "source": "23dac526-cc94-5feb-bd2b-b7ba0ca69c69",
+      "target": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "kind": "SEED_MATCH"
+    },
+    {
+      "source": "23dac526-cc94-5feb-bd2b-b7ba0ca69c69",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "SEED_MATCH"
+    },
+    {
+      "source": "23dac526-cc94-5feb-bd2b-b7ba0ca69c69",
+      "target": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "kind": "SEED_MATCH"
+    },
+    {
+      "source": "ab702b49-7ac2-5b3d-9b50-a71796cd215d",
+      "target": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "kind": "SEED_MATCH"
+    },
+    {
+      "source": "ab702b49-7ac2-5b3d-9b50-a71796cd215d",
+      "target": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "kind": "SEED_MATCH"
+    },
+    {
+      "source": "ab702b49-7ac2-5b3d-9b50-a71796cd215d",
+      "target": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "kind": "SEED_MATCH"
+    }
+  ]
+}
