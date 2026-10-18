@@ -7,8 +7,8 @@
 /*
  * Design tokens (PLAN.md section 10.2).
  *
- * Direction: a reading desk for checking evidence. Neutral paper and graphite
- * ink; the one bold color is the marker yellow that shows where a number or a
+ * Colors: the standard shadcn neutral palette (hex, so they work without
+ * oklch()/color-mix()) plus Tailwind 600 hues for semantics. The one bold color is the marker yellow that shows where a number or a
  * claim came from (selected cells, PDF highlight rectangles, marked quotes,
  * the active citation). Semantic hues are reserved for status, GRADE
  * certainty, RoB 2, and stance.
@@ -18,22 +18,22 @@
 
   /* Neutral base */
   --paper: #ffffff;
-  --desk: #f4f5f3;
-  --ink: #1d2226;
-  --graphite: #5c656d;
-  --rule: #e2e5e1;
+  --desk: #f5f5f5;
+  --ink: #0a0a0a;
+  --graphite: #737373;
+  --rule: #e5e5e5;
 
   /* The marker */
-  --marker: #ffe45c;
-  --marker-ink: #c99a00;
+  --marker: #fde047;
+  --marker-ink: #ca8a04;
 
   /* Semantic hues (strong values; tints are mixed from these) */
-  --tone-positive: #2c7a4b;
-  --tone-negative: #b23b31;
-  --tone-caution: #a86a12;
-  --tone-info: #2f64c8;
-  --tone-null: #6a55b0;
-  --tone-neutral: #6b737a;
+  --tone-positive: #16a34a;
+  --tone-negative: #dc2626;
+  --tone-caution: #d97706;
+  --tone-info: #2563eb;
+  --tone-null: #7c3aed;
+  --tone-neutral: #737373;
 
   /* Status, certainty, RoB 2, and stance map onto the hues */
   --status-kept: var(--tone-positive);
@@ -41,9 +41,9 @@
   --status-flagged: var(--tone-caution);
   --status-running: var(--tone-info);
   --status-error: var(--tone-negative);
-  --rob-low: #2c7a4b;
-  --rob-some: #d9a520;
-  --rob-high: #b23b31;
+  --rob-low: #16a34a;
+  --rob-some: #eab308;
+  --rob-high: #dc2626;
 
   /* shadcn roles */
   --background: var(--paper);
@@ -52,20 +52,20 @@
   --card-foreground: var(--ink);
   --popover: var(--paper);
   --popover-foreground: var(--ink);
-  --primary: var(--ink);
-  --primary-foreground: #ffffff;
+  --primary: #171717;
+  --primary-foreground: #fafafa;
   --secondary: var(--desk);
   --secondary-foreground: var(--ink);
   --muted: var(--desk);
   --muted-foreground: var(--graphite);
-  --accent: #eceeeb;
+  --accent: #f5f5f5;
   --accent-foreground: var(--ink);
   --destructive: var(--tone-negative);
   --border: var(--rule);
-  --input: #d3d7d2;
-  --ring: var(--tone-info);
+  --input: #e5e5e5;
+  --ring: #a3a3a3;
 
-  --scrollbar-thumb: #c4c9c3;
+  --scrollbar-thumb: #d4d4d4;
 }
 
 @theme inline {
@@ -100,46 +100,46 @@
 /*
  * Color utilities use literal values (kept in sync with :root above), not
  * var() references. Tailwind can then precompute a translucent fallback for
- * opacity modifiers such as `bg-tone-info/10` (`#2f64c81a`). With var()
+ * opacity modifiers such as `bg-tone-info/10` (`#2563eb1a`). With var()
  * references the fallback is the solid color, which browsers without
  * `color-mix()` support render as heavy blocks.
  */
 @theme {
   --color-paper: #ffffff;
-  --color-desk: #f4f5f3;
-  --color-ink: #1d2226;
-  --color-graphite: #5c656d;
-  --color-rule: #e2e5e1;
-  --color-marker: #ffe45c;
-  --color-marker-ink: #c99a00;
-  --color-tone-positive: #2c7a4b;
-  --color-tone-negative: #b23b31;
-  --color-tone-caution: #a86a12;
-  --color-tone-info: #2f64c8;
-  --color-tone-null: #6a55b0;
-  --color-tone-neutral: #6b737a;
-  --color-rob-low: #2c7a4b;
-  --color-rob-some: #d9a520;
-  --color-rob-high: #b23b31;
+  --color-desk: #f5f5f5;
+  --color-ink: #0a0a0a;
+  --color-graphite: #737373;
+  --color-rule: #e5e5e5;
+  --color-marker: #fde047;
+  --color-marker-ink: #ca8a04;
+  --color-tone-positive: #16a34a;
+  --color-tone-negative: #dc2626;
+  --color-tone-caution: #d97706;
+  --color-tone-info: #2563eb;
+  --color-tone-null: #7c3aed;
+  --color-tone-neutral: #737373;
+  --color-rob-low: #16a34a;
+  --color-rob-some: #eab308;
+  --color-rob-high: #dc2626;
 
   --color-background: #ffffff;
-  --color-foreground: #1d2226;
+  --color-foreground: #0a0a0a;
   --color-card: #ffffff;
-  --color-card-foreground: #1d2226;
+  --color-card-foreground: #0a0a0a;
   --color-popover: #ffffff;
-  --color-popover-foreground: #1d2226;
-  --color-primary: #1d2226;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #f4f5f3;
-  --color-secondary-foreground: #1d2226;
-  --color-muted: #f4f5f3;
-  --color-muted-foreground: #5c656d;
-  --color-accent: #eceeeb;
-  --color-accent-foreground: #1d2226;
-  --color-destructive: #b23b31;
-  --color-border: #e2e5e1;
-  --color-input: #d3d7d2;
-  --color-ring: #2f64c8;
+  --color-popover-foreground: #0a0a0a;
+  --color-primary: #171717;
+  --color-primary-foreground: #fafafa;
+  --color-secondary: #f5f5f5;
+  --color-secondary-foreground: #171717;
+  --color-muted: #f5f5f5;
+  --color-muted-foreground: #737373;
+  --color-accent: #f5f5f5;
+  --color-accent-foreground: #171717;
+  --color-destructive: #dc2626;
+  --color-border: #e5e5e5;
+  --color-input: #e5e5e5;
+  --color-ring: #a3a3a3;
 }
 
 @layer base {
@@ -169,7 +169,7 @@
   }
 
   ::selection {
-    background: #ffe45cb3;
+    background: #fde047b3;
   }
 }
 
@@ -189,7 +189,7 @@
 
 /* The marker stroke used for selected values and marked quotes. */
 @utility marked {
-  background-color: #ffe45cd9;
+  background-color: #fde047d9;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
   border-radius: 2px;
@@ -233,7 +233,7 @@
 }
 
 .pdf-text-layer ::selection {
-  background: #2f64c84d;
+  background: #2563eb4d;
   color: transparent;
 }
 
