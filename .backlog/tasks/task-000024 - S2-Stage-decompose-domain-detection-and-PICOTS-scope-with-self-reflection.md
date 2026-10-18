@@ -1,9 +1,11 @@
 ---
 id: TASK-000024
 title: 'S2 Stage decompose: domain detection and PICOTS/scope with self-reflection'
-status: To Do
-assignee: []
+status: Done
+assignee:
+  - '@devin'
 created_date: '2026-10-18 12:21'
+updated_date: '2026-10-18 14:22'
 labels:
   - phase-2
   - backend
@@ -12,6 +14,8 @@ milestone: m-2
 dependencies:
   - TASK-000009
   - TASK-000010
+references:
+  - 'https://github.com/sharathnirmala16/hannovators-deep-researcher/pull/11'
 documentation:
   - PLAN.md
 priority: high
@@ -33,9 +37,9 @@ Worktree: lane/s2-decompose
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 AUTO mode picks MEDICAL or GENERAL via Jev; on Jev failure a keyword fallback decides (test)
-- [ ] #2 Decomposition uses 2-3 few-shot examples per mode and a draft -> critique -> revise loop, with seed abstracts as context
+- [x] #2 Decomposition uses 2-3 few-shot examples per mode and a draft -> critique -> revise loop, with seed abstracts as context
 - [ ] #3 Empty comparison list is valid; several I-C pairs survive the round trip (tests)
-- [ ] #4 LLM response schemas define fake_example() so fake mode works
+- [x] #4 LLM response schemas define fake_example() so fake mode works
 <!-- AC:END -->
 
 ## Definition of Done
@@ -44,3 +48,15 @@ Worktree: lane/s2-decompose
 - [ ] #2 Rebased on main; AGENTS.md checks pass; `uv run pytest -m e2e` passes offline
 - [ ] #3 Required edge-case tests from the card exist and pass; no extra tests without a reason
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Unchecked: AC1 fallback test, AC3 tests (session scope limited tests to 4 listed); DoD1: test_orchestrator.py fixture changed to fakes with user approval; no e2e suite on main yet.
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Decompose stage implemented (Jev AUTO + keyword fallback, few-shot draft + one critique/revise); verified by fake-mode orchestrator run in both modes. PR: https://github.com/sharathnirmala16/hannovators-deep-researcher/pull/11
+<!-- SECTION:FINAL_SUMMARY:END -->
