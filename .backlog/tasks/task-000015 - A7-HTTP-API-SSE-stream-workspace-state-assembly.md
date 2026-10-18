@@ -1,9 +1,11 @@
 ---
 id: TASK-000015
 title: 'A7 HTTP API, SSE stream, workspace state assembly'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@devin'
 created_date: '2026-10-18 12:21'
+updated_date: '2026-10-18 14:09'
 labels:
   - phase-1
   - backend

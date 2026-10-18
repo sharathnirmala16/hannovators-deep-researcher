@@ -1,9 +1,11 @@
 ---
 id: TASK-000031
 title: 'S9 Stage compose: adaptive UI component routing'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@devin'
 created_date: '2026-10-18 12:22'
+updated_date: '2026-10-18 14:09'
 labels:
   - phase-2
   - backend
