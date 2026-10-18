@@ -112,7 +112,7 @@ src/hannovators_deep_researcher/
     resilience.py                      [A3] slim port of freesearch ResilientRunner (retry, Retry-After, circuit breaker)
     rate_limit.py                      [A4] async token bucket
   adapters/
-    fake/                              [P0] deterministic fakes for every port (offline mode + tests)
+    fake/                              [P0.5a] deterministic fakes for every port (offline mode + tests)
     nebius.py                          [A1] ChatModel + Embedder
     jev.py                             [A2] DecisionModel
     websearch/tavily.py                [A3] provider adapter (exa.py and others: X4)
@@ -465,6 +465,7 @@ Never log key values. `GET /health/providers` reports only "configured" or "miss
 
 ```text
 Phase 0  foundation           P0.1 -> P0.3 -> P0.4 -> P0.5          (backend chain, on main)
+                              P0.1 -> P0.5a (fakes) -> P0.5
                               P0.2 (anytime)  ;  P0.1 -> P0.6 ;  P0.2 + P0.6 -> P0.7   (frontend)
                               P0.5 also needs P0.6 (contract test reads the fixtures)
          Gate G0
@@ -522,8 +523,18 @@ Phase 0 cards edit `[P0]` files, so they run on `main` (or short-lived branches 
 - Tests: z-scores with zero variance and with one item; RRF with empty lists and ties; orchestrator stops
   at `AWAITING_REVIEW` and resumes; a stage exception sets `FAILED` and keeps earlier events.
 
-**P0.5 app skeleton and fakes** (needs P0.4 and P0.6)
-- `adapters/fake/*` and `adapters/fake/data/` per section 5.1; stub modules (raise `NotImplementedError`)
+**P0.5a fake adapters** (needs P0.1 only; parallel with P0.3, P0.4, P0.6)
+- `adapters/fake/*` and `adapters/fake/data/` per section 5.1: `FakeChatModel` (`fake_example()` lookup),
+  `FakeDecisionModel` (hash-based, valid answers for any question), `FakeEmbedder` (normalized hashed
+  bag-of-words, `EMBEDDING_DIMENSIONS` long), `FakeWebSearch` and `FakeLiteratureSearch` (canned medical
+  and general sets of about 40 records each, OA PDF URLs that resolve to one small text-layer PDF).
+  Each fake satisfies its `models/ports.py` Protocol under mypy. No wiring into `main.py` (P0.5 does that).
+- Tests: a schema without `fake_example()` raises a clear error; the same input gives the same Jev answer,
+  and every `choice` answer is one of the given options; similar texts score higher than unrelated
+  texts and every vector has unit norm.
+
+**P0.5 app skeleton** (needs P0.4, P0.5a, and P0.6)
+- Wire `adapters/fake/*` (from P0.5a) when `PROVIDER_MODE=fake`; stub modules (raise `NotImplementedError`)
   for every A-lane file that does not exist yet; never overwrite a lane module that is already merged
   (A3 and A5 may land first); wire merged real adapters in `main.py`; `routers/*` stubs (501) except a minimal working `POST /workspaces`,
   `POST /run`, and SSE needed by the e2e test; `main.py` composition root; `/files` mount.
@@ -763,7 +774,7 @@ Task dependencies encode the order. Labels: `phase-N`, `backend` or `frontend`, 
 
 | Phase | Cards -> tasks |
 | :--- | :--- |
-| 0 | P0.1 `TASK-000001`, P0.2 `-02`, P0.3 `-03`, P0.4 `-04`, P0.6 `-05`, P0.5 `-06`, P0.7 `-07`, Gate G0 `-08` |
+| 0 | P0.1 `TASK-000001`, P0.2 `-02`, P0.3 `-03`, P0.4 `-04`, P0.6 `-05`, P0.5 `-06`, P0.7 `-07`, Gate G0 `-08`, P0.5a `-45` |
 | 1 | A1-A7 `-09` to `-15`, F1-F6 `-16` to `-21`, Gate G1 `-22` |
 | 2 | S1-S9 `-23` to `-31`, F7 `-32`, Gate G2 `-33` |
 | 3 | I1 `-34`, I2 `-35`, I3 `-36`, I4 `-37`, Gate G3 `-38` |
