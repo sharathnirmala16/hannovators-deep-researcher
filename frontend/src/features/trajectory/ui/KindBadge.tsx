@@ -15,7 +15,7 @@ export function KindBadge({ kind, className }: KindBadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex min-w-0 items-center gap-1.5 text-xs text-foreground/80',
+        'inline-flex min-w-0 items-center gap-1.5 text-xs text-foreground',
         className,
       )}
     >

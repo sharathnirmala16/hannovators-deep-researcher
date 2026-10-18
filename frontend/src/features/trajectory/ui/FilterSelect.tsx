@@ -33,7 +33,7 @@ export function FilterSelect<T extends string>({
       }}
       className={cn(
         'h-7 rounded-md border border-input bg-background px-1.5 text-xs text-foreground',
-        value !== null && 'border-foreground/40 font-medium',
+        value !== null && 'border-shade-4 font-medium',
         FOCUS_RING,
       )}
     >

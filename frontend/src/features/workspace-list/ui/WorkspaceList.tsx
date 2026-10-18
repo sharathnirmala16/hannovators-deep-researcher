@@ -34,9 +34,9 @@ function Row({ item, href }: { item: WorkspaceSummary; href: string }) {
     <li className="border-b last:border-b-0">
       <a
         href={href}
-        className="group flex flex-col gap-2 px-6 py-4 transition-colors hover:bg-background/70 focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+        className="group flex flex-col gap-2 px-6 py-4 transition-colors hover:bg-background focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
       >
-        <span className="line-clamp-2 font-serif text-base text-foreground group-hover:underline group-hover:decoration-foreground/30 group-hover:underline-offset-4">
+        <span className="line-clamp-2 font-serif text-base text-foreground group-hover:underline group-hover:decoration-shade-4 group-hover:underline-offset-4">
           {item.research_question}
         </span>
         <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground tabular-nums">

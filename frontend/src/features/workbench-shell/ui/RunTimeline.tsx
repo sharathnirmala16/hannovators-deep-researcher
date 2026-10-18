@@ -13,11 +13,11 @@ import { formatDuration, plural } from '@/shared/lib/format';
 import { SectionHeader } from '@/shared/ui/section-header';
 
 const DOT: Record<StageState, string> = {
-  done: 'bg-foreground/70',
-  active: 'bg-tone-info ring-4 ring-tone-info/20 animate-pulse',
-  review: 'bg-tone-caution ring-4 ring-tone-caution/20',
+  done: 'bg-shade-6',
+  active: 'bg-tone-info ring-4 ring-border animate-pulse',
+  review: 'bg-tone-caution ring-4 ring-border',
   failed: 'bg-tone-negative',
-  pending: 'bg-background ring-1 ring-foreground/25',
+  pending: 'bg-background ring-1 ring-shade-4',
 };
 
 const STREAM_TEXT: Record<EventStreamStatus, string> = {
@@ -109,7 +109,7 @@ export function RunTimeline() {
         }
       />
       {workspace.error ? (
-        <p className="rounded-sm bg-tone-negative/8 px-2 py-1 text-xs text-tone-negative">
+        <p className="rounded-sm bg-shade-2 px-2 py-1 text-xs text-tone-negative">
           {workspace.error}
         </p>
       ) : null}

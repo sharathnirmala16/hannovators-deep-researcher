@@ -61,6 +61,6 @@ function chipClass(pressed: boolean): string {
     'inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-xs transition-colors',
     pressed
       ? 'bg-foreground text-background'
-      : 'bg-muted/60 text-foreground/80 hover:bg-muted',
+      : 'bg-muted text-foreground hover:bg-muted',
   );
 }

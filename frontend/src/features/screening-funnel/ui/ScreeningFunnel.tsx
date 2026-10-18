@@ -17,14 +17,11 @@ function Bar({
 }) {
   const width = max > 0 ? Math.max(2, (value / max) * 100) : 0;
   return (
-    <span
-      aria-hidden
-      className="block h-1.5 w-full rounded-full bg-foreground/8"
-    >
+    <span aria-hidden className="block h-1.5 w-full rounded-full bg-shade-2">
       <span
         className={cn(
           'block h-full rounded-full',
-          strong ? 'bg-foreground/75' : 'bg-foreground/30',
+          strong ? 'bg-shade-6' : 'bg-shade-4',
         )}
         style={{ width: `${width}%` }}
       />

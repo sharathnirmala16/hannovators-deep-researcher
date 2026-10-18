@@ -19,15 +19,15 @@ import { ClaimCell } from './ClaimCell';
 const VERDICT: Record<ClaimVerdict, { label: string; className: string }> = {
   SUPPORTED: {
     label: 'Supported',
-    className: 'bg-tone-positive/10 text-tone-positive',
+    className: 'bg-shade-2 text-tone-positive',
   },
   CONTRADICTED: {
     label: 'Contradicted',
-    className: 'bg-tone-negative/10 text-tone-negative',
+    className: 'bg-shade-2 text-tone-negative',
   },
   MIXED: {
     label: 'Mixed',
-    className: 'bg-tone-caution/10 text-tone-caution',
+    className: 'bg-shade-2 text-tone-caution',
   },
   UNVERIFIED: {
     label: 'Unverified',
@@ -42,7 +42,7 @@ function Confidence({ value }: { value: number | null }) {
     <span className="inline-flex items-center gap-2 tabular-nums">
       <span className="h-1.5 w-12 overflow-hidden rounded-full bg-muted">
         <span
-          className="block h-full bg-foreground/70"
+          className="block h-full bg-shade-6"
           style={{ width: `${percent}%` }}
         />
       </span>

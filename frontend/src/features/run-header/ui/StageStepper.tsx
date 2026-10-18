@@ -7,11 +7,11 @@ import {
 import { cn } from '@/shared/lib/cn';
 
 const SEGMENT: Record<StageState, string> = {
-  done: 'bg-foreground/70',
+  done: 'bg-shade-6',
   active: 'bg-tone-info animate-pulse',
   review: 'bg-tone-caution',
   failed: 'bg-tone-negative',
-  pending: 'bg-foreground/12',
+  pending: 'bg-shade-2',
 };
 
 const STATE_TEXT: Record<StageState, string> = {

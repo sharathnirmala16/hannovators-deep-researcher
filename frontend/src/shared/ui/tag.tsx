@@ -2,26 +2,26 @@ import type { ComponentProps } from 'react';
 
 import { cn } from '@/shared/lib/cn';
 
-/** Semantic hues; callers map status, certainty, RoB 2, and stance onto them. */
+/** Semantic tones, rendered in solid grays; callers map status, certainty, RoB 2, and stance onto them. */
 export type Tone =
   'positive' | 'negative' | 'caution' | 'info' | 'null' | 'neutral';
 
 const TINT: Record<Tone, string> = {
-  positive: 'bg-tone-positive/10 text-tone-positive',
-  negative: 'bg-tone-negative/10 text-tone-negative',
-  caution: 'bg-tone-caution/12 text-tone-caution',
-  info: 'bg-tone-info/10 text-tone-info',
-  null: 'bg-tone-null/10 text-tone-null',
+  positive: 'bg-shade-6 text-white',
+  negative: 'border border-shade-4 bg-background text-foreground',
+  caution: 'bg-shade-3 text-foreground',
+  info: 'bg-shade-2 text-foreground',
+  null: 'bg-shade-2 text-foreground',
   neutral: 'bg-muted text-muted-foreground',
 };
 
 const DOT: Record<Tone, string> = {
-  positive: 'bg-tone-positive',
-  negative: 'bg-tone-negative',
-  caution: 'bg-tone-caution',
-  info: 'bg-tone-info',
-  null: 'bg-tone-null',
-  neutral: 'bg-tone-neutral',
+  positive: 'bg-shade-6',
+  negative: 'bg-shade-5',
+  caution: 'bg-shade-4',
+  info: 'bg-shade-6',
+  null: 'bg-shade-4',
+  neutral: 'bg-shade-3',
 };
 
 interface TagProps extends ComponentProps<'span'> {

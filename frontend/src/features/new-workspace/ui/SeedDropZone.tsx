@@ -57,7 +57,7 @@ export function SeedDropZone({
           'flex cursor-pointer items-center gap-4 rounded-md bg-muted px-4 py-4 transition-colors',
           'outline-2 -outline-offset-2 outline-transparent outline-dashed hover:bg-accent',
           'has-[input:focus-visible]:outline-ring',
-          over && 'bg-marker/20 outline-marker-ink',
+          over && 'bg-marker outline-marker-ink',
           disabled && 'pointer-events-none opacity-60',
         )}
       >

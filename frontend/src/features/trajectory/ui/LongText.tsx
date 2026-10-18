@@ -14,7 +14,7 @@ export function LongText({ text }: { text: string }) {
     <div className="flex flex-col items-start gap-1">
       <pre
         className={cn(
-          'w-full rounded-md bg-muted/40 px-3 py-2 font-mono text-xs leading-5 break-words whitespace-pre-wrap',
+          'w-full rounded-md bg-muted px-3 py-2 font-mono text-xs leading-5 break-words whitespace-pre-wrap',
           long && !expanded && 'max-h-60 overflow-hidden',
         )}
       >

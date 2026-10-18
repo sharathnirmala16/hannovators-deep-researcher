@@ -7,8 +7,9 @@
 /*
  * Design tokens (PLAN.md section 10.2).
  *
- * Colors: the standard shadcn neutral palette (hex, so they work without
- * oklch()/color-mix()) plus Tailwind 600 hues for semantics. The one bold color is the marker yellow that shows where a number or a
+ * Colors: monochrome. The shadcn neutral palette plus solid gray shades
+ * (shade-0..6), all hex and never translucent, so every text stays readable.
+ * Status, stance, certainty, and RoB 2 are grays; labels carry the meaning. The one bold color is the marker yellow that shows where a number or a
  * claim came from (selected cells, PDF highlight rectangles, marked quotes,
  * the active citation). Semantic hues are reserved for status, GRADE
  * certainty, RoB 2, and stance.
@@ -28,11 +29,11 @@
   --marker-ink: #ca8a04;
 
   /* Semantic hues (strong values; tints are mixed from these) */
-  --tone-positive: #16a34a;
-  --tone-negative: #dc2626;
-  --tone-caution: #d97706;
-  --tone-info: #2563eb;
-  --tone-null: #7c3aed;
+  --tone-positive: #171717;
+  --tone-negative: #404040;
+  --tone-caution: #525252;
+  --tone-info: #404040;
+  --tone-null: #525252;
   --tone-neutral: #737373;
 
   /* Status, certainty, RoB 2, and stance map onto the hues */
@@ -41,9 +42,9 @@
   --status-flagged: var(--tone-caution);
   --status-running: var(--tone-info);
   --status-error: var(--tone-negative);
-  --rob-low: #16a34a;
-  --rob-some: #eab308;
-  --rob-high: #dc2626;
+  --rob-low: #d4d4d4;
+  --rob-some: #737373;
+  --rob-high: #171717;
 
   /* shadcn roles */
   --background: var(--paper);
@@ -112,15 +113,15 @@
   --color-rule: #e5e5e5;
   --color-marker: #fde047;
   --color-marker-ink: #ca8a04;
-  --color-tone-positive: #16a34a;
-  --color-tone-negative: #dc2626;
-  --color-tone-caution: #d97706;
-  --color-tone-info: #2563eb;
-  --color-tone-null: #7c3aed;
+  --color-tone-positive: #171717;
+  --color-tone-negative: #404040;
+  --color-tone-caution: #525252;
+  --color-tone-info: #404040;
+  --color-tone-null: #525252;
   --color-tone-neutral: #737373;
-  --color-rob-low: #16a34a;
-  --color-rob-some: #eab308;
-  --color-rob-high: #dc2626;
+  --color-rob-low: #d4d4d4;
+  --color-rob-some: #737373;
+  --color-rob-high: #171717;
 
   --color-background: #ffffff;
   --color-foreground: #0a0a0a;
@@ -140,6 +141,15 @@
   --color-border: #e5e5e5;
   --color-input: #e5e5e5;
   --color-ring: #a3a3a3;
+
+  /* Solid grays (monochrome UI; no translucent colors) */
+  --color-shade-0: #fafafa;
+  --color-shade-1: #f5f5f5;
+  --color-shade-2: #e5e5e5;
+  --color-shade-3: #d4d4d4;
+  --color-shade-4: #a3a3a3;
+  --color-shade-5: #737373;
+  --color-shade-6: #404040;
 }
 
 @layer base {
@@ -169,7 +179,7 @@
   }
 
   ::selection {
-    background: #fde047b3;
+    background: #fde047;
   }
 }
 
@@ -189,7 +199,7 @@
 
 /* The marker stroke used for selected values and marked quotes. */
 @utility marked {
-  background-color: #fde047d9;
+  background-color: #fde047;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
   border-radius: 2px;
@@ -233,7 +243,7 @@
 }
 
 .pdf-text-layer ::selection {
-  background: #2563eb4d;
+  background: #a3a3a3;
   color: transparent;
 }
 

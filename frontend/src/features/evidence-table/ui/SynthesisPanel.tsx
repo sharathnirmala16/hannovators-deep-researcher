@@ -23,9 +23,9 @@ const STRENGTH: Record<RecommendationStrength, string> = {
 };
 
 const DIRECTION_TONE: Record<RecommendationDirection, string> = {
-  FOR: 'bg-tone-positive/10 text-tone-positive',
-  AGAINST: 'bg-tone-negative/10 text-tone-negative',
-  NONE: 'bg-foreground/5 text-foreground',
+  FOR: 'bg-shade-2 text-tone-positive',
+  AGAINST: 'bg-shade-2 text-tone-negative',
+  NONE: 'bg-shade-2 text-foreground',
 };
 
 /** Pairwise summaries, then the analysis, then the recommendation. */
@@ -49,7 +49,7 @@ export function SynthesisPanel({ state }: { state: WorkspaceState }) {
         {synthesis.pairwise_summaries.map((summary) => (
           <li
             key={`${summary.intervention}|${summary.outcome}`}
-            className="border-l-2 border-foreground/20 pl-3"
+            className="border-l-2 border-border pl-3"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-medium">

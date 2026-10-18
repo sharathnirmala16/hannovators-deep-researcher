@@ -47,8 +47,8 @@ export const StepRow = memo(function StepRow({
       data-active={active || undefined}
       onClick={() => onSelect(step.id)}
       className={cn(
-        'cursor-default border-b-0 hover:bg-muted/40',
-        'data-[active]:bg-muted/70 group-focus-visible/grid:data-[active]:outline-2 group-focus-visible/grid:data-[active]:-outline-offset-2 group-focus-visible/grid:data-[active]:outline-ring',
+        'cursor-default border-b-0 hover:bg-muted',
+        'data-[active]:bg-muted group-focus-visible/grid:data-[active]:outline-2 group-focus-visible/grid:data-[active]:-outline-offset-2 group-focus-visible/grid:data-[active]:outline-ring',
       )}
     >
       <TableCell

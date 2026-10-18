@@ -136,7 +136,7 @@ function GraphCanvas({ graph }: { graph: GraphView }) {
       ref={container}
       role="img"
       aria-label="Citation graph of seeds, promoted, discounted, and web sources"
-      className="h-[26rem] w-full rounded-md bg-muted/40"
+      className="h-[26rem] w-full rounded-md bg-muted"
     />
   );
 }

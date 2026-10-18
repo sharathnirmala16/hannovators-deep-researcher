@@ -40,7 +40,7 @@ export function OutcomeTally({ outcomes, errors = 0 }: OutcomeTallyProps) {
       </span>
       <span
         aria-hidden
-        className="flex h-1 w-full overflow-hidden rounded-full bg-foreground/10"
+        className="flex h-1 w-full overflow-hidden rounded-full bg-shade-2"
       >
         {verdicts > 0
           ? present.map((outcome) => (

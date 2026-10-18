@@ -94,7 +94,7 @@ export function ScopeBuilder() {
         }
       />
       {scope.editable ? (
-        <p className="rounded-sm bg-tone-caution/10 px-2 py-1 text-xs text-foreground">
+        <p className="rounded-sm bg-shade-2 px-2 py-1 text-xs text-foreground">
           The run is waiting for your review. Edit the scope, then continue.
         </p>
       ) : null}

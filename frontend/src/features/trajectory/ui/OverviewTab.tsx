@@ -31,7 +31,7 @@ export function OverviewTab({ step, context }: OverviewTabProps) {
         <p className="max-w-prose text-sm leading-relaxed">{step.summary}</p>
       ) : null}
       {step.error ? (
-        <pre className="rounded-md bg-tone-negative/10 px-3 py-2 font-mono text-xs whitespace-pre-wrap text-tone-negative">
+        <pre className="rounded-md bg-shade-2 px-3 py-2 font-mono text-xs whitespace-pre-wrap text-tone-negative">
           {step.error}
         </pre>
       ) : null}

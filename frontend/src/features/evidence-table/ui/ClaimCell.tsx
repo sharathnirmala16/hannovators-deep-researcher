@@ -51,9 +51,9 @@ export function ClaimCell({
       title={claim.quote ?? claim.text}
       className={cn(
         'rounded-sm px-0.5 text-left tabular-nums underline decoration-1 underline-offset-4 transition-colors',
-        'hover:bg-marker/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+        'hover:bg-marker focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
         grounded
-          ? 'decoration-foreground/30 decoration-dotted'
+          ? 'decoration-shade-4 decoration-dotted'
           : 'decoration-transparent',
         active && 'marked decoration-marker-ink hover:bg-marker',
         className,

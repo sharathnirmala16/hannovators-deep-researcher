@@ -5,7 +5,7 @@ export const STATUS_DOT: Record<TrajectoryStatus, string> = {
   OK: 'bg-tone-positive',
   ERROR: 'bg-tone-negative',
   RUNNING: 'bg-tone-info motion-safe:animate-pulse',
-  SKIPPED: 'bg-muted-foreground/40',
+  SKIPPED: 'bg-shade-4',
 };
 
 export const STATUS_TEXT: Record<TrajectoryStatus, string> = {
@@ -16,16 +16,16 @@ export const STATUS_TEXT: Record<TrajectoryStatus, string> = {
 };
 
 export const BAR_COLOR: Record<TrajectoryStatus, string> = {
-  OK: 'bg-foreground/35',
+  OK: 'bg-shade-4',
   ERROR: 'bg-tone-negative',
   RUNNING: 'bg-tone-info',
-  SKIPPED: 'bg-muted-foreground/30',
+  SKIPPED: 'bg-shade-4',
 };
 
 export const OUTCOME_TONE: Record<VerdictOutcome, string> = {
-  KEPT: 'bg-tone-positive/10 text-tone-positive',
-  REMOVED: 'bg-tone-negative/10 text-tone-negative',
-  FLAGGED: 'bg-tone-caution/15 text-tone-caution',
+  KEPT: 'bg-shade-2 text-tone-positive',
+  REMOVED: 'bg-shade-2 text-tone-negative',
+  FLAGGED: 'bg-shade-2 text-tone-caution',
 };
 
 export const OUTCOME_TEXT: Record<VerdictOutcome, string> = {

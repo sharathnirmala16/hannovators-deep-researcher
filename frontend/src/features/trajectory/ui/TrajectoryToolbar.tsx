@@ -101,8 +101,8 @@ export function TrajectoryToolbar({
           className={cn(
             'inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs transition-colors',
             filters.errorsOnly
-              ? 'bg-tone-negative/10 font-medium text-tone-negative'
-              : 'text-foreground/80 hover:bg-muted',
+              ? 'bg-shade-2 font-medium text-tone-negative'
+              : 'text-foreground hover:bg-muted',
             FOCUS_RING,
           )}
         >
@@ -110,9 +110,7 @@ export function TrajectoryToolbar({
             aria-hidden
             className={cn(
               'size-1.5 rounded-full',
-              filters.errorsOnly
-                ? 'bg-tone-negative'
-                : 'bg-muted-foreground/50',
+              filters.errorsOnly ? 'bg-tone-negative' : 'bg-shade-4',
             )}
           />
           Errors only

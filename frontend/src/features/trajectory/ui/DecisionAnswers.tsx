@@ -27,7 +27,7 @@ export function DecisionAnswers({ request, response }: DecisionAnswersProps) {
 function Answer({ answer }: { answer: DecisionAnswerView }) {
   const top = answer.probabilities[0]?.[0];
   return (
-    <div className="flex flex-col gap-1.5 rounded-md bg-muted/40 px-3 py-2">
+    <div className="flex flex-col gap-1.5 rounded-md bg-muted px-3 py-2">
       <div className="flex items-baseline gap-2">
         <span className="font-mono text-xs">{answer.key}</span>
         {answer.type ? (
@@ -40,7 +40,7 @@ function Answer({ answer }: { answer: DecisionAnswerView }) {
         ) : null}
       </div>
       {answer.instructions ? (
-        <p className="text-[13px] text-foreground/80">{answer.instructions}</p>
+        <p className="text-[13px] text-foreground">{answer.instructions}</p>
       ) : null}
       {answer.answer ? (
         <p className="text-[13px]">
@@ -58,11 +58,11 @@ function Answer({ answer }: { answer: DecisionAnswerView }) {
               <span className="truncate" title={option}>
                 {option}
               </span>
-              <span className="h-1.5 overflow-hidden rounded-full bg-foreground/10">
+              <span className="h-1.5 overflow-hidden rounded-full bg-shade-2">
                 <span
                   className={cn(
                     'block h-full rounded-full',
-                    option === top ? 'bg-foreground/70' : 'bg-foreground/30',
+                    option === top ? 'bg-shade-6' : 'bg-shade-4',
                   )}
                   style={{ width: `${Math.min(Math.max(p, 0), 1) * 100}%` }}
                 />

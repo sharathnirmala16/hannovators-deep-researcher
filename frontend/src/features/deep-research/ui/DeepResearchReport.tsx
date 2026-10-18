@@ -27,7 +27,7 @@ function InlineText({
         type="button"
         onClick={() => onCite(part.n)}
         aria-label={`Source ${part.n}`}
-        className="mx-px rounded-sm px-0.5 align-super font-sans text-[10px] leading-none font-semibold text-tone-info hover:bg-marker/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        className="mx-px rounded-sm px-0.5 align-super font-sans text-[10px] leading-none font-semibold text-tone-info hover:bg-marker focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
         {part.n}
       </button>

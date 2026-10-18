@@ -52,13 +52,13 @@ export function SnapshotView({ url, quote }: SnapshotViewProps) {
   const current = load && load.url === url ? load : null;
   if (current?.status === 'ready') {
     return (
-      <div className="max-h-[32rem] overflow-auto rounded-md bg-muted/40 p-4 font-serif text-sm leading-relaxed whitespace-pre-wrap">
+      <div className="max-h-[32rem] overflow-auto rounded-md bg-muted p-4 font-serif text-sm leading-relaxed whitespace-pre-wrap">
         <Marked text={current.text} quote={quote} />
       </div>
     );
   }
   return (
-    <div className="space-y-2 rounded-md bg-muted/40 p-4 text-sm">
+    <div className="space-y-2 rounded-md bg-muted p-4 text-sm">
       <p className="text-xs text-muted-foreground">
         {url && !current
           ? 'Loading the snapshot.'

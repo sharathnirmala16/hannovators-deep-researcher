@@ -11,8 +11,8 @@ const LABEL: Record<LiveStatus, string> = {
 };
 
 const DOT: Record<LiveStatus, string> = {
-  off: 'bg-muted-foreground/50',
-  connecting: 'bg-tone-info/60',
+  off: 'bg-shade-4',
+  connecting: 'bg-shade-2',
   live: 'bg-tone-info motion-safe:animate-pulse',
   interrupted: 'bg-tone-caution',
 };

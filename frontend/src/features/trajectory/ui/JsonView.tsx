@@ -15,7 +15,7 @@ const BIG = 40;
 /** Pretty JSON with collapsible objects, arrays, and long strings. */
 export function JsonView({ value }: { value: unknown }) {
   return (
-    <div className="overflow-x-auto rounded-md bg-muted/40 py-2 pr-3 pl-6 font-mono text-xs leading-5">
+    <div className="overflow-x-auto rounded-md bg-muted py-2 pr-3 pl-6 font-mono text-xs leading-5">
       <JsonNode value={value} depth={0} />
     </div>
   );
@@ -88,7 +88,7 @@ function Container({ value, entries, depth, label }: ContainerProps) {
         </span>
       </button>
       {open ? (
-        <div className="ml-1 border-l border-foreground/10 pl-4">
+        <div className="ml-1 border-l border-border pl-4">
           {entries.map(([key, item]) => (
             <JsonNode
               key={key}

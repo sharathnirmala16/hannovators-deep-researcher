@@ -95,9 +95,7 @@ function Lane({ lane, pressed, onToggle }: LaneProps) {
 function laneClass(pressed: boolean): string {
   return cn(
     'flex flex-col items-start justify-between gap-1 rounded-md px-2 py-1.5 text-left transition-colors',
-    pressed
-      ? 'bg-muted ring-1 ring-foreground/40'
-      : 'bg-muted/40 hover:bg-muted/70',
+    pressed ? 'bg-muted ring-1 ring-shade-4' : 'bg-muted hover:bg-muted',
     FOCUS_RING,
   );
 }

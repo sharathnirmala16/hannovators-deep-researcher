@@ -27,7 +27,7 @@ function JsonBlock({ title, value }: { title: string; value: object }) {
   return (
     <section className="flex flex-col gap-1">
       <h3 className="text-xs font-medium text-muted-foreground">{title}</h3>
-      <pre className="overflow-x-auto rounded-sm bg-muted/50 p-2 font-mono text-xs whitespace-pre-wrap">
+      <pre className="overflow-x-auto rounded-sm bg-muted p-2 font-mono text-xs whitespace-pre-wrap">
         {JSON.stringify(value, null, 2)}
       </pre>
     </section>
@@ -112,7 +112,7 @@ export function SourceDetails({ onOpenStep }: SourceDetailsProps) {
                 key={id}
                 type="button"
                 onClick={() => onOpenStep(id)}
-                className="rounded-sm bg-muted px-1.5 font-mono text-xs hover:bg-muted/70"
+                className="rounded-sm bg-muted px-1.5 font-mono text-xs hover:bg-muted"
               >
                 #{id}
               </button>

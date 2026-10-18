@@ -49,7 +49,7 @@ function EmptyState({ title, children, action, className }: StateProps) {
   return (
     <div
       className={cn(
-        'flex flex-col items-start gap-1 rounded-md bg-muted/60 px-4 py-4',
+        'flex flex-col items-start gap-1 rounded-md bg-muted px-4 py-4',
         className,
       )}
     >
@@ -79,13 +79,13 @@ function ErrorState({
     <div
       role="alert"
       className={cn(
-        'flex flex-col items-start gap-1 rounded-md bg-tone-negative/8 px-4 py-4',
+        'flex flex-col items-start gap-1 rounded-md bg-shade-2 px-4 py-4',
         className,
       )}
     >
       <p className="text-sm font-medium text-tone-negative">{title}</p>
       {message ? (
-        <p className="text-xs break-words text-foreground/80">{message}</p>
+        <p className="text-xs break-words text-foreground">{message}</p>
       ) : null}
       {children ? (
         <div className="text-xs text-muted-foreground">{children}</div>
