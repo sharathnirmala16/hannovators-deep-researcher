@@ -1,9 +1,11 @@
 ---
 id: TASK-000021
 title: F6 Citation graph (cytoscape)
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@devin'
 created_date: '2026-10-18 12:21'
+updated_date: '2026-10-18 14:11'
 labels:
   - phase-1
   - frontend

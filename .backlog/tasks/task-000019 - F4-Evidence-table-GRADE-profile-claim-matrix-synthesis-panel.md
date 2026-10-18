@@ -1,9 +1,11 @@
 ---
 id: TASK-000019
 title: 'F4 Evidence table: GRADE profile, claim matrix, synthesis panel'
-status: To Do
-assignee: []
+status: In Progress
+assignee:
+  - '@devin'
 created_date: '2026-10-18 12:21'
+updated_date: '2026-10-18 14:11'
 labels:
   - phase-1
   - frontend
