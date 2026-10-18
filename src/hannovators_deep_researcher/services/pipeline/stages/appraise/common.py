@@ -7,7 +7,19 @@ from hannovators_deep_researcher.models.enums import (
     ClaimKind,
     ClaimVerdict,
     Directness,
+    EvidenceLevel,
+    EvidenceStance,
     RejectionCode,
+)
+
+EVIDENCE_PROMPT = (
+    "Also classify the source: `evidence_level` is its study design on the evidence hierarchy "
+    "(META_ANALYSIS, SYSTEMATIC_REVIEW, RCT, NON_RANDOMIZED_TRIAL, COHORT, CASE_CONTROL, "
+    "CROSS_SECTIONAL, CASE_SERIES, GUIDELINE, NARRATIVE_REVIEW, PRECLINICAL, WEB_REPORT, OTHER); "
+    "`stance` is what it concludes about the research question (SUPPORTS, OPPOSES for harm or "
+    "worse outcomes, NULL_RESULT for no significant effect or a failed/stopped trial, MIXED, "
+    "ALTERNATIVE when it mainly studies another option, UNCLEAR). Report harms and null results "
+    "as faithfully as benefits."
 )
 
 ABSTRACT_ONLY = "abstract-only"
@@ -45,7 +57,8 @@ class ClaimDraft:
 
 @dataclass
 class SourceAppraisal:
-    """One appraised source. `rank` orders eligible sources; higher is better."""
+    """One appraised source. `rank` orders eligible sources within one evidence level; higher
+    is better. `evidence_level` and `stance` are the appraisal model's reading of the source."""
 
     source_id: str
     eligible: bool
@@ -58,3 +71,5 @@ class SourceAppraisal:
     rob2_json: str | None = None
     appraisal_json: str = "{}"
     claims: list[ClaimDraft] = field(default_factory=list)
+    evidence_level: EvidenceLevel | None = None
+    stance: EvidenceStance | None = None

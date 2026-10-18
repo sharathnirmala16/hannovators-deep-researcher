@@ -14,7 +14,7 @@ VOTE_KEYS = ("entity", "claim", "credibility")
 
 QUESTIONS = {
     RELEVANCE_KEY: RELEVANCE,
-    "entity": vote("Is the record about one of the scope entities?"),
+    "entity": vote("Is the record about one of the scope entities or counter-hypotheses?"),
     "claim": vote("Does the record give evidence for or against one of the scope claims?"),
     "credibility": vote("Is the record from a credible, identifiable source with evidence?"),
     EXCLUSION_KEY: exclusion(

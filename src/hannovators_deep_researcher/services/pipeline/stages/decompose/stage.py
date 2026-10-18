@@ -3,6 +3,7 @@
 The orchestrator handles the AWAITING_REVIEW checkpoint after this stage.
 """
 
+import json
 from dataclasses import dataclass
 from itertools import product
 
@@ -20,6 +21,7 @@ from hannovators_deep_researcher.models.enums import (
     SourceStatus,
     TraceEventKind,
 )
+from hannovators_deep_researcher.persistence.tables import SourceRow
 from hannovators_deep_researcher.services.pipeline.context import StageContext
 from hannovators_deep_researcher.services.pipeline.stages.decompose import general, medical
 from hannovators_deep_researcher.services.pipeline.stages.decompose.domain import detect_domain
@@ -94,12 +96,38 @@ async def _resolve_domain(
 
 
 async def _seed_context(ctx: StageContext) -> str:
+    """Seed titles plus their summary (from ingest) or abstract, as decomposition context."""
+
     seeds = await ctx.repositories.list_sources(ctx.workspace_id, [SourceStatus.SEED])
-    parts = [
-        f"- {seed.title}: {(seed.abstract or '')[:MAX_SEED_CHARS]}"
-        for seed in seeds[:MAX_SEEDS_IN_CONTEXT]
-    ]
-    return "\n\nSeed documents the user supplied:\n" + "\n".join(parts) if parts else ""
+    parts = [seed_line(seed) for seed in seeds[:MAX_SEEDS_IN_CONTEXT]]
+    if not parts:
+        return ""
+    await ctx.emit(
+        TraceEventKind.PROGRESS,
+        f"Using {len(parts)} seed document(s) as decomposition context",
+        {"seed_ids": [seed.id for seed in seeds[:MAX_SEEDS_IN_CONTEXT]]},
+    )
+    return (
+        "\n\nSeed documents the user supplied (use them to pick precise population, "
+        "intervention, comparator, and outcome terms; they may also report harms or null "
+        "results worth adding as outcomes):\n" + "\n".join(parts)
+    )
+
+
+def seed_line(seed: SourceRow) -> str:
+    extra = _extra(seed.extra_json)
+    summary = extra.get("seed_summary")
+    body = summary if isinstance(summary, str) and summary.strip() else seed.abstract or ""
+    design = f" [{seed.study_design}]" if seed.study_design else ""
+    return f"- {seed.title}{design}: {body.strip()[:MAX_SEED_CHARS]}"
+
+
+def _extra(raw: str | None) -> dict[str, object]:
+    try:
+        value = json.loads(raw) if raw else {}
+    except ValueError:
+        return {}
+    return value if isinstance(value, dict) else {}
 
 
 async def _draft_and_revise[D: PicotsDraft | ScopeDraft, R: PicotsRevision | ScopeRevision](
@@ -132,14 +160,20 @@ async def _draft_and_revise[D: PicotsDraft | ScopeDraft, R: PicotsRevision | Sco
 
 
 def complete_ic_pairs(decomposition: PicotsDecomposition) -> PicotsDecomposition:
-    """Pair every intervention with every comparison when the model gave no pairs."""
+    """Keep the model's pairs and pair every comparison no pair covers with each intervention,
+    so alternative comparators added by the decomposition are searched and synthesized too."""
 
-    if decomposition.ic_pairs or not decomposition.interventions:
+    if not decomposition.interventions:
+        return decomposition
+    covered = {pair.comparison.casefold() for pair in decomposition.ic_pairs}
+    missing = [item for item in decomposition.comparisons if item.casefold() not in covered]
+    if not missing:
         return decomposition
     pairs = [
-        InterventionComparisonPair(intervention=intervention, comparison=comparison)
-        for intervention, comparison in product(
-            decomposition.interventions, decomposition.comparisons
-        )
+        *decomposition.ic_pairs,
+        *(
+            InterventionComparisonPair(intervention=intervention, comparison=comparison)
+            for intervention, comparison in product(decomposition.interventions, missing)
+        ),
     ]
     return decomposition.model_copy(update={"ic_pairs": pairs})
