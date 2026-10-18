@@ -12,13 +12,34 @@ import pytest
 from openai import AsyncOpenAI
 from pydantic import BaseModel, ValidationError
 
-from hannovators_deep_researcher.adapters.nebius import NebiusEmbedder, parse_json_reply
+from hannovators_deep_researcher.adapters.nebius import (
+    NebiusEmbedder,
+    parse_json_reply,
+    require_all_properties,
+)
 
 pytestmark = pytest.mark.unit
 
 
 class _Answer(BaseModel):
     verdict: str
+
+
+class _Item(BaseModel):
+    name: str
+    note: str | None = None
+
+
+class _Reply(BaseModel):
+    items: list[_Item] = []
+    summary: str = ""
+
+
+def test_schema_marks_defaulted_and_nested_fields_required() -> None:
+    schema = require_all_properties(_Reply.model_json_schema())
+    assert set(schema["required"]) == {"items", "summary"}
+    assert set(schema["$defs"]["_Item"]["required"]) == {"name", "note"}
+    assert _Reply.model_validate({}).items == []
 
 
 class _StubEmbeddings:

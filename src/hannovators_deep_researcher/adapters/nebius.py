@@ -59,6 +59,25 @@ def parse_json_reply[T: BaseModel](schema: type[T], text: str) -> T:
     return schema.model_validate_json(extract_json(text))
 
 
+def require_all_properties(schema: dict[str, Any]) -> dict[str, Any]:
+    """Mark every object property as required, recursively.
+
+    Models skip optional fields under JSON-schema decoding, so fields with Pydantic defaults
+    (e.g. lists) came back empty. Pydantic still applies the defaults when validating.
+    """
+
+    if isinstance(schema.get("properties"), dict):
+        schema["required"] = list(schema["properties"])
+    for value in schema.values():
+        if isinstance(value, dict):
+            require_all_properties(value)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    require_all_properties(item)
+    return schema
+
+
 def _map_api_error(exc: openai.OpenAIError) -> ProviderFailure:
     if isinstance(exc, openai.APIStatusError):
         status = exc.status_code
@@ -109,7 +128,10 @@ class NebiusChatModel:
         ]
         response_format = {
             "type": "json_schema",
-            "json_schema": {"name": schema.__name__, "schema": schema.model_json_schema()},
+            "json_schema": {
+                "name": schema.__name__,
+                "schema": require_all_properties(schema.model_json_schema()),
+            },
         }
         temperature = _VISION_TEMPERATURE if images else _TEXT_TEMPERATURE
         model = self._settings.model_for(role)
