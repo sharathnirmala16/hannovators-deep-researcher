@@ -1,68 +1,113 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/* Light only: `dark:` utilities in the shadcn primitives never apply. */
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Design tokens (PLAN.md section 10.2).
+ *
+ * Direction: a reading desk for checking evidence. Neutral paper and graphite
+ * ink; the one bold color is the marker yellow that shows where a number or a
+ * claim came from (selected cells, PDF highlight rectangles, marked quotes,
+ * the active citation). Semantic hues are reserved for status, GRADE
+ * certainty, RoB 2, and stance.
+ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+  --radius: 0.375rem;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.922 0 0);
-  --sidebar-primary-foreground: oklch(0.205 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Neutral base */
+  --paper: #ffffff;
+  --desk: #f4f5f3;
+  --ink: #1d2226;
+  --graphite: #5c656d;
+  --rule: #e2e5e1;
+
+  /* The marker */
+  --marker: #ffe45c;
+  --marker-ink: #c99a00;
+
+  /* Semantic hues (strong values; tints are mixed from these) */
+  --tone-positive: #2c7a4b;
+  --tone-negative: #b23b31;
+  --tone-caution: #a86a12;
+  --tone-info: #2f64c8;
+  --tone-null: #6a55b0;
+  --tone-neutral: #6b737a;
+
+  /* Status, certainty, RoB 2, and stance map onto the hues */
+  --status-kept: var(--tone-positive);
+  --status-removed: var(--tone-negative);
+  --status-flagged: var(--tone-caution);
+  --status-running: var(--tone-info);
+  --status-error: var(--tone-negative);
+  --rob-low: #2c7a4b;
+  --rob-some: #d9a520;
+  --rob-high: #b23b31;
+
+  /* shadcn roles */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--desk);
+  --secondary-foreground: var(--ink);
+  --muted: var(--desk);
+  --muted-foreground: var(--graphite);
+  --accent: #eceeeb;
+  --accent-foreground: var(--ink);
+  --destructive: var(--tone-negative);
+  --border: var(--rule);
+  --input: #d3d7d2;
+  --ring: var(--tone-info);
+
+  --scrollbar-thumb: #c4c9c3;
 }
 
 @theme inline {
+  --font-sans:
+    'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-serif:
+    'Sitka Text', 'Iowan Old Style', Charter, 'Bitstream Charter', Cambria,
+    Georgia, serif;
+  --font-mono:
+    'Cascadia Mono', 'SF Mono', Consolas, 'Liberation Mono', ui-monospace,
+    monospace;
+
+  /* Type scale 12 / 13 / 14 / 16 / 20 */
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 20px;
+  --text-base: 14px;
+  --text-base--line-height: 22px;
+  --text-lg: 16px;
+  --text-lg--line-height: 24px;
+  --text-xl: 20px;
+  --text-xl--line-height: 28px;
+
+  --color-paper: var(--paper);
+  --color-desk: var(--desk);
+  --color-ink: var(--ink);
+  --color-graphite: var(--graphite);
+  --color-rule: var(--rule);
+  --color-marker: var(--marker);
+  --color-marker-ink: var(--marker-ink);
+  --color-tone-positive: var(--tone-positive);
+  --color-tone-negative: var(--tone-negative);
+  --color-tone-caution: var(--tone-caution);
+  --color-tone-info: var(--tone-info);
+  --color-tone-null: var(--tone-null);
+  --color-tone-neutral: var(--tone-neutral);
+  --color-rob-low: var(--rob-low);
+  --color-rob-some: var(--rob-some);
+  --color-rob-high: var(--rob-high);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -81,26 +126,119 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background font-sans text-sm text-foreground antialiased;
+    font-feature-settings: 'kern', 'liga';
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    @apply font-mono;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--marker) 70%, transparent);
+  }
+}
+
+/* The one scroll container of a pane: thin bar, stable gutter, no jumps. */
+@utility scroll-y {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+@utility scroll-xy {
+  overflow: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+/* The marker stroke used for selected values and marked quotes. */
+@utility marked {
+  background-color: color-mix(in srgb, var(--marker) 85%, transparent);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: 2px;
+  color: var(--ink);
+}
+
+/* pdf.js text layer (subset of pdfjs-dist/web/pdf_viewer.css). */
+.pdf-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  line-height: 1;
+  text-align: initial;
+  transform-origin: 0 0;
+  forced-color-adjust: none;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+
+.pdf-text-layer :is(span, br) {
+  position: absolute;
+  color: transparent;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.pdf-text-layer > :not(.markedContent),
+.pdf-text-layer .markedContent span:not(.markedContent) {
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x))
+    scale(var(--min-font-size-inv));
+}
+
+.pdf-text-layer .markedContent {
+  display: contents;
+}
+
+.pdf-text-layer ::selection {
+  background: color-mix(in srgb, var(--tone-info) 30%, transparent);
+  color: transparent;
+}
+
+.pdf-text-layer .endOfContent {
+  position: absolute;
+  inset: 100% 0 0;
+  display: block;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

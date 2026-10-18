@@ -16,3 +16,30 @@ export type {
   EventStreamStatus,
   WorkspaceEvents,
 } from './model/useWorkspaceEvents';
+export {
+  apiErrorStatus,
+  isUnavailable,
+  useWorkspaceClient,
+} from './model/clientContext';
+export {
+  STAGES,
+  STAGE_LABEL,
+  stageActivity,
+  stageStates,
+  type StageActivity,
+  type StageState,
+} from './model/stages';
+export {
+  CERTAINTY_TONE,
+  DOMAIN_MODE,
+  EVIDENCE_LEVEL,
+  REJECTION,
+  SEARCH_INTENT,
+  SOURCE_STATUS,
+  STANCE,
+  WORKSPACE_STATUS,
+  evidenceRank,
+  isCounterEvidence,
+  isKeptSource,
+  studyLabel,
+} from './model/labels';

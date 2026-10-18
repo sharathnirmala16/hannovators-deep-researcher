@@ -1,4 +1,8 @@
-import type { ClaimVerdict, WorkspaceState } from '@/domains/workspace';
+import {
+  studyLabel,
+  type ClaimVerdict,
+  type WorkspaceState,
+} from '@/domains/workspace';
 import { cn } from '@/shared/lib/cn';
 import {
   Table,
@@ -9,12 +13,7 @@ import {
   TableRow,
 } from '@/shared/ui/table';
 
-import {
-  contradictions,
-  groupByOutcome,
-  indexById,
-  studyLabel,
-} from '../model/evidence';
+import { contradictions, groupByOutcome, indexById } from '../model/evidence';
 import { ClaimCell } from './ClaimCell';
 
 const VERDICT: Record<ClaimVerdict, { label: string; className: string }> = {
