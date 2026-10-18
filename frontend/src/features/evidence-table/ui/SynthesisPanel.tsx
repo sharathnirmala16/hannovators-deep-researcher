@@ -23,9 +23,9 @@ const STRENGTH: Record<RecommendationStrength, string> = {
 };
 
 const DIRECTION_TONE: Record<RecommendationDirection, string> = {
-  FOR: 'border-emerald-800 bg-emerald-800 text-white',
-  AGAINST: 'border-rose-800 bg-rose-800 text-white',
-  NONE: 'border-foreground/40 bg-background text-foreground',
+  FOR: 'bg-tone-positive/10 text-tone-positive',
+  AGAINST: 'bg-tone-negative/10 text-tone-negative',
+  NONE: 'bg-foreground/5 text-foreground',
 };
 
 /** Pairwise summaries, then the analysis, then the recommendation. */
@@ -44,7 +44,7 @@ export function SynthesisPanel({ state }: { state: WorkspaceState }) {
   );
   const { recommendation, provenance } = synthesis;
   return (
-    <article className="flex flex-col gap-4 rounded-lg border bg-card p-4 text-sm">
+    <article className="flex flex-col gap-4 text-sm">
       <ol className="flex flex-col gap-3">
         {synthesis.pairwise_summaries.map((summary) => (
           <li
@@ -73,12 +73,12 @@ export function SynthesisPanel({ state }: { state: WorkspaceState }) {
         <h3 className="mb-1 font-semibold">Analysis</h3>
         <p className="leading-relaxed">{synthesis.analysis}</p>
       </section>
-      <section className="rounded-md border border-foreground/15 bg-muted/40 p-3">
+      <section className="rounded-md bg-muted p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <h3 className="font-semibold">Recommendation</h3>
           <span
             className={cn(
-              'rounded-md border px-2 py-0.5 text-xs font-semibold',
+              'rounded-sm px-2 py-0.5 text-xs font-semibold',
               DIRECTION_TONE[recommendation.direction],
             )}
           >

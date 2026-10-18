@@ -7,9 +7,9 @@ import { OUTCOME_TEXT } from './statusStyles';
 
 const WORD = { KEPT: 'kept', REMOVED: 'removed', FLAGGED: 'flagged' } as const;
 const SEGMENT = {
-  KEPT: 'bg-emerald-500',
-  REMOVED: 'bg-rose-500',
-  FLAGGED: 'bg-amber-500',
+  KEPT: 'bg-tone-positive',
+  REMOVED: 'bg-tone-negative',
+  FLAGGED: 'bg-tone-caution',
 } as const;
 
 interface OutcomeTallyProps {
@@ -30,7 +30,7 @@ export function OutcomeTally({ outcomes, errors = 0 }: OutcomeTallyProps) {
           </span>
         ))}
         {errors > 0 ? (
-          <span className="text-rose-600 dark:text-rose-400">
+          <span className="text-tone-negative">
             {formatCount(errors)} {errors === 1 ? 'error' : 'errors'}
           </span>
         ) : null}

@@ -48,7 +48,6 @@ export const StepRow = memo(function StepRow({
       onClick={() => onSelect(step.id)}
       className={cn(
         'cursor-default border-b-0 hover:bg-muted/40',
-        step.status === 'ERROR' && 'text-rose-700 dark:text-rose-400',
         'data-[active]:bg-muted/70 group-focus-visible/grid:data-[active]:outline-2 group-focus-visible/grid:data-[active]:-outline-offset-2 group-focus-visible/grid:data-[active]:outline-ring',
       )}
     >

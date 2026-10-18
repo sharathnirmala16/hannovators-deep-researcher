@@ -27,10 +27,7 @@ export function Notice({
       )}
     >
       <p
-        className={cn(
-          'font-medium',
-          tone === 'error' && 'text-rose-700 dark:text-rose-400',
-        )}
+        className={cn('font-medium', tone === 'error' && 'text-tone-negative')}
       >
         {title}
       </p>

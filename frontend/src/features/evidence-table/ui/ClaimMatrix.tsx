@@ -19,19 +19,19 @@ import { ClaimCell } from './ClaimCell';
 const VERDICT: Record<ClaimVerdict, { label: string; className: string }> = {
   SUPPORTED: {
     label: 'Supported',
-    className: 'border-emerald-700/30 bg-emerald-50 text-emerald-900',
+    className: 'bg-tone-positive/10 text-tone-positive',
   },
   CONTRADICTED: {
     label: 'Contradicted',
-    className: 'border-rose-700/30 bg-rose-50 text-rose-900',
+    className: 'bg-tone-negative/10 text-tone-negative',
   },
   MIXED: {
     label: 'Mixed',
-    className: 'border-amber-700/30 bg-amber-50 text-amber-900',
+    className: 'bg-tone-caution/10 text-tone-caution',
   },
   UNVERIFIED: {
     label: 'Unverified',
-    className: 'border-border bg-muted text-muted-foreground',
+    className: 'bg-muted text-muted-foreground',
   },
 };
 
@@ -69,10 +69,8 @@ export function ClaimMatrix({ state }: { state: WorkspaceState }) {
   return (
     <div className="flex flex-col gap-4">
       {groups.map(([outcome, claims]) => (
-        <section key={outcome} className="rounded-lg border bg-card">
-          <h3 className="border-b px-4 py-3 text-sm font-semibold">
-            {outcome}
-          </h3>
+        <section key={outcome} className="flex flex-col">
+          <h3 className="border-b py-2 text-sm font-semibold">{outcome}</h3>
           <Table>
             <TableHeader>
               <TableRow>
@@ -98,7 +96,7 @@ export function ClaimMatrix({ state }: { state: WorkspaceState }) {
                     <TableCell className="align-top">
                       <span
                         className={cn(
-                          'rounded-md border px-2 py-0.5 text-xs font-medium',
+                          'rounded-sm px-2 py-0.5 text-xs font-medium',
                           verdict.className,
                         )}
                       >

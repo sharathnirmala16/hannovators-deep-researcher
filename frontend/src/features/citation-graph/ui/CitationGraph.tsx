@@ -136,7 +136,7 @@ function GraphCanvas({ graph }: { graph: GraphView }) {
       ref={container}
       role="img"
       aria-label="Citation graph of seeds, promoted, discounted, and web sources"
-      className="h-[26rem] w-full rounded-md border bg-background"
+      className="h-[26rem] w-full rounded-md bg-muted/40"
     />
   );
 }
@@ -161,7 +161,7 @@ export function CitationGraph() {
         </p>
       </header>
       {graph.nodes.length === 0 ? (
-        <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+        <div className="px-4 py-8 text-center text-sm text-muted-foreground">
           No sources yet. The graph fills in as the search finds and links
           sources.
         </div>
@@ -173,7 +173,7 @@ export function CitationGraph() {
               <li key={category} className="inline-flex items-center gap-1.5">
                 <span
                   aria-hidden
-                  className="size-2.5 rounded-full border border-stone-300"
+                  className="size-2.5 rounded-full border border-border"
                   style={{ backgroundColor: CATEGORY_STYLE[category].color }}
                 />
                 {CATEGORY_STYLE[category].label}

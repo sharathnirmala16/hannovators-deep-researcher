@@ -19,7 +19,7 @@ function Marked({ text, quote }: { text: string; quote: string | null }) {
         segment.marked ? (
           <mark
             key={index}
-            className="rounded-sm bg-yellow-200 px-0.5 text-foreground"
+            className="rounded-sm bg-marker px-0.5 text-foreground"
           >
             {segment.text}
           </mark>
@@ -52,21 +52,21 @@ export function SnapshotView({ url, quote }: SnapshotViewProps) {
   const current = load && load.url === url ? load : null;
   if (current?.status === 'ready') {
     return (
-      <div className="max-h-[32rem] overflow-auto rounded-md border bg-background p-4 font-serif text-sm leading-relaxed whitespace-pre-wrap">
+      <div className="max-h-[32rem] overflow-auto rounded-md bg-muted/40 p-4 font-serif text-sm leading-relaxed whitespace-pre-wrap">
         <Marked text={current.text} quote={quote} />
       </div>
     );
   }
   return (
-    <div className="space-y-2 rounded-md border bg-background p-4 text-sm">
+    <div className="space-y-2 rounded-md bg-muted/40 p-4 text-sm">
       <p className="text-xs text-muted-foreground">
         {url && !current
           ? 'Loading the snapshot.'
           : 'The snapshot file is not available, so only the extracted quote is shown.'}
       </p>
       {quote ? (
-        <blockquote className="border-l-2 border-yellow-400 pl-3 font-serif leading-relaxed">
-          <mark className="rounded-sm bg-yellow-200 px-0.5 text-foreground">
+        <blockquote className="border-l-2 border-marker-ink pl-3 font-serif leading-relaxed">
+          <mark className="rounded-sm bg-marker px-0.5 text-foreground">
             {quote}
           </mark>
         </blockquote>

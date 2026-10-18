@@ -22,7 +22,7 @@ export function TableFooterRow({ paging, columns }: TableFooterRowProps) {
     content = <span className="text-muted-foreground">Loading more steps</span>;
   } else if (error) {
     content = (
-      <span className="flex items-center gap-2 text-rose-700 dark:text-rose-400">
+      <span className="flex items-center gap-2 text-tone-negative">
         Could not load more steps: {error}
         <Button size="xs" variant="outline" onClick={onLoadMore}>
           Try again

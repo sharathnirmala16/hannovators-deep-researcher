@@ -26,7 +26,7 @@ function SourceSwitcher({
       <select
         value={known ? value : ''}
         onChange={(event) => onChange(event.target.value)}
-        className="h-8 rounded-md border bg-background px-2 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
         <option value="" disabled>
           Choose a promoted source
@@ -46,7 +46,7 @@ function SourceBody({ state }: { state: WorkspaceState }) {
   const resolved = resolveSource(selection, state);
   if (!resolved) {
     return (
-      <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+      <div className="px-4 py-8 text-center text-sm text-muted-foreground">
         Click a number or claim in the evidence table, a node in the graph, or
         choose a source above. The source opens here at the highlighted page.
       </div>
@@ -64,7 +64,7 @@ function SourceBody({ state }: { state: WorkspaceState }) {
         </p>
       </div>
       {claim ? (
-        <p className="border-l-2 border-yellow-400 pl-2 text-xs">
+        <p className="border-l-2 border-marker-ink pl-2 text-xs">
           <span className="font-medium">{claim.label}:</span> {claim.text}
         </p>
       ) : null}
@@ -73,7 +73,7 @@ function SourceBody({ state }: { state: WorkspaceState }) {
           key={url}
           src={url}
           title={`${source.title}, page ${page}`}
-          className="h-[36rem] w-full rounded-md border bg-muted"
+          className="h-[36rem] w-full rounded-md bg-muted"
         />
       ) : (
         <SnapshotView

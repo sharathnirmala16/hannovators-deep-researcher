@@ -91,45 +91,55 @@
   --text-xl: 20px;
   --text-xl--line-height: 28px;
 
-  --color-paper: var(--paper);
-  --color-desk: var(--desk);
-  --color-ink: var(--ink);
-  --color-graphite: var(--graphite);
-  --color-rule: var(--rule);
-  --color-marker: var(--marker);
-  --color-marker-ink: var(--marker-ink);
-  --color-tone-positive: var(--tone-positive);
-  --color-tone-negative: var(--tone-negative);
-  --color-tone-caution: var(--tone-caution);
-  --color-tone-info: var(--tone-info);
-  --color-tone-null: var(--tone-null);
-  --color-tone-neutral: var(--tone-neutral);
-  --color-rob-low: var(--rob-low);
-  --color-rob-some: var(--rob-some);
-  --color-rob-high: var(--rob-high);
-
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
+}
+
+/*
+ * Color utilities use literal values (kept in sync with :root above), not
+ * var() references. Tailwind can then precompute a translucent fallback for
+ * opacity modifiers such as `bg-tone-info/10` (`#2f64c81a`). With var()
+ * references the fallback is the solid color, which browsers without
+ * `color-mix()` support render as heavy blocks.
+ */
+@theme {
+  --color-paper: #ffffff;
+  --color-desk: #f4f5f3;
+  --color-ink: #1d2226;
+  --color-graphite: #5c656d;
+  --color-rule: #e2e5e1;
+  --color-marker: #ffe45c;
+  --color-marker-ink: #c99a00;
+  --color-tone-positive: #2c7a4b;
+  --color-tone-negative: #b23b31;
+  --color-tone-caution: #a86a12;
+  --color-tone-info: #2f64c8;
+  --color-tone-null: #6a55b0;
+  --color-tone-neutral: #6b737a;
+  --color-rob-low: #2c7a4b;
+  --color-rob-some: #d9a520;
+  --color-rob-high: #b23b31;
+
+  --color-background: #ffffff;
+  --color-foreground: #1d2226;
+  --color-card: #ffffff;
+  --color-card-foreground: #1d2226;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1d2226;
+  --color-primary: #1d2226;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f4f5f3;
+  --color-secondary-foreground: #1d2226;
+  --color-muted: #f4f5f3;
+  --color-muted-foreground: #5c656d;
+  --color-accent: #eceeeb;
+  --color-accent-foreground: #1d2226;
+  --color-destructive: #b23b31;
+  --color-border: #e2e5e1;
+  --color-input: #d3d7d2;
+  --color-ring: #2f64c8;
 }
 
 @layer base {
@@ -159,7 +169,7 @@
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--marker) 70%, transparent);
+    background: #ffe45cb3;
   }
 }
 
@@ -179,7 +189,7 @@
 
 /* The marker stroke used for selected values and marked quotes. */
 @utility marked {
-  background-color: color-mix(in srgb, var(--marker) 85%, transparent);
+  background-color: #ffe45cd9;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
   border-radius: 2px;
@@ -223,7 +233,7 @@
 }
 
 .pdf-text-layer ::selection {
-  background: color-mix(in srgb, var(--tone-info) 30%, transparent);
+  background: #2f64c84d;
   color: transparent;
 }
 

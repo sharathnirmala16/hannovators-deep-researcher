@@ -12,9 +12,9 @@ const LABEL: Record<LiveStatus, string> = {
 
 const DOT: Record<LiveStatus, string> = {
   off: 'bg-muted-foreground/50',
-  connecting: 'bg-sky-500/60',
-  live: 'bg-sky-500 motion-safe:animate-pulse',
-  interrupted: 'bg-amber-500',
+  connecting: 'bg-tone-info/60',
+  live: 'bg-tone-info motion-safe:animate-pulse',
+  interrupted: 'bg-tone-caution',
 };
 
 interface LiveToggleProps {
