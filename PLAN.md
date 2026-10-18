@@ -17,7 +17,7 @@ Read sections 1 to 6 before you start a lane. Then read only your lane in sectio
 | System-1 decisions (screening, span choice, UI routing, domain detection) | **Jev** through the **Command Code** Provider API: `POST https://api.commandcode.ai/provider/v1/systemone`, model `typesafe/jev-1.14.0` (pinned; `typesafe/jev` is the floating alias). Question types `choice`, `score`, `noul`. There is no other System-1 model. |
 | Agent model (decompose, query rewrite, appraise, extract, synthesize) | **NVIDIA Nemotron 3.5 Super VL** on Nebius Token Factory (`nvidia/Nemotron-3.5-Super-VL`, OpenAI-compatible, 1M context, structured output, tool use, image input). One model for all roles. Each role can override the model ID by env var. |
 | Embeddings | **Qwen3-Embedding-8B** on Nebius Token Factory (`Qwen/Qwen3-Embedding-8B`, 4096 dimensions native, MRL). Stored at `EMBEDDING_DIMENSIONS` (default 1024). Dense half of hybrid retrieval and the screening fallback. |
-| Web search + extract | **Provider abstraction ported from `.archive/freesearch/`** with `auto` mode. Tavily is priority 1. Exa is the first fallback. More providers are stretch work. |
+| Web search + extract | **Provider abstraction ported from `.archive/freesearch/`** with `auto` mode. Tavily is the only provider in A3. Exa and other providers are stretch work (X4). |
 | Literature | PubMed E-utilities (`esearch`/`efetch`/`elink`) + Europe PMC open-access PDFs. Semantic Scholar and Unpaywall are stretch work. |
 
 Jev facts that shape the design (verify against the Command Code model page when you implement A2):
@@ -115,7 +115,7 @@ src/hannovators_deep_researcher/
     fake/                              [P0] deterministic fakes for every port (offline mode + tests)
     nebius.py                          [A1] ChatModel + Embedder
     jev.py                             [A2] DecisionModel
-    websearch/tavily.py, exa.py        [A3] provider adapters
+    websearch/tavily.py                [A3] provider adapter (exa.py and others: X4)
     pubmed.py, europepmc.py            [A4] LiteratureSearch + open-access PDF lookup
   persistence/
     base.py                            (exists)
@@ -124,7 +124,8 @@ src/hannovators_deep_researcher/
     queries/<lane>.py                  [lane] extra queries a lane needs (one new file per lane)
     migrations/versions/0002_core_schema.py [P0]
   services/
-    ranking.py                         [P0] reciprocal_rank_fusion, z_scores, canonicalize_url (pure)
+    ranking.py                         [P0] reciprocal_rank_fusion, z_scores (pure)
+    urls.py                            [A3] canonicalize_url (pure; S3 imports it for dedupe)
     events.py                          [P0] DB-backed EventSink
     websearch_router.py                [A3] auto/prefer/require routing + chained failover
     documents/                         [A5] pdf_chunker, markdown_chunker, files (safe paths, download), highlighter, page_render
@@ -432,7 +433,7 @@ across reconnects and survives a browser reload.
 | `JEV_CONCURRENCY` | `8` | Semaphore for per-candidate requests |
 | `JEV_MAX_STATE_TOKENS` | `24000` | Budget below the 32K context; the adapter truncates longer states |
 | `WEB_SEARCH_PROVIDER` | `auto` | `auto`, or one provider name to pin it |
-| `WEB_SEARCH_PRIORITY` | `tavily,exa` | Order for `auto` |
+| `WEB_SEARCH_PRIORITY` | `tavily,exa` | Order for `auto`. Names without a registered adapter (Exa until X4) are skipped with a startup warning. |
 | `TAVILY_API_KEY`, `EXA_API_KEY` | - | A provider without a key is skipped in `auto` |
 | `NCBI_API_KEY`, `NCBI_EMAIL` | - | Raises the PubMed limit from 3 to 10 requests/s |
 | `RUN_BUDGET_MAX_CANDIDATES` | `100` | Hard cap on screened candidates per run |
@@ -480,6 +481,11 @@ Phase 0 parallelism: after P0.1, run P0.3 (backend) and P0.6 (frontend) in two w
 run from the start. Stage lanes (Phase 2) may start right after G0 against fakes, but merge only after
 G1 so they can tune prompts and thresholds against real adapters.
 
+Early start: A3 (Tavily) and A5 (documents) need only P0.1 (ports, settings, `respx`, markers). They
+run in parallel with the rest of Phase 0 and may merge before G0, because they add only their own
+files. P0.5 then skips stubs for modules that already exist. A1, A2, and A4 can also start early when
+capacity allows. A6 waits for P0.4 (`ranking.py`); A7 and the F-lanes wait for G0.
+
 ### 7.3 Phase 0: foundation
 
 Phase 0 cards edit `[P0]` files, so they run on `main` (or short-lived branches merged right away).
@@ -510,16 +516,16 @@ Phase 0 cards edit `[P0]` files, so they run on `main` (or short-lived branches 
 - Tests: migration upgrade/downgrade expects the new tables; UNIQUE(`workspace_id`, `external_id`) rejects a duplicate.
 
 **P0.4 pipeline core** (needs P0.3)
-- `services/ranking.py` (RRF, z-scores, `canonicalize_url`), `services/events.py` (DB-backed `EventSink`),
+- `services/ranking.py` (RRF, z-scores), `services/events.py` (DB-backed `EventSink`),
   `services/pipeline/context.py`, `orchestrator.py` (stage order from section 3, status changes, checkpoint
   after `decompose`, resume, failure capture), one stub package per `StageId` (emits "not implemented").
-- Tests: z-scores with zero variance and with one item; RRF with empty lists and ties; `canonicalize_url`
-  strips tracking params and `www.`; orchestrator stops at `AWAITING_REVIEW` and resumes; a stage
-  exception sets `FAILED` and keeps earlier events.
+- Tests: z-scores with zero variance and with one item; RRF with empty lists and ties; orchestrator stops
+  at `AWAITING_REVIEW` and resumes; a stage exception sets `FAILED` and keeps earlier events.
 
 **P0.5 app skeleton and fakes** (needs P0.4 and P0.6)
-- `adapters/fake/*` and `adapters/fake/data/` per section 5.1; stub modules for every A-lane file
-  (raise `NotImplementedError`); `routers/*` stubs (501) except a minimal working `POST /workspaces`,
+- `adapters/fake/*` and `adapters/fake/data/` per section 5.1; stub modules (raise `NotImplementedError`)
+  for every A-lane file that does not exist yet; never overwrite a lane module that is already merged
+  (A3 and A5 may land first); wire merged real adapters in `main.py`; `routers/*` stubs (501) except a minimal working `POST /workspaces`,
   `POST /run`, and SSE needed by the e2e test; `main.py` composition root; `/files` mount.
 - `tests/e2e/test_pipeline_offline.py`: create workspace -> run -> SSE until `COMPLETED`.
 - `tests/integration/contract/test_fixtures.py`: both frontend fixtures validate as `WorkspaceState`.
@@ -571,15 +577,19 @@ Each card lists: owned files, work, required edge-case tests, live checks, done-
   `Retry-After`; an over-long state is truncated, not sent whole; 21 choice options -> error before any call.
 - Live: one request with one `choice`, one `score`, and one `noul` question.
 
-**A3 websearch** - `infrastructure/resilience.py`, `adapters/websearch/*`, `services/websearch_router.py`, matching tests
-- Port from `.archive/freesearch/`: `ResilientRunner` (retry on 429/5xx/transport errors, `Retry-After`,
-  per-provider circuit breaker), Tavily (search + extract), Exa (search + contents). Router modes:
-  `auto` (priority order, skip unconfigured or open-circuit providers, chained failover on retryable
-  errors), `prefer`, `require`. `fetch` uses only providers with `supports_fetch`. Canonicalize and dedupe URLs.
-- Tests: primary returns 429 -> fallback answers and the trace lists both; all providers fail -> one
-  typed error with each provider's reason; no configured provider -> clear error at startup;
-  pinned provider without a key -> error, no silent fallback.
-- Live: Tavily search (limit 3) and extract (one URL); `auto` picks the first configured provider.
+**A3 websearch** (early start after P0.1; high priority) - `infrastructure/resilience.py`,
+`adapters/websearch/tavily.py`, `services/websearch_router.py`, `services/urls.py`, matching tests
+- Port from `.archive/freesearch/` and keep it slim: `ResilientRunner` (retry on 429/5xx/transport
+  errors, `Retry-After`, per-provider circuit breaker); Tavily only (search + extract) through
+  `tavily-python`, dropping freesearch quota, PAYGO, and usage bookkeeping. Router modes: `auto`
+  (priority order, skip unconfigured, unregistered, or open-circuit providers, chained failover on
+  retryable errors), `prefer`, `require`. `fetch` uses only providers with `supports_fetch`.
+  `services/urls.py`: `canonicalize_url`; dedupe results by canonical URL. Exa and others come in X4.
+- Tests (failover uses a second in-test provider double): primary returns 429 -> fallback answers and
+  the trace lists both; all providers fail -> one typed error with each provider's reason; no configured
+  provider -> clear error at startup; pinned provider without a key -> error, no silent fallback;
+  `canonicalize_url` strips tracking params, `www.`, default ports, and fragments.
+- Live: Tavily search (limit 3) and extract (one URL); `auto` picks Tavily.
 
 **A4 literature** - `infrastructure/rate_limit.py`, `adapters/pubmed.py`, `adapters/europepmc.py`, matching tests
 - PubMed `esearch` (count and IDs), `efetch` XML -> `CandidateRecord` (title, abstract with labelled

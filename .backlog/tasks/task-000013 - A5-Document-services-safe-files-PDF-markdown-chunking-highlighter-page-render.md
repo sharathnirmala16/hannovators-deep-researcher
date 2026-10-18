@@ -6,13 +6,14 @@ title: >-
 status: To Do
 assignee: []
 created_date: '2026-10-18 12:20'
+updated_date: '2026-10-18 13:21'
 labels:
   - phase-1
   - backend
   - 'lane:a5'
 milestone: m-1
 dependencies:
-  - TASK-000008
+  - TASK-000001
 documentation:
   - PLAN.md
 priority: high
@@ -26,7 +27,7 @@ ordinal: 13000
 Every source file goes through one safe path module, and chunks need page and bounding-box data so claims can be highlighted in the PDF. No network calls except the download helper.
 
 Spec: PLAN.md section 4.1, card "A5 documents" in section 7.4.
-Starts after: Gate G0. Parallel with: every other Phase 1 task (A1-A7, F1-F6).
+Early start: needs only P0.1 (Done). Parallel with: P0.3, P0.6, A3. May merge before Gate G0 (own files only).
 Worktree: lane/a5-documents
 <!-- SECTION:DESCRIPTION:END -->
 

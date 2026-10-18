@@ -1,9 +1,10 @@
 ---
 id: TASK-000042
-title: X4 More web search providers in the auto chain
+title: 'X4 More web search providers in the auto chain (Exa, Brave, ...)'
 status: To Do
 assignee: []
 created_date: '2026-10-18 12:22'
+updated_date: '2026-10-18 13:21'
 labels:
   - phase-4
   - backend
@@ -31,9 +32,9 @@ Worktree: lane/x4-providers
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 Brave, Firecrawl, and You.com adapters implement WebSearchProvider and join WEB_SEARCH_PRIORITY
-- [ ] #2 Optional fanout merges results with RRF (test for dedup across providers)
-- [ ] #3 One live check per adapter
+- [ ] #1 Optional fanout merges results with RRF (test for dedup across providers)
+- [ ] #2 One live check per adapter
+- [ ] #3 Exa (search + contents), Brave, Firecrawl, and You.com adapters implement WebSearchProvider and join WEB_SEARCH_PRIORITY
 <!-- AC:END -->
 
 ## Definition of Done
