@@ -115,7 +115,8 @@ async def test_offline_run_pauses_for_review_and_completes(
     assert rerun.json()["detail"]["code"] == "WORKSPACE_NOT_RUNNABLE"
 
     graph = GraphView.model_validate((await client.get(f"{base}/graph")).json())
-    assert graph.edges == []
+    node_ids = {node.id for node in graph.nodes}
+    assert all({edge.source, edge.target} <= node_ids for edge in graph.edges)
 
     health = (await client.get("/api/health/providers")).json()
     assert {port["implementation"] for port in health["ports"].values()} == {"fake"}

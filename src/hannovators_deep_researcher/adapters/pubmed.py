@@ -1,6 +1,7 @@
 """PubMed E-utilities `LiteratureSearch`: esearch for counts and IDs, efetch XML for records."""
 
 import asyncio
+import logging
 import re
 import time
 from collections.abc import Sequence
@@ -22,6 +23,14 @@ RATE_WITH_KEY = 10.0
 EFETCH_BATCH = 200
 _TOOL = "hannovators-deep-researcher"
 _YEAR = re.compile(r"\d{4}")
+EUROPEPMC_SEARCH_URL = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+EUROPEPMC_RENDER_URL = "https://europepmc.org/articles/{pmcid}?pdf=render"
+_OPEN_AVAILABILITY = frozenset({"OA", "F"})
+# PMC Article Datasets on AWS (open data, no bot challenge): `<PMCID>.<v>/<PMCID>.<v>.pdf`.
+PMC_OPENDATA_URL = "https://pmc-oa-opendata.s3.amazonaws.com/"
+_PMC_PDF_KEY = re.compile(r"<Key>((PMC\d+)\.(\d+)/\2\.\3\.pdf)</Key>")
+
+logger = logging.getLogger(__name__)
 
 
 def _failure(
@@ -111,6 +120,75 @@ def _record(node: Element) -> CandidateRecord | None:
     )
 
 
+def europepmc_query(record: CandidateRecord) -> str | None:
+    """The Europe PMC search query that finds this record: PMID, else PMCID, else DOI."""
+
+    if record.pmid:
+        return f"EXT_ID:{record.pmid} AND SRC:MED"
+    if record.pmcid:
+        return f"PMCID:{record.pmcid}"
+    if record.doi:
+        return f'DOI:"{record.doi}"'
+    return None
+
+
+def _open_pdf_links(result: dict[str, Any]) -> list[str]:
+    url_list = result.get("fullTextUrlList")
+    entries = url_list.get("fullTextUrl") if isinstance(url_list, dict) else None
+    links: list[tuple[int, str]] = []
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict):
+            continue
+        url = entry.get("url")
+        if (
+            isinstance(url, str)
+            and entry.get("documentStyle") == "pdf"
+            and entry.get("availabilityCode") in _OPEN_AVAILABILITY
+        ):
+            links.append((0 if entry.get("site") == "Europe_PMC" else 1, url))
+    return [url for _, url in sorted(links)]
+
+
+def europepmc_open_pmcid(payload: object) -> tuple[str | None, list[str]]:
+    """Read a Europe PMC `resultType=core` search reply.
+
+    Returns the PMCID when its full text is open in Europe PMC (else None), and the open-access
+    or free `fullTextUrlList` PDF links (Europe PMC first). Malformed replies give `(None, [])`.
+    """
+
+    result_list = payload.get("resultList") if isinstance(payload, dict) else None
+    results = result_list.get("result") if isinstance(result_list, dict) else None
+    if not isinstance(results, list) or not results or not isinstance(results[0], dict):
+        return None, []
+    result: dict[str, Any] = results[0]
+    pmcid = result.get("pmcid")
+    open_in_epmc = result.get("isOpenAccess") == "Y" or (
+        result.get("inEPMC") == "Y" and result.get("hasPDF") == "Y"
+    )
+    is_pmcid = isinstance(pmcid, str) and pmcid.startswith("PMC")
+    return (pmcid if is_pmcid and open_in_epmc else None), _open_pdf_links(result)
+
+
+def europepmc_pdf_url(payload: object) -> str | None:
+    """The best PDF URL in a Europe PMC reply: `?pdf=render` for an open PMCID, else a link."""
+
+    pmcid, links = europepmc_open_pmcid(payload)
+    if pmcid:
+        return EUROPEPMC_RENDER_URL.format(pmcid=pmcid)
+    return links[0] if links else None
+
+
+def pmc_opendata_pdf_url(listing: str, pmcid: str) -> str | None:
+    """The newest `<PMCID>.<v>/<PMCID>.<v>.pdf` key in a PMC open-data S3 listing, as a URL."""
+
+    versions = [
+        (int(match.group(3)), match.group(1))
+        for match in _PMC_PDF_KEY.finditer(listing)
+        if match.group(2) == pmcid
+    ]
+    return f"{PMC_OPENDATA_URL}{max(versions)[1]}" if versions else None
+
+
 def parse_efetch_xml(xml: str | bytes) -> list[CandidateRecord]:
     """Turn an efetch `PubmedArticleSet` into records. Malformed XML raises `ProviderFailure`."""
 
@@ -158,7 +236,44 @@ class PubMedSearch:
         return []
 
     async def open_access_pdf_url(self, record: CandidateRecord) -> str | None:
-        return None
+        """An open-access PDF URL from Europe PMC, or None (also on any lookup error)."""
+
+        if record.pdf_url:
+            return record.pdf_url
+        query = europepmc_query(record)
+        if query is None:
+            return None
+        params = {"query": query, "resultType": "core", "format": "json", "pageSize": "1"}
+        try:
+            response = await self._http.get(EUROPEPMC_SEARCH_URL, params=params)
+        except httpx.HTTPError as exc:
+            logger.warning("Europe PMC lookup failed for %s: %s", query, type(exc).__name__)
+            return None
+        if response.status_code >= 400:
+            logger.warning("Europe PMC lookup for %s returned HTTP %s", query, response.status_code)
+            return None
+        try:
+            payload = response.json()
+        except ValueError:
+            return None
+        pmcid, links = europepmc_open_pmcid(payload)
+        if pmcid is None:
+            opendata = await self._pmc_opendata_pdf(record.pmcid) if record.pmcid else None
+            return opendata or (links[0] if links else None)
+        # Europe PMC's `?pdf=render` sits behind a bot challenge for non-browser clients, so the
+        # PMC open-data copy comes first when it has the PDF.
+        return await self._pmc_opendata_pdf(pmcid) or EUROPEPMC_RENDER_URL.format(pmcid=pmcid)
+
+    async def _pmc_opendata_pdf(self, pmcid: str) -> str | None:
+        params = {"list-type": "2", "prefix": f"{pmcid}."}
+        try:
+            response = await self._http.get(PMC_OPENDATA_URL, params=params)
+        except httpx.HTTPError as exc:
+            logger.warning("PMC open-data listing failed for %s: %s", pmcid, type(exc).__name__)
+            return None
+        if response.status_code >= 400:
+            return None
+        return pmc_opendata_pdf_url(response.text, pmcid)
 
     async def _esearch(self, query: str, *, retmax: int) -> dict[str, Any]:
         params = {"db": "pubmed", "term": query, "retmax": str(retmax), "retmode": "json"}
