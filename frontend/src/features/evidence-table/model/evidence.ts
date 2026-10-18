@@ -1,10 +1,12 @@
-import type {
-  ClaimVerdict,
-  ClaimView,
-  GradeCertainty,
-  SourceView,
-  Synthesis,
+import {
+  evidenceRank,
+  type ClaimVerdict,
+  type ClaimView,
+  type GradeCertainty,
+  type SourceView,
+  type Synthesis,
 } from '@/domains/workspace';
+import type { Tone } from '@/shared/ui/tag';
 
 type GradeAssessment = Synthesis['pairwise_summaries'][number]['grade'];
 
@@ -30,6 +32,13 @@ export const CERTAINTY_LABEL: Record<GradeCertainty, string> = {
   VERY_LOW: 'Very low',
 };
 
+export const VERDICT: Record<ClaimVerdict, { label: string; tone: Tone }> = {
+  SUPPORTED: { label: 'Supported', tone: 'positive' },
+  CONTRADICTED: { label: 'Contradicted', tone: 'negative' },
+  MIXED: { label: 'Mixed', tone: 'caution' },
+  UNVERIFIED: { label: 'Unverified', tone: 'neutral' },
+};
+
 export interface DowngradeReason {
   domain: string;
   text: string;
@@ -44,17 +53,18 @@ export function downgradeReasons(grade: GradeAssessment): DowngradeReason[] {
   );
 }
 
-/** Short study label: first author surname and year, else the title. */
-export function studyLabel(source: SourceView): string {
-  const author = source.authors[0]?.split(' ')[0];
-  if (author && source.year) return `${author} ${source.year}`;
-  return source.title;
-}
-
 export function indexById<T extends { id: string }>(
   items: readonly T[],
 ): Map<string, T> {
   return new Map(items.map((item) => [item.id, item]));
+}
+
+/** Strongest evidence first (meta-analysis, RCT, ...), then screen score. */
+export function byEvidenceRank(a: SourceView, b: SourceView): number {
+  return (
+    evidenceRank(a) - evidenceRank(b) ||
+    (b.screen_score ?? 0) - (a.screen_score ?? 0)
+  );
 }
 
 export interface StudyClaims {

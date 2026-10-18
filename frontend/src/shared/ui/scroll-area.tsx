@@ -2,14 +2,21 @@ import * as React from 'react';
 import { cn } from 'cn';
 import { ScrollArea as ScrollAreaPrimitive } from 'radix-ui';
 
+/**
+ * Radix scroll area. `type="auto"` keeps the bar visible whenever the content
+ * overflows, so it never appears and disappears on hover. Prefer the
+ * `scroll-y` utility (via `PaneBody`) for pane bodies.
+ */
 function ScrollArea({
   className,
   children,
+  type = 'auto',
   ...props
 }: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
+      type={type}
       className={cn('relative', className)}
       {...props}
     >

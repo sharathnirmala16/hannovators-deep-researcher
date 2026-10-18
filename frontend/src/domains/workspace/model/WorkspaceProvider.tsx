@@ -2,12 +2,14 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 
+import type { UserActionRequest } from '../api/auditSchema';
 import type { WorkspaceClient } from '../api/contract';
-import { workspaceClient } from '../api/workspaceClient';
+import { useWorkspaceClient } from './clientContext';
 import { useWorkspaceEvents } from './useWorkspaceEvents';
 import {
   WorkspaceContext,
@@ -15,24 +17,12 @@ import {
   type WorkspaceLoad,
 } from './workspaceContext';
 
-const WORKSPACE_PARAM = 'workspace';
+/** Reload the state at most this often while events stream in. */
+const RELOAD_THROTTLE_MS = 1500;
 
 interface LoadResult {
   workspaceId: string;
   load: WorkspaceLoad;
-}
-
-/** `undefined` means "use the client's default workspace". */
-function readUrlWorkspaceId(): string | undefined {
-  const id = new URLSearchParams(window.location.search).get(WORKSPACE_PARAM);
-  return id || undefined;
-}
-
-function writeUrlWorkspaceId(id: string | null): void {
-  const url = new URL(window.location.href);
-  if (id) url.searchParams.set(WORKSPACE_PARAM, id);
-  else url.searchParams.delete(WORKSPACE_PARAM);
-  window.history.replaceState(window.history.state, '', url);
 }
 
 async function loadWorkspace(
@@ -52,50 +42,96 @@ async function loadWorkspace(
   }
 }
 
-interface WorkspaceProviderProps {
-  children: ReactNode;
-  client?: WorkspaceClient;
+/** Reloads (throttled) whenever new trace events arrive or the stream ends. */
+function useLiveReload(signal: string, reload: () => void): void {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (timer.current !== null) return;
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      reload();
+    }, RELOAD_THROTTLE_MS);
+  }, [signal, reload]);
+  useEffect(
+    () => () => {
+      if (timer.current !== null) clearTimeout(timer.current);
+      timer.current = null;
+    },
+    [],
+  );
 }
 
-/** Loads one workspace and its trace events for the whole app. */
-export function WorkspaceProvider({
-  children,
-  client = workspaceClient,
-}: WorkspaceProviderProps) {
-  const [workspaceId, setWorkspaceId] = useState<string | null | undefined>(
-    readUrlWorkspaceId,
-  );
-  const [reloadToken, setReloadToken] = useState(0);
-  const [result, setResult] = useState<LoadResult | null>(null);
-  const openId = workspaceId ?? null;
-  const { events, status: eventStatus } = useWorkspaceEvents(client, openId);
+interface WorkspaceProviderProps {
+  /** The workspace chosen by the route, or null for none. */
+  workspaceId: string | null;
+  children: ReactNode;
+  client?: WorkspaceClient;
+  /** Called by `openWorkspace`; the app router navigates. */
+  onOpenWorkspace?: (id: string | null) => void;
+}
 
-  useEffect(() => {
-    if (workspaceId !== undefined) return undefined;
-    let active = true;
-    const resolve = (id: string | null) => {
-      if (active) setWorkspaceId(id);
-    };
-    client.defaultWorkspaceId().then(resolve, () => resolve(null));
-    return () => {
-      active = false;
-    };
-  }, [client, workspaceId]);
+/** Loads one workspace, its graph, and its trace events. */
+export function WorkspaceProvider({
+  workspaceId,
+  children,
+  client: clientProp,
+  onOpenWorkspace,
+}: WorkspaceProviderProps) {
+  const contextClient = useWorkspaceClient();
+  const client = clientProp ?? contextClient;
+  const [reloadToken, setReloadToken] = useState(0);
+  const [connection, setConnection] = useState(0);
+  const [result, setResult] = useState<LoadResult | null>(null);
+  const { events, status: eventStatus } = useWorkspaceEvents(
+    client,
+    workspaceId,
+    connection,
+  );
 
   useEffect(() => {
     if (!workspaceId) return undefined;
     const controller = new AbortController();
     void loadWorkspace(client, workspaceId, controller.signal).then((load) => {
-      if (!controller.signal.aborted) setResult({ workspaceId, load });
+      if (controller.signal.aborted) return;
+      // A failed background reload keeps the data that is already shown.
+      setResult((previous) =>
+        load.status === 'error' &&
+        previous?.workspaceId === workspaceId &&
+        previous.load.status === 'ready'
+          ? previous
+          : { workspaceId, load },
+      );
     });
     return () => controller.abort();
   }, [client, workspaceId, reloadToken]);
 
-  const openWorkspace = useCallback((id: string | null) => {
-    writeUrlWorkspaceId(id);
-    setWorkspaceId(id);
-  }, []);
   const reload = useCallback(() => setReloadToken((token) => token + 1), []);
+  const lastEventId = events[events.length - 1]?.id ?? 0;
+  useLiveReload(`${lastEventId}:${eventStatus}`, reload);
+
+  const openWorkspace = useCallback(
+    (id: string | null) => onOpenWorkspace?.(id),
+    [onOpenWorkspace],
+  );
+
+  const startRun = useCallback(async () => {
+    if (!workspaceId) return;
+    await client.runWorkspace(workspaceId);
+    setConnection((value) => value + 1);
+    reload();
+  }, [client, workspaceId, reload]);
+
+  const recordAction = useCallback(
+    (action: UserActionRequest) => {
+      if (workspaceId) void client.recordAction(workspaceId, action);
+    },
+    [client, workspaceId],
+  );
 
   const value = useMemo<WorkspaceContextValue>(() => {
     let load: WorkspaceLoad = { status: 'loading' };
@@ -103,22 +139,25 @@ export function WorkspaceProvider({
     else if (result && result.workspaceId === workspaceId) load = result.load;
     return {
       client,
-      workspaceId: openId,
+      workspaceId,
       load,
       events,
       eventStatus,
       openWorkspace,
       reload,
+      startRun,
+      recordAction,
     };
   }, [
     client,
     workspaceId,
-    openId,
     result,
     events,
     eventStatus,
     openWorkspace,
     reload,
+    startRun,
+    recordAction,
   ]);
 
   return (

@@ -10,32 +10,40 @@ import { ClaimMatrix } from './ClaimMatrix';
 import { EvidenceProfile } from './EvidenceProfile';
 import { SynthesisPanel } from './SynthesisPanel';
 
-export type EvidenceTableView = Extract<
+type PanelId = Extract<
   UiComponentId,
   'evidence_profile_table' | 'claim_matrix' | 'synthesis_panel'
 >;
 
-const TITLES: Record<EvidenceTableView, string> = {
+/** `evidence` shows the GRADE profile (MEDICAL) or the claim matrix (GENERAL). */
+export type EvidenceTableView = 'evidence' | 'synthesis';
+
+function panelFor(view: EvidenceTableView, state: WorkspaceState): PanelId {
+  if (view === 'synthesis') return 'synthesis_panel';
+  return state.decomposition?.mode === 'GENERAL'
+    ? 'claim_matrix'
+    : 'evidence_profile_table';
+}
+
+const TITLES: Record<PanelId, string> = {
   evidence_profile_table: 'GRADE evidence profile',
   claim_matrix: 'Claim matrix',
   synthesis_panel: 'Synthesis',
 };
 
-const HINTS: Record<EvidenceTableView, string> = {
+const HINTS: Record<PanelId, string> = {
   evidence_profile_table:
     'Click a number to open the highlighted sentence in its source.',
   claim_matrix: 'Click a claim to open the highlighted sentence in its source.',
   synthesis_panel: 'How the evidence adds up, and what to do about it.',
 };
 
-const VIEWS: Record<
-  EvidenceTableView,
-  (props: { state: WorkspaceState }) => ReactNode
-> = {
-  evidence_profile_table: EvidenceProfile,
-  claim_matrix: ClaimMatrix,
-  synthesis_panel: SynthesisPanel,
-};
+const VIEWS: Record<PanelId, (props: { state: WorkspaceState }) => ReactNode> =
+  {
+    evidence_profile_table: EvidenceProfile,
+    claim_matrix: ClaimMatrix,
+    synthesis_panel: SynthesisPanel,
+  };
 
 interface EvidenceTableProps {
   view: EvidenceTableView;
@@ -45,14 +53,15 @@ interface EvidenceTableProps {
 export function EvidenceTable({ view }: EvidenceTableProps) {
   const { load } = useWorkspace();
   if (load.status !== 'ready') return null;
-  const View = VIEWS[view];
+  const panel = panelFor(view, load.state);
+  const View = VIEWS[panel];
   return (
-    <section aria-labelledby={`${view}-title`} className="flex flex-col gap-2">
+    <section aria-labelledby={`${panel}-title`} className="flex flex-col gap-2">
       <header>
-        <h2 id={`${view}-title`} className="text-base font-semibold">
-          {TITLES[view]}
+        <h2 id={`${panel}-title`} className="text-base font-semibold">
+          {TITLES[panel]}
         </h2>
-        <p className="text-xs text-muted-foreground">{HINTS[view]}</p>
+        <p className="text-xs text-muted-foreground">{HINTS[panel]}</p>
       </header>
       <View state={load.state} />
     </section>

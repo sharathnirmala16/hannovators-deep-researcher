@@ -5,7 +5,9 @@ import type {
 } from '@/domains/workspace';
 import { cn } from '@/shared/lib/cn';
 
-import { indexById, studyLabel } from '../model/evidence';
+import { studyLabel } from '@/domains/workspace';
+
+import { indexById } from '../model/evidence';
 import { CertaintyBadge } from './CertaintyBadge';
 import { ClaimCell } from './ClaimCell';
 
