@@ -231,7 +231,8 @@ between phases, and lanes rebase.
 
 ### 4.3 Enums (`models/enums.py`)
 
-- `DomainMode`: `MEDICAL`, `GENERAL` (requests also accept `AUTO`)
+- `DomainMode`: `MEDICAL`, `GENERAL` (the resolved mode; the decomposition discriminator)
+- `RequestedDomainMode`: `MEDICAL`, `GENERAL`, `AUTO` (requests and `workspaces.domain_mode`; `AUTO` stays until decompose sets the resolved mode)
 - `WorkspaceStatus`: `CREATED`, `RUNNING`, `AWAITING_REVIEW`, `COMPLETED`, `FAILED`
 - `StageId`: `ingest`, `decompose`, `search`, `screen`, `acquire`, `appraise`, `synthesize`, `highlight`, `compose`
 - `SourceOrigin`: `SEED`, `PUBMED`, `EUROPEPMC`, `WEB`
@@ -245,24 +246,31 @@ between phases, and lanes rebase.
 - `UiComponentId`: `scope_builder`, `screening_funnel`, `evidence_profile_table`, `claim_matrix`, `synthesis_panel`, `pdf_viewer`, `citation_graph`
 - `TraceEventKind`: `STAGE_STARTED`, `STAGE_COMPLETED`, `STAGE_FAILED`, `PROGRESS`, `QUERY`, `DECISION`, `WARNING`, `STATUS`
 - `ModelRole`: `DECOMPOSE`, `QUERY`, `APPRAISE`, `EXTRACT_VISION`, `SYNTHESIZE`
+- Column and contract enums: `ChunkTier` (`ABSTRACT`, `FULLTEXT`), `SourceLinkKind` (`CITES`, `RELATED`, `SEED_MATCH`),
+  `HighlightMethod` (`SEARCH`, `JEV_CHOICE`), `ClaimArm` (`INTERVENTION`, `COMPARISON`),
+  `RecommendationDirection` (`FOR`, `AGAINST`, `NONE`), `RecommendationStrength` (`STRONG`, `CONDITIONAL`),
+  `DecisionQuestionType` (`choice`, `score`, `noul`), `ProviderAttemptStatus` (`OK`, `FAILED`, `SKIPPED`)
+
+All contracts extend `models/base.py` `ContractModel` (`extra="forbid"`), so unknown fields fail validation.
 
 ### 4.4 Key contracts (`models/contracts.py`)
 
 - `Decomposition` = discriminated union on `mode`:
   - `PicotsDecomposition`: `population`, `interventions[]`, `comparisons[]`, `outcomes[]`, `timing`, `study_designs[]`, `ic_pairs[{intervention, comparison}]`
   - `ScopeDecomposition`: `entities[]`, `claims[]`, `metrics[]`, `time_horizon`, `counter_hypotheses[]`
-- `Synthesis`: `pairwise_summaries[{intervention, comparison, outcome, summary, source_ids[], grade{certainty, risk_of_bias, inconsistency, indirectness, imprecision, publication_bias}}]`, `analysis`, `recommendation{direction: FOR|AGAINST|NONE, strength: STRONG|CONDITIONAL, text}`, `provenance{canary, models{}, generated_at}`. GENERAL mode uses the same shape: pairs become claim-versus-counter-claim.
+- `Synthesis`: `pairwise_summaries[{intervention, comparison, outcome, summary, source_ids[], grade{certainty, risk_of_bias, inconsistency, indirectness, imprecision, publication_bias}}]`, `analysis`, `recommendation{direction: FOR|AGAINST|NONE, strength: STRONG|CONDITIONAL, text}`, `provenance{canary, models{}, generated_at}`. GENERAL mode uses the same shape: pairs become claim-versus-counter-claim. `grade.certainty` is a `GradeCertainty`; the five domain fields are short text judgements.
 - `WorkspaceState` (one GET returns the whole view): `workspace`, `decomposition | null`, `queries[]`, `sources[]`, `funnel{seeds, raw, screen_promoted, screen_discounted, appraise_promoted, appraise_discounted, acquire_failed}`, `claims[]`, `highlights[]` (with `/files/...` URL + page), `synthesis | null`, `ui_components[]`, `last_event_id`.
 - `TraceEvent`: `id`, `workspace_id`, `stage`, `kind`, `message`, `payload`, `created_at`.
 - `WorkspaceSettings` (defaults): `screen_votes_t=2`, `appraise_m=2`, `screen_top_n=15`,
   `appraise_top_k=6`, `search_max_rounds=3`, `search_hits_min=1`, `search_hits_max=5000`,
   `highlight_confidence_floor=0.6`, `embedding_model` and `embedding_dimensions` (copied from settings
   at creation; read-only after creation).
-- `WorkspaceView`: `id`, `research_question`, `domain_mode`, `status`, `current_stage`, `auto_continue`,
-  `settings`, `error`, `created_at`, `updated_at`.
+- `WorkspaceView`: `id`, `research_question`, `domain_mode` (`RequestedDomainMode`), `status`, `current_stage`
+  (nullable), `auto_continue`, `settings`, `error`, `created_at`, `updated_at`.
 - `SourceView`: `id`, `origin`, `external_id`, `title`, `authors[]`, `year`, `venue`, `url`, `study_design`,
-  `status`, `screen_score`, `screen_z`, `screen_votes`, `m_score`, `directness`, `rob2` (domain -> `RobJudgement`,
-  plus `overall`), `rejection_code`, `decision_explanation`, `raw_url` and `highlighted_url` (`/files/...` or null).
+  `status`, `screen_score`, `screen_z`, `screen_votes`, `m_score`, `directness`, `rob2`
+  (`{domains: {<domain>: RobJudgement}, overall: RobJudgement}` or null), `rejection_code`, `decision_explanation`,
+  `raw_url` and `highlighted_url` (`/files/...` or null).
   The abstract is not in the state payload.
 - `QueryView`: the `search_queries` columns.
 - `ClaimView`: `id`, `source_id`, `kind`, `label`, `text`, `quote`, `verdict`, `confidence`, `outcome` (nullable),
@@ -270,18 +278,24 @@ between phases, and lanes rebase.
 - `HighlightView`: `id`, `source_id`, `claim_id`, `page`, `rects` (`[[x0, y0, x1, y1], ...]`), `method`,
   `score`, `color`, `pdf_url` (`/files/.../highlighted.pdf#page=N`, or null for web sources).
 - `GraphView`: `nodes[{id, label, status, origin}]`, `edges[{source, target, kind}]`.
+- `WorkspaceState.last_event_id` is null before the first event.
+- API bodies: `CreateWorkspaceRequest` (`research_question`, `domain_mode` default `AUTO`, `auto_continue` default
+  false, `settings` nullable; the server sets the embedding fields), `SeedReferenceRequest` (exactly one of `pmid`,
+  `doi`, `url`), `ApiError` (section 4.6). `DECOMPOSITION_ADAPTER` parses `decomposition_json`.
 
 ### 4.5 Port data shapes
 
 - `DecisionQuestion`: `type` (`choice` | `score` | `noul`), `instructions`, `criteria`
-  (`dict[str, str | None]` for choice, `list[str]` for score, optional `{"true": str, "false": str}` for noul).
+  (`dict[str, str | None]` with 1 to 20 options for choice, `list[str]` with at least 2 levels for score,
+  optional `{"true": str, "false": str}` for noul). The model rejects other shapes.
 - `DecisionAnswer`: `type`, `choice` (str | null), `score` (float | null), `noul` (float | null),
   `confidence` (float | null), `probabilities` (`dict[str, float]`).
 - `WebSearchRequest`: `query`, `limit` (default 10), `include_domains[]`, `exclude_domains[]`, `days` (nullable).
 - `SearchResult`: `title`, `url`, `snippet`, `published_at` (nullable), `score` (0..1, nullable), `provider`.
-- `WebSearchResponse`: `query`, `results[]`, `provider`, `attempts[{provider, status, latency_ms, error}]`.
-- `FetchedDocument`: `url`, `title`, `content` (markdown or text), `content_type`, `provider`.
-- `ProviderError`: `provider`, `code`, `message`, `retryable`, `status_code`.
+- `WebSearchResponse`: `query`, `results[]`, `provider`, `attempts[{provider, status: ProviderAttemptStatus, latency_ms, error: ProviderError | null}]`.
+- `FetchedDocument`: `url`, `title` (nullable), `content` (markdown or text), `content_type`, `provider`.
+- `ProviderError`: `provider`, `code`, `message`, `retryable`, `status_code`. Adapters raise
+  `ProviderFailure(error: ProviderError)` (`models/web.py`), so routers and stages can fail over on one exception type.
 - `CandidateRecord`: `origin`, `external_id`, `title`, `abstract`, `authors[]`, `year`, `venue`, `doi`,
   `pmid`, `pmcid`, `url`, `pdf_url`, `publication_types[]`.
 - `SourceLinkRecord`: `from_external_id`, `to_external_id`, `kind`.
@@ -301,41 +315,66 @@ between phases, and lanes rebase.
 
 ```python
 class ChatModel(Protocol):
-    async def complete_json(self, *, role: ModelRole, system: str, user: str,
-                            schema: type[T], images: Sequence[bytes] = ()) -> T: ...
+    async def complete_json[T: BaseModel](
+        self,
+        *,
+        role: ModelRole,
+        system: str,
+        user: str,
+        schema: type[T],
+        images: Sequence[bytes] = (),
+    ) -> T: ...
+
 
 class Embedder(Protocol):
     model: str
     dimensions: int
-    async def embed(self, texts: Sequence[str], *,
-                    instruction: str | None = None) -> list[list[float]]: ...
+
     # instruction=None -> document embedding; a task instruction -> query embedding.
     # Returns L2-normalized vectors of length `dimensions`.
+    async def embed(
+        self, texts: Sequence[str], *, instruction: str | None = None
+    ) -> list[list[float]]: ...
+
 
 class DecisionModel(Protocol):
-    async def evaluate(self, state: str,
-                       questions: Mapping[str, DecisionQuestion]) -> dict[str, DecisionAnswer]: ...
+    async def evaluate(
+        self, state: str, questions: Mapping[str, DecisionQuestion]
+    ) -> dict[str, DecisionAnswer]: ...
 
-class WebSearch(Protocol):            # implemented by services/websearch_router.py
+
+class WebSearch(Protocol):  # implemented by services/websearch_router.py
     async def search(self, request: WebSearchRequest) -> WebSearchResponse: ...
     async def fetch(self, url: str, *, max_chars: int = 50_000) -> FetchedDocument: ...
 
-class WebSearchProvider(Protocol):    # implemented by each adapters/websearch/*.py
+
+class WebSearchProvider(Protocol):  # implemented by each adapters/websearch/*.py
     name: str
     supports_fetch: bool
+
     def is_configured(self) -> bool: ...
     async def search(self, request: WebSearchRequest) -> WebSearchResponse: ...
     async def fetch(self, url: str, *, max_chars: int) -> FetchedDocument: ...
 
+
 class LiteratureSearch(Protocol):
     async def count(self, query: str) -> int: ...
     async def search(self, query: str, *, limit: int) -> list[CandidateRecord]: ...
-    async def related(self, external_ids: Sequence[str], *, limit: int) -> list[SourceLinkRecord]: ...
+    async def related(
+        self, external_ids: Sequence[str], *, limit: int
+    ) -> list[SourceLinkRecord]: ...
     async def open_access_pdf_url(self, record: CandidateRecord) -> str | None: ...
 
+
 class EventSink(Protocol):
-    async def emit(self, workspace_id: str, stage: StageId, kind: TraceEventKind,
-                   message: str, payload: Mapping[str, object] | None = None) -> None: ...
+    async def emit(
+        self,
+        workspace_id: str,
+        stage: StageId,
+        kind: TraceEventKind,
+        message: str,
+        payload: Mapping[str, object] | None = None,
+    ) -> None: ...
 ```
 
 `StageContext` (`services/pipeline/context.py`) carries: `workspace_id`, `settings`, a session factory,
