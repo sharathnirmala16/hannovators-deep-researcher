@@ -52,7 +52,9 @@ pnpm build
 
 These commands check format, lint rules, strict types, dependencies, and package builds.
 
-Python tests check the database infrastructure and migrations. Use `pnpm test` from `frontend/` for Vitest tests.
+Python tests check the database infrastructure and migrations. Plain `uv run pytest` deselects tests marked `live`.
+Run `uv run pytest -m live` for the provider live checks (each one skips when its API key is missing) and
+`uv run pytest -m e2e` for the offline end-to-end tests. Use `pnpm test` from `frontend/` for Vitest tests.
 The frontend has no tests. Vitest reports an empty suite and returns a nonzero exit code until real tests exist.
 Do not add artificial tests or suppress empty suites. This project has no GitHub CI.
 BDD directories reserve space for future scenarios. Add the browser test tools with the first browser workflow.
