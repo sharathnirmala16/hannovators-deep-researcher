@@ -5,8 +5,10 @@ from pathlib import Path
 
 import pytest
 from alembic import command
+from alembic.autogenerate import compare_metadata
 from alembic.config import Config
-from sqlalchemy import URL, text
+from alembic.runtime.migration import MigrationContext
+from sqlalchemy import URL, create_engine, text
 from sqlalchemy.exc import IntegrityError
 
 from hannovators_deep_researcher.configuration import database as database_config
@@ -16,6 +18,8 @@ from hannovators_deep_researcher.configuration.database import (
     project_root,
 )
 from hannovators_deep_researcher.infrastructure.database import create_database_engine
+from hannovators_deep_researcher.persistence import tables  # noqa: F401  (registers the tables)
+from hannovators_deep_researcher.persistence.base import Base
 
 
 @pytest.mark.integration
@@ -79,33 +83,38 @@ async def test_sqlite_connections_enable_foreign_keys_timeout_and_wal(tmp_path: 
         await engine.dispose()
 
 
+def _table_names(database_path: Path) -> set[str]:
+    with sqlite3.connect(database_path) as connection:
+        return {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name != 'sqlite_sequence'"
+            )
+        }
+
+
 @pytest.mark.integration
-def test_empty_baseline_migration_upgrades_and_downgrades(tmp_path: Path) -> None:
-    """The initial revision is reversible and creates no product tables."""
+def test_core_schema_migration_upgrades_and_downgrades(tmp_path: Path) -> None:
+    """Head creates every core table exactly as `tables.py` declares; downgrade removes them."""
 
     database_path = tmp_path / "migration.sqlite"
     config = Config(str(project_root() / "alembic.ini"))
     config.attributes["database_url"] = URL.create("sqlite+aiosqlite", database=str(database_path))
 
     command.upgrade(config, "head")
-    with sqlite3.connect(database_path) as connection:
-        upgraded_tables = {
-            row[0]
-            for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
-        }
-    assert upgraded_tables == {"alembic_version"}
+    assert _table_names(database_path) == {"alembic_version", *Base.metadata.tables}
+    engine = create_engine(URL.create("sqlite", database=str(database_path)))
+    try:
+        with engine.connect() as connection:
+            context = MigrationContext.configure(connection, opts={"compare_type": True})
+            assert compare_metadata(context, Base.metadata) == []
+    finally:
+        engine.dispose()
 
     command.downgrade(config, "base")
-    with sqlite3.connect(database_path) as connection:
-        downgraded_tables = {
-            row[0]
-            for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
-        }
-        remaining_versions = list(connection.execute("SELECT version_num FROM alembic_version"))
-    assert downgraded_tables == {"alembic_version"}
-    assert remaining_versions == []
+    assert _table_names(database_path) == {"alembic_version"}
 
     command.upgrade(config, "head")
     with sqlite3.connect(database_path) as connection:
         reupgraded_versions = list(connection.execute("SELECT version_num FROM alembic_version"))
-    assert reupgraded_versions == [("0001_empty_baseline",)]
+    assert reupgraded_versions == [("0002_core_schema",)]
