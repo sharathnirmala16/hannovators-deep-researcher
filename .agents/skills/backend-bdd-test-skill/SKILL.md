@@ -1,9 +1,11 @@
 ---
 name: backend-bdd-test-skill
-description: "Author, maintain, and execute Behavior-Driven Development (BDD) tests in Python using Behave and Gherkin feature files. Use when adding acceptance scenarios, writing typed step definitions, using Scenario Outlines and DataTables, managing environment.py async lifecycle hooks, generating step skeletons, or diagnosing Behave test failures."
+description: "DEFERRED for the hackathon (use pytest e2e tests instead); reference for after the hackathon. Author, maintain, and execute Behavior-Driven Development (BDD) tests in Python using Behave and Gherkin feature files. Use when adding acceptance scenarios, writing typed step definitions, using Scenario Outlines and DataTables, managing environment.py async lifecycle hooks, generating step skeletons, or diagnosing Behave test failures."
 ---
 
 # Behave (Cucumber) BDD Skill for Python
+
+> **Status: deferred for the hackathon.** Do not add Behave scenarios now. Cover the critical pipeline path with pytest `e2e` tests instead (see the **Hackathon Test Policy** in `.agents/skills/backend-code-structure/SKILL.md`, section 4). Keep this skill as reference for after the hackathon.
 
 Systematic Behavior-Driven Development (BDD) testing in Python using **Behave** (`behave`) and **Gherkin (`.feature`) files**.
 
@@ -13,9 +15,9 @@ Systematic Behavior-Driven Development (BDD) testing in Python using **Behave** 
 
 * **Inner Loop (Active Development / Single Scenario)**:
   ```bash
-  uv run behave tests/bdd/features/brave.feature   # Run specific feature file
-  uv run behave tests/bdd/features/quota.feature   # Run another feature file
-  uv run behave --tags=@smoke                      # Run specific tag
+  uv run behave tests/bdd/features/provider_routing.feature   # Run specific feature file
+  uv run behave tests/bdd/features/research_pipeline.feature  # Run another feature file
+  uv run behave --tags=@smoke                                 # Run specific tag
   ```
 * **Step Skeleton Discovery (Code Generation)**:
   ```bash
@@ -25,9 +27,9 @@ Systematic Behavior-Driven Development (BDD) testing in Python using **Behave** 
   ```bash
   uv run behave --no-capture                     # Disables stdout/stderr capture during execution
   ```
-* **Outer Loop (Full Suite & CI Reporting)**:
+* **Outer Loop (Full Suite & Reporting)**:
   ```bash
-  uv run behave --junit --junit-directory=coverage/behave/
+  uv run behave --junit --junit-directory=reports/behave/
   ```
 
 ---
@@ -36,12 +38,12 @@ Systematic Behavior-Driven Development (BDD) testing in Python using **Behave** 
 
 ```
 tests/bdd/features/
-├── environment.py              # Global & scenario lifecycle hooks (setup/teardown)
-├── brave.feature               # Declarative Gherkin feature specifications
-├── quota.feature
-└── steps/                      # Python step definitions
-    ├── brave_steps.py          # @given, @when, @then step implementations
-    └── quota_steps.py
+├── environment.py                  # Global & scenario lifecycle hooks (setup/teardown)
+├── provider_routing.feature        # Declarative Gherkin feature specifications
+├── research_pipeline.feature
+└── steps/                          # Python step definitions
+    ├── provider_routing_steps.py   # @given, @when, @then step implementations
+    └── research_pipeline_steps.py
 ```
 
 `pyproject.toml` sets `[tool.behave] paths = ["tests/bdd/features"]`. Do not place feature files in a root `features/` directory.
@@ -53,31 +55,31 @@ tests/bdd/features/
 ### 1. Basic Scenario with Typed Parameters
 ```gherkin
 Feature: Provider Routing & Fallbacks
-  As an API consumer
-  I want queries routed to healthy providers
-  So that service availability is maximized
+  As a research pipeline
+  I want web search queries routed to healthy providers
+  So that research runs survive a provider outage
 
   Background:
-    Given a running routing engine
+    Given an "auto" web search provider router
 
   @smoke
   Scenario: Route query to primary provider
-    When I submit a search request for "Python async" with limit 5
+    When I submit a search request for "CRISPR off-target effects" with limit 5
     Then the active provider should be "tavily"
     And the returned result count should be 5
 ```
 
 ### 2. Scenario Outlines with Parameter Matrices
 ```gherkin
-  Scenario Outline: Cost estimation across operations
-    When I estimate cost for "<operation>" on "<provider>"
-    Then the calculated credits should be <expected_credits>
+  Scenario Outline: Failover when the primary provider fails
+    Given provider "<failing>" returns an error
+    When I submit a search request for "<query>" with limit 3
+    Then the active provider should be "<fallback>"
 
     Examples:
-      | operation | provider | expected_credits |
-      | search    | tavily   | 1.0              |
-      | fetch     | tavily   | 0.2              |
-      | search    | exa      | 1.0              |
+      | failing | query               | fallback |
+      | tavily  | mRNA vaccine safety | exa      |
+      | exa     | mRNA vaccine safety | tavily   |
 ```
 
 ### 3. DataTables & Multiline DocStrings
@@ -88,7 +90,7 @@ Feature: Provider Routing & Fallbacks
       | tavily   | 1        | true    |
       | exa      | 2        | true    |
       | brave    | 3        | false   |
-    When I initialize the multi-provider router
+    When I initialize the "auto" provider router
     Then only 2 providers should be active
 ```
 
@@ -100,21 +102,24 @@ Feature: Provider Routing & Fallbacks
 Behave supports parse formatters: `{name}` (str), `{limit:d}` (int), `{cost:f}` (float), `{word:w}` (single word).
 
 ```python
-from decimal import Decimal
 from typing import Any
-from behave import given, when, then  # type: ignore[import-untyped]
+
+from behave import given, then, when  # type: ignore[import-untyped]
+
+from hannovators_deep_researcher.adapters.fake import build_fake_search_providers
+from hannovators_deep_researcher.services.provider_router import AutoSearchRouter
 
 
-@given("a running routing engine")
-def step_given_engine(context: Any) -> None:
-    context.engine = getattr(context, "engine", None) or create_engine()
+@given('an "auto" web search provider router')
+def step_given_router(context: Any) -> None:
+    context.router = AutoSearchRouter(build_fake_search_providers())
 
 
 @when('I submit a search request for "{query}" with limit {limit:d}')
 def step_when_search(context: Any, query: str, limit: int) -> None:
     # Handle async calls via scenario event loop:
     context.response = context.loop.run_until_complete(
-        context.engine.search(query=query, limit=limit)
+        context.router.search(query=query, limit=limit)
     )
 
 
@@ -128,6 +133,8 @@ def step_then_count(context: Any, count: int) -> None:
     assert len(context.response.results) == count
 ```
 
+(Module and class names above are illustrative; use the real ones from PLAN.md once they exist.)
+
 ### Handling DataTables in Python
 ```python
 @given("the following provider registry:")
@@ -137,7 +144,7 @@ def step_given_table(context: Any) -> None:
         provider = row["provider"]
         priority = int(row["priority"])
         enabled = row["enabled"].lower() == "true"
-        context.engine.register(provider, priority=priority, enabled=enabled)
+        context.registry.register(provider, priority=priority, enabled=enabled)
 ```
 
 ---
@@ -149,6 +156,7 @@ Manage async event loops, client sessions, database connections, and cleanup:
 ```python
 import asyncio
 from typing import Any
+
 import httpx
 
 
@@ -195,7 +203,7 @@ def before_tag(context: Any, tag: str) -> None:
 ## 7. Best Practices & Rules
 
 - **Declarative over Imperative**: Express user value and business behavior (`When I route search request`), not UI click sequences or low-level variable assignments.
-- **Tagging Strategy**: Tag scenarios by area (`@search`, `@routing`, `@storage`, `@mcp`) and test speed (`@unit`, `@live`, `@smoke`) for flexible CI execution.
+- **Tagging Strategy**: Tag scenarios by area (`@search`, `@routing`, `@pipeline`, `@storage`) and cost (`@live`, `@smoke`) for flexible execution.
+- **Use Fakes by Default**: Wire ports with the fake adapters in `adapters/fake/`; reserve real providers for `@live` scenarios.
 - **Isolate Scenarios**: Scenarios must never depend on the execution order or side-effects of preceding scenarios.
 - **Exempt from Complexity Rules**: `pyproject.toml` contains `per-file-ignores` for `tests/**` (`C901`) to support multi-step validation flows.
-- **Never Run Mutation Tests on BDD**: Mutation testing targets pure, fast unit tests (`tests/`), never end-to-end BDD suites.

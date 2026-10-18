@@ -28,7 +28,7 @@ The frontend displays a blank application shell with Tailwind and shadcn support
 - `tests/`: separate unit, integration, and BDD directories.
 - `frontend/src/`: application composition, features, domains, shared primitives, and test helpers.
 - `data/`: local SQLite database and seed material. Git excludes runtime files.
-- `.agents/skills/`: local architecture, quality, and test conventions. Paths in these skills refer to the archived project.
+- `.agents/skills/`: local architecture, quality, and test conventions.
 - `.archive/`: reference projects. Normal build and quality checks exclude these files.
 
 ## Checks
@@ -75,7 +75,7 @@ The initial revision contains no product tables.
 
 Reserve `data/seeds/<UUID>/` for each seed material. Use a new UUID as the material's unique directory identifier.
 This scaffold defines the directory convention only. It contains no seed ingestion or product schema.
-See [PLAN.md](PLAN.md) for the future database registry with unique material IDs and paths.
+See [PLAN.md](PLAN.md) for the planned schema and the `data/workspaces/` layout that replaces `data/seeds/`.
 
 ## UI components
 
