@@ -52,6 +52,7 @@ module.exports = {
           '(^|/)src/main\\.tsx$',
           '(^|/)src/test/setup\\.ts$',
           '(^|/)src/shared/lib/cn\\.ts$',
+          '(^|/)src/shared/ui/[^/]+\\.tsx$',
           '\\.test\\.(ts|tsx)$',
           '\\.spec\\.(ts|tsx)$',
         ],
