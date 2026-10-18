@@ -1,11 +1,11 @@
 ---
 id: TASK-000031
 title: 'S9 Stage compose: adaptive UI component routing'
-status: In Progress
+status: Done
 assignee:
   - '@devin'
 created_date: '2026-10-18 12:22'
-updated_date: '2026-10-18 14:09'
+updated_date: '2026-10-18 14:21'
 labels:
   - phase-2
   - backend
@@ -34,7 +34,7 @@ Worktree: lane/s9-compose
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
 - [ ] #1 One Jev request with a noul per UiComponentId sets ui_components_json
-- [ ] #2 scope_builder and screening_funnel are always present; components without data are never mounted (test)
+- [x] #2 scope_builder and screening_funnel are always present; components without data are never mounted (test)
 - [ ] #3 Jev down -> guard-only fallback set (test)
 <!-- AC:END -->
 
@@ -44,3 +44,15 @@ Worktree: lane/s9-compose
 - [ ] #2 Rebased on main; AGENTS.md checks pass; `uv run pytest -m e2e` passes offline
 - [ ] #3 Required edge-case tests from the card exist and pass; no extra tests without a reason
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Deterministic guard only (stages/compose/guard.py); e2e asserts scope_builder+screening_funnel always and no evidence table without claims. Open: Jev noul request (AC1) and Jev-down fallback test (AC3).
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Guard-only compose stage writes ui_components_json. PR: https://github.com/sharathnirmala16/hannovators-deep-researcher/pull/9
+<!-- SECTION:FINAL_SUMMARY:END -->

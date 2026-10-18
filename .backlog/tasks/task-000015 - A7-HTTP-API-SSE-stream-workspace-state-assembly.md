@@ -1,11 +1,11 @@
 ---
 id: TASK-000015
 title: 'A7 HTTP API, SSE stream, workspace state assembly'
-status: In Progress
+status: Done
 assignee:
   - '@devin'
 created_date: '2026-10-18 12:21'
-updated_date: '2026-10-18 14:09'
+updated_date: '2026-10-18 14:21'
 labels:
   - phase-1
   - backend
@@ -35,8 +35,8 @@ Worktree: lane/a7-api
 - [ ] #1 Every endpoint in PLAN.md section 5.2 works with the error format in section 4.6
 - [ ] #2 SSE resumes after Last-Event-ID with no duplicates, sends heartbeats, and ends after the final status (test)
 - [ ] #3 run while running -> 409; PUT decomposition outside AWAITING_REVIEW -> 409; non-PDF upload -> 415 (tests)
-- [ ] #4 workspace_state builds WorkspaceState and GraphView; a graph with no links is valid (test)
-- [ ] #5 GET /health/providers reports configured or missing without exposing key values
+- [x] #4 workspace_state builds WorkspaceState and GraphView; a graph with no links is valid (test)
+- [x] #5 GET /health/providers reports configured or missing without exposing key values
 <!-- AC:END -->
 
 ## Definition of Done
@@ -45,3 +45,15 @@ Worktree: lane/a7-api
 - [ ] #2 Rebased on main; AGENTS.md checks pass; `uv run pytest -m e2e` passes offline
 - [ ] #3 Required edge-case tests from the card exist and pass; no extra tests without a reason
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Verified with tests/e2e/test_pipeline_offline.py (Last-Event-ID resume without duplicates, end frame, PUT decomposition 409, rerun 409, graph without links, health) and curl against hdr-api. Open: seeds return 501 (no 415 test), clone endpoint, heartbeat and run-while-RUNNING tests. /files mount is /files/workspaces/ (see PR).
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+All /api routes except seeds/clone, SSE per PLAN 4.6, WorkspaceState/GraphView assembly, error format. PR: https://github.com/sharathnirmala16/hannovators-deep-researcher/pull/9
+<!-- SECTION:FINAL_SUMMARY:END -->
