@@ -1,0 +1,6 @@
+{
+  "includeIgnored": [
+    ".archive/Quicker/",
+    ".archive/freesearch/"
+  ]
+}
