@@ -28,6 +28,26 @@ It sends `/api` and `/files` requests to the backend at `http://127.0.0.1:<API_P
 If a port is missing or not correct, `pnpm dev` stops and shows the name of the variable.
 `pnpm build` and `pnpm test` do not use the ports.
 
+## Run
+
+From the repository root, migrate the database once, then start the API:
+
+```sh
+uv run alembic upgrade head
+uv run hdr-api
+```
+
+`hdr-api` serves on `API_HOST` and `API_PORT` from the root `.env`. `--host` and `--port` override them.
+If no port is set, it stops with an error. There is no default port.
+
+Set `PROVIDER_MODE=fake` in `.env` or the shell to run offline with the fakes in `adapters/fake/` for every port.
+With `PROVIDER_MODE=real`, each port uses its real adapter when the adapter exists and its key is set.
+Otherwise that port uses its fake and the server logs a warning.
+`GET /api/health/providers` shows which ports are real or fake and which keys are configured. It never shows key values.
+
+The API is under `/api` (PLAN.md section 5.2). `GET /api/workspaces/{id}/events` is the SSE trace stream.
+Source files are served from `data/workspaces/` at `/files/workspaces/`.
+
 ## Structure
 
 - `src/hannovators_deep_researcher/`: Python packages for models, configuration, services, adapters, infrastructure, persistence, and routers.
