@@ -1,11 +1,11 @@
 ---
 id: TASK-000019
 title: 'F4 Evidence table: GRADE profile, claim matrix, synthesis panel'
-status: In Progress
+status: Done
 assignee:
   - '@devin'
 created_date: '2026-10-18 12:21'
-updated_date: '2026-10-18 14:11'
+updated_date: '2026-10-18 14:19'
 labels:
   - phase-1
   - frontend
@@ -40,7 +40,13 @@ Worktree: lane/f4-evidence
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Only files owned by the lane changed (PLAN.md section 2 and the card)
-- [ ] #2 Rebased on main; `pnpm check` and `pnpm build` pass; `pnpm test` passes when tests exist
+- [x] #1 Only files owned by the lane changed (PLAN.md section 2 and the card)
+- [x] #2 Rebased on main; `pnpm check` and `pnpm build` pass; `pnpm test` passes when tests exist
 - [ ] #3 Feature renders both fixtures (medical and general) without console errors
 <!-- DOD:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Built in PR https://github.com/sharathnirmala16/hannovators-deep-researcher/pull/8; pnpm check/build/test green; manual fixture-mode browser check still pending, so ACs left unchecked.
+<!-- SECTION:FINAL_SUMMARY:END -->
