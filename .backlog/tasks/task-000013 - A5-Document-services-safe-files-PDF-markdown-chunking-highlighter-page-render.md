@@ -3,11 +3,11 @@ id: TASK-000013
 title: >-
   A5 Document services: safe files, PDF/markdown chunking, highlighter, page
   render
-status: In Progress
+status: Done
 assignee:
   - '@devin'
 created_date: '2026-10-18 12:20'
-updated_date: '2026-10-18 13:41'
+updated_date: '2026-10-18 13:42'
 labels:
   - phase-1
   - backend
@@ -34,19 +34,19 @@ Worktree: lane/a5-documents
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 files.py rejects .., absolute, and drive-letter paths and paths outside data/workspaces (tests)
-- [ ] #2 Download streams with a size cap and content-type check; over the cap aborts (test)
-- [ ] #3 pdf_chunker yields paragraph chunks with page and bbox and an ABSTRACT tier; a PDF without a text layer returns zero chunks and a flag, not an exception (test)
-- [ ] #4 markdown_chunker yields heading-aware chunks
-- [ ] #5 highlighter writes highlighted.pdf from (page, rects, color); rects outside the page are clipped (test)
-- [ ] #6 page_render returns PNG bytes for a page
+- [x] #1 files.py rejects .., absolute, and drive-letter paths and paths outside data/workspaces (tests)
+- [x] #2 Download streams with a size cap and content-type check; over the cap aborts (test)
+- [x] #3 pdf_chunker yields paragraph chunks with page and bbox and an ABSTRACT tier; a PDF without a text layer returns zero chunks and a flag, not an exception (test)
+- [x] #4 markdown_chunker yields heading-aware chunks
+- [x] #5 highlighter writes highlighted.pdf from (page, rects, color); rects outside the page are clipped (test)
+- [x] #6 page_render returns PNG bytes for a page
 <!-- AC:END -->
 
 ## Definition of Done
 <!-- DOD:BEGIN -->
-- [ ] #1 Only files owned by the lane changed (PLAN.md section 2 and the card)
+- [x] #1 Only files owned by the lane changed (PLAN.md section 2 and the card)
 - [ ] #2 Rebased on main; AGENTS.md checks pass; `uv run pytest -m e2e` passes offline
-- [ ] #3 Required edge-case tests from the card exist and pass; no extra tests without a reason
+- [x] #3 Required edge-case tests from the card exist and pass; no extra tests without a reason
 <!-- DOD:END -->
 
 ## Implementation Plan
@@ -69,4 +69,14 @@ Contracts: PLAN.md 4.4 lists no chunk DTO in models/, so chunk outputs are froze
 PyMuPDF is only partly typed; mypy strict needs line-level '# type: ignore[no-untyped-call]' on pymupdf.open/Matrix/Rect/get_text (pyproject is frozen for this lane).
 Tests (17): unsafe paths (13 cases), download over cap (Content-Length and streamed), no-text-layer PDF, rects clipped/skipped. Happy paths checked by a throwaway script, not committed.
 Checks: ruff format/check, mypy, pytest (21 passed), uv build all pass. 'uv run pytest -m e2e' selects 0 tests: no e2e suite exists on main yet (P0 skeleton not landed).
+
+PR: https://github.com/sharathnirmala16/hannovators-deep-researcher/pull/3
+Verification: AC1 and AC2 cap by test_files.py; AC2 content-type rejection checked by a throwaway respx script (text/html rejected, no file left; application/pdf saved). AC3 by test_pdf_chunker.py plus a script (heading and inline abstract layouts -> ABSTRACT chunks with page and bbox; numbered Introduction ends the abstract). AC4 by a script (heading paths, fenced '#' ignored, long section split under max_chars). AC5 by test_highlighter.py plus a script (search_for rects -> 1 annotation). AC6 by a script (PNG signature bytes).
+Rebased on origin/main (already up to date at a0e3e61); checks rerun and pass. DoD #2 left unchecked: 'uv run pytest -m e2e' exits 5 (no tests collected) because no e2e suite exists on main yet; recheck when the P0 e2e skeleton lands.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Added services/documents (files, pdf_chunker, markdown_chunker, highlighter, page_render) so stages have one safe relative->absolute path step, capped downloads, PDF chunks with page and bbox (ABSTRACT and FULLTEXT tiers), heading-aware markdown chunks, clipped highlight annotations, and page PNGs. Verified with 17 unit edge-case tests (unsafe paths, size cap, no-text-layer PDF, rect clipping), throwaway happy-path scripts, ruff, mypy strict, pytest, and uv build. PR #3.
+<!-- SECTION:FINAL_SUMMARY:END -->
