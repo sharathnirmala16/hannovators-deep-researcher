@@ -1,4 +1,5 @@
 *
 !.gitignore
-!seeds/
-!seeds/.gitkeep
+!workspaces/
+workspaces/*
+!workspaces/.gitkeep
