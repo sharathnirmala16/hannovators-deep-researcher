@@ -18,6 +18,7 @@ Read sections 1 to 6 before you start a lane. Then read only your lane in sectio
 | Agent model (decompose, query rewrite, appraise, extract, synthesize) | **NVIDIA Nemotron 3.5 Super VL** on Nebius Token Factory (`nvidia/Nemotron-3.5-Super-VL`, OpenAI-compatible, 1M context, structured output, tool use, image input). One model for all roles. Each role can override the model ID by env var. |
 | Embeddings | **Qwen3-Embedding-8B** on Nebius Token Factory (`Qwen/Qwen3-Embedding-8B`, 4096 dimensions native, MRL). Stored at `EMBEDDING_DIMENSIONS` (default 1024). Dense half of hybrid retrieval and the screening fallback. |
 | Web search + extract | **Provider abstraction ported from `.archive/freesearch/`** with `auto` mode. Tavily is the only provider in A3. Exa and other providers are stretch work (X4). |
+| Deep research report | **Tavily Research API** (`AsyncTavilyClient.research()` / `get_research()`, already in `tavily-python` 0.8.5, no new dependency). Tavily's research agents search, extract, and write a cited report. Its cited URLs join the candidate pool as `WEB` sources, so Jev screens them with the PubMed records. Stretch: the Nebius cookbook variant (`deepagents` + `langchain-nebius` + Tavily tool on Nemotron). |
 | Literature | PubMed E-utilities (`esearch`/`efetch`/`elink`) + Europe PMC open-access PDFs. Semantic Scholar and Unpaywall are stretch work. |
 
 Jev facts that shape the design (verify against the Command Code model page when you implement A2):
@@ -601,6 +602,24 @@ Each card lists: owned files, work, required edge-case tests, live checks, done-
   provider -> clear error at startup; pinned provider without a key -> error, no silent fallback;
   `canonicalize_url` strips tracking params, `www.`, default ports, and fragments.
 - Live: Tavily search (limit 3) and extract (one URL); `auto` picks Tavily.
+
+**T1 tavily-research** (demo lane; needs P0.1 and A3) - `adapters/tavily_research.py`,
+`services/deep_research.py`, `models/deep_research.py` (new file), `routers/deep_research.py`, matching tests
+- `build_deep_research(settings, http)`: `AsyncTavilyClient.research(input, model="mini", citation_format="numbered",
+  output_schema=None)`, then poll `get_research(request_id)` every few seconds until `completed` or `failed`
+  (timeout about 3 minutes).
+- `POST /api/workspaces/{id}/deep-research` starts a background run: input = research question plus the
+  decomposition summary when one exists (MEDICAL adds clinicaltrials.gov, fda.gov, ema.europa.eu, who.int
+  as preferred domains). It emits PROGRESS events (stage `search`) when it starts, while polling, and when it
+  finishes. It stores `{status, content, sources[], started_at, finished_at, error}` at
+  `data/workspaces/<ws>/deep_research.json` through `services/documents/files.py`. It inserts each cited source
+  as a `WEB` source with status `RAW` and `extra_json.found_by = "tavily_research"`, deduplicated by
+  `canonicalize_url`. `GET /api/workspaces/{id}/deep-research` returns that record.
+- The API lane includes `routers.deep_research` through a guarded import. The frontend shows a
+  "Tavily deep research" panel in the workbench shell.
+- Tests: a failed research task sets status `failed` and the run continues; a cited URL that duplicates an
+  existing source is not inserted twice.
+- Live: one `model="mini"` research call on a short question.
 
 **A4 literature** - `infrastructure/rate_limit.py`, `adapters/pubmed.py`, `adapters/europepmc.py`, matching tests
 - PubMed `esearch` (count and IDs), `efetch` XML -> `CandidateRecord` (title, abstract with labelled
