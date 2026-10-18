@@ -104,7 +104,11 @@ async def test_offline_run_pauses_for_review_and_completes(
     assert state.workspace.status == "COMPLETED"
     assert state.last_event_id == resumed_ids[-1]
     assert state.ui_components[:2] == ["scope_builder", "screening_funnel"]
-    assert "evidence_profile_table" not in state.ui_components  # no claims yet
+    assert state.funnel.screen_promoted > 0
+    assert state.claims
+    assert state.synthesis is not None
+    assert "evidence_profile_table" in state.ui_components
+    assert "claim_matrix" not in state.ui_components
 
     rerun = await client.post(f"{base}/run")
     assert rerun.status_code == 409
