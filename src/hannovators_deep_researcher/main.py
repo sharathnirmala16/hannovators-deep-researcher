@@ -48,6 +48,13 @@ from hannovators_deep_researcher.services.events import DatabaseEventSink
 from hannovators_deep_researcher.services.pipeline.context import PipelineServices
 from hannovators_deep_researcher.services.pipeline.orchestrator import Orchestrator
 from hannovators_deep_researcher.services.trajectory import TrajectoryRecorder
+from hannovators_deep_researcher.services.trajectory_wrappers import (
+    RecordingChatModel,
+    RecordingDecisionModel,
+    RecordingEmbedder,
+    RecordingLiteratureSearch,
+    RecordingWebSearch,
+)
 from hannovators_deep_researcher.services.websearch_router import create_web_search_router
 from hannovators_deep_researcher.services.workspace_state import WorkspaceStateService
 
@@ -55,6 +62,9 @@ logger = logging.getLogger(__name__)
 
 PACKAGE = "hannovators_deep_researcher"
 DEV_ORIGIN_REGEX = r"^http://(127\.0\.0\.1|localhost)(:\d+)?$"
+FAKE_LABEL = "fake"
+EUTILS_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+INTERRUPTED_ERROR = "Interrupted by server restart"
 
 
 @dataclass(frozen=True, slots=True)
@@ -183,7 +193,67 @@ def build_ports(settings: Settings, http: httpx.AsyncClient) -> ProviderPorts:
     )
 
 
-def build_container(settings: Settings, *, database_url: str | URL | None = None) -> ApiContainer:
+def _is_fake(status: dict[str, PortStatus], port: str) -> bool:
+    entry = status.get(port)
+    return entry is None or entry.implementation == "fake"
+
+
+def _web_label(ports: ProviderPorts) -> str:
+    """`tavily` (or `tavily+exa` for a failover chain); `fake` in fake mode."""
+
+    if _is_fake(ports.status, "web"):
+        return FAKE_LABEL
+    names = getattr(ports.web, "provider_names", None)
+    if isinstance(names, tuple) and names:
+        return "+".join(str(name) for name in names)
+    return ports.status["web"].provider
+
+
+def record_ports(
+    ports: ProviderPorts, settings: Settings, trajectory: TrajectoryRecorder
+) -> ProviderPorts:
+    """Wrap every port so each call records one trajectory step (real and fake mode alike)."""
+
+    status = ports.status
+    fake_chat = _is_fake(status, "chat")
+    web_provider = _web_label(ports)
+    fake_literature = _is_fake(status, "literature")
+    return ProviderPorts(
+        chat=RecordingChatModel(
+            ports.chat,
+            trajectory,
+            model_for=(lambda _role: FAKE_LABEL) if fake_chat else settings.model_for,
+        ),
+        embedder=RecordingEmbedder(
+            ports.embedder,
+            trajectory,
+            provider=FAKE_LABEL if _is_fake(status, "embedder") else status["embedder"].provider,
+        ),
+        decisions=RecordingDecisionModel(
+            ports.decisions,
+            trajectory,
+            model=FAKE_LABEL if _is_fake(status, "decisions") else settings.jev_model,
+            name="jev.evaluate",
+        ),
+        web=RecordingWebSearch(ports.web, trajectory, provider=web_provider),
+        literature=RecordingLiteratureSearch(
+            ports.literature,
+            trajectory,
+            provider=FAKE_LABEL if fake_literature else status["literature"].provider,
+            target=None if fake_literature else EUTILS_URL,
+        ),
+        status=status,
+    )
+
+
+def build_container(
+    settings: Settings,
+    *,
+    database_url: str | URL | None = None,
+    data_dir: Path | None = None,
+) -> ApiContainer:
+    """Wire adapters, recording wrappers, and services. `data_dir` holds `workspaces/`."""
+
     fake_mode = settings.provider_mode is ProviderMode.FAKE
     http = (
         httpx.AsyncClient(transport=fake_http_transport(), follow_redirects=True)
@@ -193,7 +263,8 @@ def build_container(settings: Settings, *, database_url: str | URL | None = None
     engine = create_database_engine(database_url)
     session_factory = create_session_factory(engine)
     repositories = Repositories(session_factory)
-    ports = build_ports(settings, http)
+    trajectory = TrajectoryRecorder(repositories)
+    ports = record_ports(build_ports(settings, http), settings, trajectory)
     services = PipelineServices(
         app_settings=settings,
         session_factory=session_factory,
@@ -204,7 +275,7 @@ def build_container(settings: Settings, *, database_url: str | URL | None = None
         web=ports.web,
         literature=ports.literature,
         events=DatabaseEventSink(repositories),
-        trajectory=TrajectoryRecorder(repositories),
+        trajectory=trajectory,
     )
     return ApiContainer(
         settings=settings,
@@ -212,9 +283,21 @@ def build_container(settings: Settings, *, database_url: str | URL | None = None
         http=http,
         services=services,
         orchestrator=Orchestrator(services),
-        state=WorkspaceStateService(repositories),
+        state=WorkspaceStateService(repositories, data_dir=data_dir),
         providers=ports.status,
     )
+
+
+async def recover_interrupted_runs(container: ApiContainer) -> None:
+    """Fail runs that a previous process left RUNNING and close their RUNNING steps."""
+
+    try:
+        recovered = await container.state.recover_interrupted_runs(INTERRUPTED_ERROR)
+    except Exception:
+        logger.exception("Startup recovery failed; continuing without it")
+        return
+    if recovered:
+        logger.warning("Marked %d interrupted workspace run(s) FAILED", recovered)
 
 
 def create_app(
@@ -223,12 +306,19 @@ def create_app(
     database_url: str | URL | None = None,
     files_dir: Path | None = None,
 ) -> FastAPI:
-    """Build the app. `database_url` and `files_dir` default to the project `data/` folder."""
+    """Build the app. `database_url` and `files_dir` default to the project `data/` folder.
 
-    container = build_container(settings or get_settings(), database_url=database_url)
+    `files_dir` is a `workspaces` folder; stored paths are relative to its parent.
+    """
+
+    workspaces_dir = files_dir or data_root() / WORKSPACES_DIR
+    container = build_container(
+        settings or get_settings(), database_url=database_url, data_dir=workspaces_dir.parent
+    )
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        await recover_interrupted_runs(container)
         yield
         await container.aclose()
 
@@ -242,7 +332,6 @@ def create_app(
     )
     install_error_handlers(app)
     include_routers(app)
-    workspaces_dir = files_dir or data_root() / WORKSPACES_DIR
     workspaces_dir.mkdir(parents=True, exist_ok=True)
     # Stored paths start with `workspaces/`, so `/files/<relative path>` serves them.
     app.mount(f"/files/{WORKSPACES_DIR}", StaticFiles(directory=workspaces_dir), name="files")

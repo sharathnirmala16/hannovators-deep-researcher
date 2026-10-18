@@ -1,4 +1,7 @@
-"""Workspace lifecycle: create, run or continue, review the decomposition, read the state."""
+"""Workspace lifecycle: list, create, run or continue, review the decomposition, read the state.
+
+Server-visible user actions record USER_ACTION trajectory steps (PLAN.md section 5.3).
+"""
 
 from fastapi import APIRouter, status
 
@@ -7,12 +10,25 @@ from hannovators_deep_researcher.models.contracts import (
     Decomposition,
     WorkspaceSettings,
     WorkspaceState,
+    WorkspaceSummary,
     WorkspaceView,
 )
+from hannovators_deep_researcher.models.enums import StageId, WorkspaceStatus
 from hannovators_deep_researcher.routers.dependencies import Container
-from hannovators_deep_researcher.services.workspace_state import workspace_view
+from hannovators_deep_researcher.services.trajectory_wrappers import record_user_action
+from hannovators_deep_researcher.services.workspace_state import (
+    parse_decomposition,
+    workspace_view,
+)
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
+
+
+@router.get("")
+async def list_workspaces(container: Container) -> list[WorkspaceSummary]:
+    """Every workspace, newest first."""
+
+    return await container.state.list_summaries()
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -27,6 +43,13 @@ async def create_workspace(body: CreateWorkspaceRequest, container: Container) -
         settings=settings,
         auto_continue=body.auto_continue,
     )
+    await record_user_action(
+        container.services.trajectory,
+        row.id,
+        "user.workspace.create",
+        summary=f"Created workspace ({body.domain_mode})",
+        request={**body.model_dump(mode="json"), "settings": settings.model_dump(mode="json")},
+    )
     return workspace_view(row)
 
 
@@ -34,8 +57,17 @@ async def create_workspace(body: CreateWorkspaceRequest, container: Container) -
 async def run_workspace(workspace_id: str, container: Container) -> WorkspaceView:
     """Start, or continue from AWAITING_REVIEW. 409 when it is running or finished."""
 
-    await container.state.require_workspace(workspace_id)
+    before = await container.state.require_workspace(workspace_id)
     start = await container.orchestrator.begin_run(workspace_id)
+    continuing = before.status == WorkspaceStatus.AWAITING_REVIEW
+    await record_user_action(
+        container.services.trajectory,
+        workspace_id,
+        "user.run.continue" if continuing else "user.run.start",
+        summary=f"{'Continued' if continuing else 'Started'} the run at {start}",
+        request={"previous_status": before.status, "start_stage": start},
+        stage=start,
+    )
     container.start_run(workspace_id, start)
     return workspace_view(await container.state.require_workspace(workspace_id))
 
@@ -44,7 +76,20 @@ async def run_workspace(workspace_id: str, container: Container) -> WorkspaceVie
 async def replace_decomposition(
     workspace_id: str, decomposition: Decomposition, container: Container
 ) -> WorkspaceState:
-    return await container.state.replace_decomposition(workspace_id, decomposition)
+    before = parse_decomposition(await container.state.require_workspace(workspace_id))
+    state = await container.state.replace_decomposition(workspace_id, decomposition)
+    await record_user_action(
+        container.services.trajectory,
+        workspace_id,
+        "user.decomposition.edit",
+        summary=f"Edited the {decomposition.mode} decomposition",
+        request={
+            "before": None if before is None else before.model_dump(mode="json"),
+            "after": decomposition.model_dump(mode="json"),
+        },
+        stage=StageId.DECOMPOSE,
+    )
+    return state
 
 
 @router.get("/{workspace_id}")
