@@ -1,11 +1,5 @@
-"""Stage `search`: run core queries with refinement and store RAW sources.
+"""Stage `search`: core queries, hit-count refinement, and PubMed + web retrieval."""
 
-Stub until lane S3 fills it in.
-"""
+from hannovators_deep_researcher.services.pipeline.stages.search.stage import run
 
-from hannovators_deep_researcher.models.enums import TraceEventKind
-from hannovators_deep_researcher.services.pipeline.context import StageContext
-
-
-async def run(ctx: StageContext) -> None:
-    await ctx.emit(TraceEventKind.PROGRESS, "search: not implemented")
+__all__ = ["run"]

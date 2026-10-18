@@ -2,11 +2,15 @@
 
 from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Any
 
 import pytest
 from sqlalchemy import URL
 
+from hannovators_deep_researcher.adapters.fake.chat import FakeChatModel
+from hannovators_deep_researcher.adapters.fake.decisions import FakeDecisionModel
+from hannovators_deep_researcher.adapters.fake.embeddings import FakeEmbedder
+from hannovators_deep_researcher.adapters.fake.literature import FakeLiteratureSearch
+from hannovators_deep_researcher.adapters.fake.web import FakeWebSearch
 from hannovators_deep_researcher.configuration.settings import Settings
 from hannovators_deep_researcher.infrastructure.database import create_database_engine
 from hannovators_deep_researcher.models.contracts import WorkspaceSettings
@@ -26,8 +30,6 @@ from hannovators_deep_researcher.services.events import DatabaseEventSink
 from hannovators_deep_researcher.services.pipeline.context import PipelineServices, StageContext
 from hannovators_deep_researcher.services.pipeline.orchestrator import Orchestrator
 
-UNUSED_PORT: Any = None  # stub stages never call providers
-
 
 @pytest.fixture
 async def services(tmp_path: Path) -> AsyncIterator[PipelineServices]:
@@ -43,11 +45,11 @@ async def services(tmp_path: Path) -> AsyncIterator[PipelineServices]:
             app_settings=Settings(),
             session_factory=session_factory,
             repositories=repositories,
-            chat=UNUSED_PORT,
-            embedder=UNUSED_PORT,
-            decisions=UNUSED_PORT,
-            web=UNUSED_PORT,
-            literature=UNUSED_PORT,
+            chat=FakeChatModel(),
+            embedder=FakeEmbedder(),
+            decisions=FakeDecisionModel(),
+            web=FakeWebSearch(),
+            literature=FakeLiteratureSearch(),
             events=DatabaseEventSink(repositories),
         )
     finally:
