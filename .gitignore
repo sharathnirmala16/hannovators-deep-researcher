@@ -27,3 +27,19 @@ FEEDBACK/
 .agents/communication/
 .archive/
 test_reports/
+
+# JavaScript dependencies and generated output
+node_modules/
+.pnpm-store/
+.vite/
+*.tsbuildinfo
+playwright-report/
+test-results/
+blob-report/
+features-gen/
+
+# Local editor and operating system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

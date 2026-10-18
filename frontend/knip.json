@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["index.html", "src/shared/lib/cn.ts"],
+  "project": ["src/**/*.{ts,tsx,css}"],
+  "ignoreDependencies": [
+    "@testing-library/react",
+    "@testing-library/user-event"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "rules": {
+    "types": "off"
+  }
+}
