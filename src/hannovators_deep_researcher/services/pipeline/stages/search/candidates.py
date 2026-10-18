@@ -1,7 +1,7 @@
 """Web result conversion and cross-provider deduplication of candidates."""
 
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from urllib.parse import unquote
 
 from hannovators_deep_researcher.models.enums import SourceOrigin
@@ -69,6 +69,16 @@ def record_keys(record: CandidateRecord) -> set[str]:
     return dedupe_keys(
         external_id=record.external_id, url=record.url, doi=record.doi, pmid=record.pmid
     )
+
+
+def round_robin[T](groups: Sequence[Sequence[T]]) -> list[T]:
+    """Interleave groups (first of each, then second of each, ...), so the candidate cap
+    keeps a share of every query instead of only the first queries' results."""
+
+    merged: list[T] = []
+    for index in range(max((len(group) for group in groups), default=0)):
+        merged.extend(group[index] for group in groups if index < len(group))
+    return merged
 
 
 def merge_candidates[T](

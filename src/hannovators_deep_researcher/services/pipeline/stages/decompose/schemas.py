@@ -10,11 +10,21 @@ from hannovators_deep_researcher.models.contracts import PicotsDecomposition, Sc
 _FAKE_PICOTS: dict[str, Any] = {
     "population": "Adults with heart failure with reduced ejection fraction",
     "interventions": ["SGLT2 inhibitors"],
-    "comparisons": ["placebo"],
-    "outcomes": ["cardiovascular death", "hospitalization for heart failure"],
+    "comparisons": ["placebo", "mineralocorticoid receptor antagonists"],
+    "outcomes": [
+        "cardiovascular death",
+        "hospitalization for heart failure",
+        "serious adverse events",
+    ],
     "timing": "At least 12 months of follow-up",
-    "study_designs": ["randomized controlled trial"],
-    "ic_pairs": [{"intervention": "SGLT2 inhibitors", "comparison": "placebo"}],
+    "study_designs": ["systematic review or meta-analysis", "randomized controlled trial"],
+    "ic_pairs": [
+        {"intervention": "SGLT2 inhibitors", "comparison": "placebo"},
+        {
+            "intervention": "SGLT2 inhibitors",
+            "comparison": "mineralocorticoid receptor antagonists",
+        },
+    ],
 }
 
 _FAKE_SCOPE: dict[str, Any] = {
@@ -25,7 +35,10 @@ _FAKE_SCOPE: dict[str, Any] = {
     ],
     "metrics": ["gravimetric energy density (Wh/kg)", "production start date"],
     "time_horizon": "2025 to 2027",
-    "counter_hypotheses": ["175 Wh/kg holds only for lab cells, not volume production"],
+    "counter_hypotheses": [
+        "175 Wh/kg holds only for lab cells, not volume production",
+        "Competing LFP cells reach similar pack-level energy density at lower cost",
+    ],
 }
 
 

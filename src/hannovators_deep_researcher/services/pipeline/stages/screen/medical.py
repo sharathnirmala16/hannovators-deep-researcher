@@ -15,12 +15,20 @@ VOTE_KEYS = ("population", "intervention", "design")
 QUESTIONS = {
     RELEVANCE_KEY: RELEVANCE,
     "population": vote("Does the study population match the review population?"),
-    "intervention": vote("Does the study test the review intervention against a comparator?"),
-    "design": vote("Is the study design eligible (for example a randomized controlled trial)?"),
+    "intervention": vote(
+        "Does the study test the review intervention, or one of the review comparators, "
+        "against a comparator (benefit or harm)?"
+    ),
+    "design": vote(
+        "Is the design eligible: a systematic review or meta-analysis, a randomized trial, or "
+        "a controlled observational study of human patients?"
+    ),
     EXCLUSION_KEY: exclusion(
         {
             RejectionCode.ANIMAL_STUDY: "Animal or in-vitro study",
-            RejectionCode.REVIEW_OR_EDITORIAL: "Review, editorial, comment, or letter",
+            RejectionCode.REVIEW_OR_EDITORIAL: (
+                "Narrative review, editorial, comment, or letter (not a systematic review)"
+            ),
             RejectionCode.OFF_TOPIC: "Different population, intervention, or question",
         }
     ),

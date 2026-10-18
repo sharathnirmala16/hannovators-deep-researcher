@@ -12,11 +12,14 @@ from hannovators_deep_researcher.models.enums import (
     ClaimKind,
     ClaimVerdict,
     Directness,
+    EvidenceLevel,
+    EvidenceStance,
     RejectionCode,
     RobJudgement,
 )
 from hannovators_deep_researcher.services.pipeline.stages.appraise.common import (
     ABSTRACT_ONLY,
+    EVIDENCE_PROMPT,
     ClaimDraft,
     SourceAppraisal,
     checked_verdict,
@@ -34,7 +37,9 @@ SYSTEM = (
     "measurement, selective_reporting) as LOW, SOME_CONCERNS, or HIGH; the abstract gives limited "
     "detail, so prefer SOME_CONCERNS when it is silent. 3) Extract key numeric results as metrics "
     "(events/total per arm, effect estimates, confidence intervals). Each metric `quote` MUST be "
-    "copied verbatim from the abstract. Never paraphrase a quote. Reply with JSON only."
+    "copied verbatim from the abstract. Never paraphrase a quote. Extract harm and safety "
+    "results (adverse events, serious adverse events, discontinuations) as metrics too. "
+    f"{EVIDENCE_PROMPT} Reply with JSON only."
 )
 
 
@@ -61,6 +66,8 @@ class MetricDraft(ContractModel):
 
 class MedicalAppraisal(ContractModel):
     study_design: str | None = None
+    evidence_level: EvidenceLevel = EvidenceLevel.OTHER
+    stance: EvidenceStance = EvidenceStance.UNCLEAR
     criteria: list[CriterionMatch] = Field(default_factory=list)
     rob2: list[RobDomainJudgement] = Field(default_factory=list)
     metrics: list[MetricDraft] = Field(default_factory=list)
@@ -70,6 +77,8 @@ class MedicalAppraisal(ContractModel):
     def fake_example(cls) -> dict[str, Any]:
         return {
             "study_design": "randomized controlled trial",
+            "evidence_level": "RCT",
+            "stance": "UNCLEAR",
             "criteria": [
                 {"criterion": name, "matched": name != "C", "rationale": "Fake match."}
                 for name in ("P", "I", "C", "O")
@@ -158,4 +167,6 @@ def evaluate(
         rob2_json=Rob2Assessment(domains=domains, overall=overall).model_dump_json(),
         appraisal_json=json.dumps(appraisal),
         claims=claims,
+        evidence_level=reply.evidence_level,
+        stance=reply.stance,
     )

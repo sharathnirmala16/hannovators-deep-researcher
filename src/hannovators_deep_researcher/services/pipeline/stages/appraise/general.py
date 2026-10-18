@@ -7,9 +7,16 @@ from pydantic import Field
 
 from hannovators_deep_researcher.models.base import ContractModel, Probability
 from hannovators_deep_researcher.models.contracts import ScopeDecomposition
-from hannovators_deep_researcher.models.enums import ClaimKind, ClaimVerdict, RejectionCode
+from hannovators_deep_researcher.models.enums import (
+    ClaimKind,
+    ClaimVerdict,
+    EvidenceLevel,
+    EvidenceStance,
+    RejectionCode,
+)
 from hannovators_deep_researcher.services.pipeline.stages.appraise.common import (
     ABSTRACT_ONLY,
+    EVIDENCE_PROMPT,
     ClaimDraft,
     SourceAppraisal,
     checked_verdict,
@@ -22,7 +29,8 @@ SYSTEM = (
     "Extract the claims that bear on the brief's scope. For each claim give a verdict "
     "(SUPPORTED, CONTRADICTED, MIXED, UNVERIFIED) against the scope claims, a confidence 0..1, and "
     "a `quote` copied verbatim from the source text. Never paraphrase a quote. Rate the source "
-    "credibility 0..1, flag a conflict of interest, and list contradictions. Reply with JSON only."
+    "credibility 0..1, flag a conflict of interest, and list contradictions. "
+    f"{EVIDENCE_PROMPT} Reply with JSON only."
 )
 
 
@@ -37,6 +45,8 @@ class ClaimCheck(ContractModel):
 class GeneralAppraisal(ContractModel):
     credibility: Probability
     relevance: Probability
+    evidence_level: EvidenceLevel = EvidenceLevel.OTHER
+    stance: EvidenceStance = EvidenceStance.UNCLEAR
     conflict_of_interest: bool = False
     claims: list[ClaimCheck] = Field(default_factory=list)
     contradictions: list[str] = Field(default_factory=list)
@@ -46,6 +56,8 @@ class GeneralAppraisal(ContractModel):
     def fake_example(cls) -> dict[str, Any]:
         return {
             "credibility": 0.7,
+            "evidence_level": "WEB_REPORT",
+            "stance": "UNCLEAR",
             "relevance": 0.8,
             "conflict_of_interest": False,
             "claims": [
@@ -98,4 +110,6 @@ def evaluate(source_id: str, text: str, reply: GeneralAppraisal) -> SourceApprai
         rejection_code=None if eligible else RejectionCode.LOW_CREDIBILITY,
         appraisal_json=json.dumps(appraisal),
         claims=claims,
+        evidence_level=reply.evidence_level,
+        stance=reply.stance,
     )

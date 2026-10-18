@@ -8,15 +8,23 @@ from hannovators_deep_researcher.models.base import ContractModel
 from hannovators_deep_researcher.models.contracts import GradeAssessment, Recommendation
 
 SYSTEM = (
-    "You synthesize appraised evidence in three steps. 1) Pairwise summaries: one per "
-    "intervention-versus-comparison pair and outcome (in a general brief: claim versus "
-    "counter-claim). Cite sources only by their labels (S1, S2, ...). Rate GRADE certainty per "
-    "outcome: start HIGH for randomized trials and LOW for observational studies, then "
-    "downgrade for risk of bias, inconsistency, indirectness (an INDIRECT study counts), "
-    "imprecision, and publication bias. Never rate above the start level. 2) An integrated "
-    "analysis. 3) An active-voice, directional recommendation based on the evidence only; "
-    "list cost and preference considerations separately. Use only the evidence given. "
-    "Reply with JSON only."
+    "You synthesize appraised evidence in three steps, as a skeptical reviewer. Sources are "
+    "listed strongest design first (meta-analysis, systematic review, RCT, ..., web report). "
+    "1) Pairwise summaries: one per intervention-versus-comparison pair and outcome (in a "
+    "general brief: claim versus counter-claim), including harm and safety outcomes. Cite "
+    "sources only by their labels (S1, S2, ...). Rate GRADE certainty per outcome: each source "
+    "shows its GRADE start level (HIGH for randomized trials and meta-analyses of them, LOW for "
+    "observational studies); start from the best design that informs the outcome, then "
+    "downgrade for risk of bias, inconsistency (including opposing or null results), "
+    "indirectness (an INDIRECT study counts), imprecision, and publication bias. Never rate above "
+    "the start level. 2) An integrated analysis that weighs higher-level evidence more. In "
+    "`opposing_evidence`, explicitly discuss the strongest opposing, harmful, or null evidence "
+    "(stance OPPOSES, NULL_RESULT, or MIXED) and cite its labels in `opposing_source_labels`; "
+    "if there is none, say that targeted searches found none. In `alternatives`, discuss "
+    "alternative interventions, comparators, or counter-hypotheses (stance ALTERNATIVE) and cite "
+    "them in `alternative_source_labels`. 3) An active-voice, directional recommendation based "
+    "on the evidence only; list cost and preference considerations separately. Use only the "
+    "evidence given. Reply with JSON only."
 )
 
 
@@ -32,6 +40,10 @@ class PairwiseDraft(ContractModel):
 class SynthesisDraft(ContractModel):
     pairwise_summaries: list[PairwiseDraft] = Field(default_factory=list)
     analysis: str
+    opposing_evidence: str = ""
+    opposing_source_labels: list[str] = Field(default_factory=list)
+    alternatives: str = ""
+    alternative_source_labels: list[str] = Field(default_factory=list)
     recommendation: Recommendation
     cost_and_preference_considerations: list[str] = Field(default_factory=list)
 
@@ -56,6 +68,10 @@ class SynthesisDraft(ContractModel):
                 }
             ],
             "analysis": "Fake analysis: the appraised studies point in the same direction.",
+            "opposing_evidence": "Fake: S2 reported no significant difference for one outcome.",
+            "opposing_source_labels": ["S2"],
+            "alternatives": "Fake: no alternative intervention outperformed the intervention.",
+            "alternative_source_labels": [],
             "recommendation": {
                 "direction": "FOR",
                 "strength": "CONDITIONAL",
