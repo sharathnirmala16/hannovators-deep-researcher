@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "search-collection-config/v1",
+  "provider": "tinyfish",
+  "limit": 5,
+  "options": {},
+  "rateLimits": [
+    {
+      "requests": 1,
+      "windowMs": 7500
+    },
+    {
+      "requests": 490,
+      "windowMs": 3600000
+    }
+  ],
+  "maxConcurrency": 2,
+  "limits": {
+    "requestTimeoutMs": 30000,
+    "queryTimeoutMs": 65000,
+    "maxRequestsPerQuery": 2,
+    "maxRetries": 1
+  }
+}

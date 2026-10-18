@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "search-collection-config/v1",
+  "provider": "parallel",
+  "limit": 5,
+  "options": {
+    "mode": "advanced"
+  },
+  "rateLimits": [
+    {
+      "requests": 1,
+      "windowMs": 1000
+    }
+  ],
+  "maxConcurrency": 4,
+  "limits": {
+    "requestTimeoutMs": 30000,
+    "queryTimeoutMs": 65000,
+    "maxRequestsPerQuery": 2,
+    "maxRetries": 1
+  }
+}

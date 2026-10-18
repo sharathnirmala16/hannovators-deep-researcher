@@ -1,0 +1,62 @@
+[project]
+name = "browse-comp"
+version = "0.1.0"
+description = "Python tools for provider-eval dataset preparation and direct search collection."
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "httpx>=0.27,<0.29",
+    "numpy>=1.26,<3.0",
+    "pandas>=2.2,<3.0",
+    "pyarrow>=17.0,<20.0",
+    "pydantic>=2.7,<3.0",
+    "python-dotenv>=1.0,<2.0",
+]
+
+[project.scripts]
+prepare-browse-comp = "browse_comp.cli:main"
+query-gold = "query_gold.cli:main"
+search-urls = "search_urls.cli:main"
+score-search = "search_scoring.cli:main"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.10,<2.0",
+    "pandas-stubs>=2.2,<3.0",
+    "ruff>=0.5,<1.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.24,<2.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/browse_comp", "src/query_gold", "src/search_urls", "src/search_scoring"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes (unused imports, variables, undefined names)
+    "I",    # isort (import ordering)
+    "UP",   # pyupgrade (modern Python 3.12+ idioms)
+    "B",    # flake8-bugbear (bug patterns & reliability)
+    "SIM",  # flake8-simplify (simplifying code structures)
+    "TID",  # flake8-tidy-imports (import boundaries and clean imports)
+    "RUF",  # Ruff-specific static analysis rules
+    "C90",  # mccabe cyclomatic complexity
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["browse_comp", "query_gold", "search_urls", "search_scoring"]
+mypy_path = ["src"]
