@@ -180,3 +180,103 @@ class ProviderAttemptStatus(StrEnum):
     OK = "OK"
     FAILED = "FAILED"
     SKIPPED = "SKIPPED"
+
+
+class EvidenceLevel(StrEnum):
+    """Study design on the evidence hierarchy. `EVIDENCE_RANK` orders it (1 = strongest)."""
+
+    META_ANALYSIS = "META_ANALYSIS"
+    SYSTEMATIC_REVIEW = "SYSTEMATIC_REVIEW"
+    RCT = "RCT"
+    NON_RANDOMIZED_TRIAL = "NON_RANDOMIZED_TRIAL"
+    COHORT = "COHORT"
+    CASE_CONTROL = "CASE_CONTROL"
+    CROSS_SECTIONAL = "CROSS_SECTIONAL"
+    CASE_SERIES = "CASE_SERIES"
+    GUIDELINE = "GUIDELINE"
+    NARRATIVE_REVIEW = "NARRATIVE_REVIEW"
+    PRECLINICAL = "PRECLINICAL"
+    WEB_REPORT = "WEB_REPORT"
+    OTHER = "OTHER"
+
+
+EVIDENCE_RANK: dict[EvidenceLevel, int] = {
+    EvidenceLevel.META_ANALYSIS: 1,
+    EvidenceLevel.SYSTEMATIC_REVIEW: 2,
+    EvidenceLevel.RCT: 3,
+    EvidenceLevel.GUIDELINE: 4,
+    EvidenceLevel.NON_RANDOMIZED_TRIAL: 5,
+    EvidenceLevel.COHORT: 6,
+    EvidenceLevel.CASE_CONTROL: 7,
+    EvidenceLevel.CROSS_SECTIONAL: 8,
+    EvidenceLevel.CASE_SERIES: 9,
+    EvidenceLevel.NARRATIVE_REVIEW: 10,
+    EvidenceLevel.WEB_REPORT: 11,
+    EvidenceLevel.PRECLINICAL: 12,
+    EvidenceLevel.OTHER: 13,
+}
+
+
+class EvidenceStance(StrEnum):
+    """What a source says about the research question."""
+
+    SUPPORTS = "SUPPORTS"
+    OPPOSES = "OPPOSES"
+    NULL_RESULT = "NULL_RESULT"
+    MIXED = "MIXED"
+    ALTERNATIVE = "ALTERNATIVE"
+    UNCLEAR = "UNCLEAR"
+
+
+class SearchIntent(StrEnum):
+    """Why a query was run. NEGATIVE and ALTERNATIVE keep the agent looking for disconfirming
+    evidence and other options, not only for support."""
+
+    CORE = "CORE"
+    NEGATIVE = "NEGATIVE"
+    ALTERNATIVE = "ALTERNATIVE"
+    SAFETY = "SAFETY"
+    SEED_CITATION = "SEED_CITATION"
+    DEEP_RESEARCH = "DEEP_RESEARCH"
+
+
+class TrajectoryActor(StrEnum):
+    AGENT = "AGENT"
+    USER = "USER"
+    SYSTEM = "SYSTEM"
+
+
+class TrajectoryKind(StrEnum):
+    """One row type in the trajectory (network-tab) view."""
+
+    STAGE = "STAGE"
+    LLM = "LLM"
+    DECISION = "DECISION"
+    SEARCH = "SEARCH"
+    FETCH = "FETCH"
+    DOWNLOAD = "DOWNLOAD"
+    EMBED = "EMBED"
+    RETRIEVE = "RETRIEVE"
+    VERDICT = "VERDICT"
+    USER_ACTION = "USER_ACTION"
+    CHAT = "CHAT"
+
+
+class TrajectoryStatus(StrEnum):
+    RUNNING = "RUNNING"
+    OK = "OK"
+    ERROR = "ERROR"
+    SKIPPED = "SKIPPED"
+
+
+class VerdictOutcome(StrEnum):
+    """What a VERDICT step decided about a source or claim."""
+
+    KEPT = "KEPT"
+    REMOVED = "REMOVED"
+    FLAGGED = "FLAGGED"
+
+
+class ChatRole(StrEnum):
+    USER = "USER"
+    ASSISTANT = "ASSISTANT"

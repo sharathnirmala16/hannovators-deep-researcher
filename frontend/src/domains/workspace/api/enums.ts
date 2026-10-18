@@ -105,6 +105,60 @@ export const recommendationStrengthSchema = z.enum(['STRONG', 'CONDITIONAL']);
 export const decisionQuestionTypeSchema = z.enum(['choice', 'score', 'noul']);
 /** Outcome of one provider attempt inside a routed web search. */
 export const providerAttemptStatusSchema = z.enum(['OK', 'FAILED', 'SKIPPED']);
+/** Study design on the evidence hierarchy (`evidence_rank` 1 = strongest). */
+export const evidenceLevelSchema = z.enum([
+  'META_ANALYSIS',
+  'SYSTEMATIC_REVIEW',
+  'RCT',
+  'NON_RANDOMIZED_TRIAL',
+  'COHORT',
+  'CASE_CONTROL',
+  'CROSS_SECTIONAL',
+  'CASE_SERIES',
+  'GUIDELINE',
+  'NARRATIVE_REVIEW',
+  'PRECLINICAL',
+  'WEB_REPORT',
+  'OTHER',
+]);
+export const evidenceStanceSchema = z.enum([
+  'SUPPORTS',
+  'OPPOSES',
+  'NULL_RESULT',
+  'MIXED',
+  'ALTERNATIVE',
+  'UNCLEAR',
+]);
+export const searchIntentSchema = z.enum([
+  'CORE',
+  'NEGATIVE',
+  'ALTERNATIVE',
+  'SAFETY',
+  'SEED_CITATION',
+  'DEEP_RESEARCH',
+]);
+export const trajectoryActorSchema = z.enum(['AGENT', 'USER', 'SYSTEM']);
+export const trajectoryKindSchema = z.enum([
+  'STAGE',
+  'LLM',
+  'DECISION',
+  'SEARCH',
+  'FETCH',
+  'DOWNLOAD',
+  'EMBED',
+  'RETRIEVE',
+  'VERDICT',
+  'USER_ACTION',
+  'CHAT',
+]);
+export const trajectoryStatusSchema = z.enum([
+  'RUNNING',
+  'OK',
+  'ERROR',
+  'SKIPPED',
+]);
+export const verdictOutcomeSchema = z.enum(['KEPT', 'REMOVED', 'FLAGGED']);
+export const chatRoleSchema = z.enum(['USER', 'ASSISTANT']);
 
 export type DomainMode = z.infer<typeof domainModeSchema>;
 export type RequestedDomainMode = z.infer<typeof requestedDomainModeSchema>;
@@ -133,3 +187,11 @@ export type RecommendationStrength = z.infer<
 >;
 export type DecisionQuestionType = z.infer<typeof decisionQuestionTypeSchema>;
 export type ProviderAttemptStatus = z.infer<typeof providerAttemptStatusSchema>;
+export type EvidenceLevel = z.infer<typeof evidenceLevelSchema>;
+export type EvidenceStance = z.infer<typeof evidenceStanceSchema>;
+export type SearchIntent = z.infer<typeof searchIntentSchema>;
+export type TrajectoryActor = z.infer<typeof trajectoryActorSchema>;
+export type TrajectoryKind = z.infer<typeof trajectoryKindSchema>;
+export type TrajectoryStatus = z.infer<typeof trajectoryStatusSchema>;
+export type VerdictOutcome = z.infer<typeof verdictOutcomeSchema>;
+export type ChatRole = z.infer<typeof chatRoleSchema>;

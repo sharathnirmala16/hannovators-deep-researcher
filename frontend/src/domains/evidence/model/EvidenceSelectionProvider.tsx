@@ -6,6 +6,7 @@ import {
 } from './evidenceSelectionContext';
 import {
   NO_SELECTION,
+  citationSelection,
   claimSelection,
   highlightSelection,
   sourceSelection,
@@ -40,6 +41,8 @@ export function EvidenceSelectionProvider({
       selectClaim: (claim, highlights) =>
         select(claimSelection(claim, highlights)),
       selectHighlight: (highlight) => select(highlightSelection(highlight)),
+      selectCitation: (messageId, citation) =>
+        select(citationSelection(messageId, citation)),
       selectSource: (sourceId, page = null) =>
         select(sourceSelection(sourceId, page)),
       clearSelection: () => select(NO_SELECTION),

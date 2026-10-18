@@ -143,6 +143,9 @@ class SourceRow(Base):
     rejection_code: Mapped[str | None] = mapped_column(String(ENUM_LENGTH))
     decision_explanation: Mapped[str | None] = mapped_column(Text)
     extra_json: Mapped[str | None] = mapped_column(Text)
+    evidence_level: Mapped[str | None] = mapped_column(String(ENUM_LENGTH))
+    stance: Mapped[str | None] = mapped_column(String(ENUM_LENGTH))
+    search_intent: Mapped[str | None] = mapped_column(String(ENUM_LENGTH))
     created_at: Mapped[datetime] = _created_at()
 
 
@@ -214,6 +217,49 @@ class HighlightRow(Base):
     method: Mapped[str] = mapped_column(String(ENUM_LENGTH))
     score: Mapped[float | None] = mapped_column(Float)
     color: Mapped[str] = mapped_column(String(ENUM_LENGTH))
+
+
+class TrajectoryStepRow(Base):
+    """One auditable agent or user action (revision `0003_trajectory_chat`)."""
+
+    __tablename__ = "trajectory_steps"
+    __table_args__ = ({"sqlite_autoincrement": True},)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    workspace_id: Mapped[str] = _workspace_fk()
+    parent_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("trajectory_steps.id", ondelete="SET NULL")
+    )
+    actor: Mapped[str] = mapped_column(String(ENUM_LENGTH))
+    kind: Mapped[str] = mapped_column(String(ENUM_LENGTH))
+    stage: Mapped[str | None] = mapped_column(String(ENUM_LENGTH))
+    name: Mapped[str] = mapped_column(String(128))
+    target: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(ENUM_LENGTH))
+    started_at: Mapped[datetime] = mapped_column(UtcDateTime(), default=utc_now)
+    ended_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
+    duration_ms: Mapped[int | None] = mapped_column(Integer)
+    summary: Mapped[str] = mapped_column(Text, default="")
+    request_json: Mapped[str | None] = mapped_column(Text)
+    response_json: Mapped[str | None] = mapped_column(Text)
+    source_ids_json: Mapped[str] = mapped_column(Text, default="[]")
+    outcome: Mapped[str | None] = mapped_column(String(ENUM_LENGTH))
+    confidence: Mapped[float | None] = mapped_column(Float)
+    error: Mapped[str | None] = mapped_column(Text)
+
+
+class ChatMessageRow(Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[str] = _id_column()
+    workspace_id: Mapped[str] = _workspace_fk()
+    role: Mapped[str] = mapped_column(String(ENUM_LENGTH))
+    content: Mapped[str] = mapped_column(Text)
+    citations_json: Mapped[str] = mapped_column(Text, default="[]")
+    trajectory_step_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("trajectory_steps.id", ondelete="SET NULL")
+    )
+    created_at: Mapped[datetime] = _created_at()
 
 
 class TraceEventRow(Base):

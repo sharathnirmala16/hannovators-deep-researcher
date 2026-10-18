@@ -1,5 +1,11 @@
 export type * from './api/schema';
-export type { WorkspaceClient, WorkspaceEventHandlers } from './api/contract';
+export type * from './api/auditSchema';
+export type {
+  TrajectoryQuery,
+  TrajectoryStreamHandlers,
+  WorkspaceClient,
+  WorkspaceEventHandlers,
+} from './api/contract';
 export { WorkspaceProvider } from './model/WorkspaceProvider';
 export {
   useWorkspace,

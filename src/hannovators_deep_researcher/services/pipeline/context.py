@@ -17,11 +17,16 @@ from hannovators_deep_researcher.models.ports import (
     WebSearch,
 )
 from hannovators_deep_researcher.persistence.repositories import Repositories
+from hannovators_deep_researcher.services.trajectory import TrajectoryRecorder
 
 
 @dataclass(frozen=True)
 class PipelineServices:
-    """Process-wide dependencies. `main.py` builds one and passes it to the orchestrator."""
+    """Process-wide dependencies. `main.py` builds one and passes it to the orchestrator.
+
+    `trajectory` records auditable steps; the orchestrator binds workspace and stage, so stages
+    call `ctx.trajectory.record(...)` / `async with ctx.trajectory.step(...)` without IDs.
+    """
 
     app_settings: Settings
     session_factory: async_sessionmaker[AsyncSession]
@@ -32,6 +37,7 @@ class PipelineServices:
     web: WebSearch
     literature: LiteratureSearch
     events: EventSink
+    trajectory: TrajectoryRecorder
 
 
 @dataclass(frozen=True)

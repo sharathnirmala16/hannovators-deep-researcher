@@ -20,9 +20,8 @@ export function ClaimCell({
 }: ClaimCellProps) {
   const { selection, selectClaim } = useEvidenceSelection();
   const active =
-    selection.kind !== 'none' && selection.kind !== 'source'
-      ? selection.claimId === claim.id
-      : false;
+    (selection.kind === 'claim' || selection.kind === 'highlight') &&
+    selection.claimId === claim.id;
   const grounded = claim.highlight_ids.length > 0;
   return (
     <button

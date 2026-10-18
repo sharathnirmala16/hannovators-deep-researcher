@@ -33,6 +33,7 @@ from hannovators_deep_researcher.models.enums import (
 from hannovators_deep_researcher.models.events import TraceEvent
 from hannovators_deep_researcher.persistence.base import Base
 from hannovators_deep_researcher.persistence.tables import (
+    ChatMessageRow,
     ChunkRow,
     ClaimRow,
     HighlightRow,
@@ -40,6 +41,7 @@ from hannovators_deep_researcher.persistence.tables import (
     SourceLinkRow,
     SourceRow,
     TraceEventRow,
+    TrajectoryStepRow,
     WorkspaceRow,
 )
 
@@ -351,6 +353,49 @@ class Repositories:
             )
         )
         return _to_trace_event(row)
+
+    # --- trajectory_steps ---------------------------------------------------------------
+
+    async def add_trajectory_step(self, **fields: Any) -> TrajectoryStepRow:
+        return await self.add(TrajectoryStepRow(**_column_values(TrajectoryStepRow, fields)))
+
+    async def update_trajectory_step(self, step_id: int, **fields: Any) -> TrajectoryStepRow:
+        return await self.update(TrajectoryStepRow, step_id, **fields)
+
+    async def get_trajectory_step(self, step_id: int) -> TrajectoryStepRow | None:
+        return await self.get(TrajectoryStepRow, step_id)
+
+    async def list_trajectory_steps(
+        self,
+        workspace_id: str,
+        *criteria: ColumnElement[bool],
+        after: int | None = None,
+        limit: int = DEFAULT_EVENT_PAGE,
+    ) -> list[TrajectoryStepRow]:
+        """Steps with `id > after`, oldest first. `criteria` filter on `TrajectoryStepRow`."""
+
+        statement = (
+            select(TrajectoryStepRow)
+            .where(
+                TrajectoryStepRow.workspace_id == workspace_id,
+                TrajectoryStepRow.id > (after or 0),
+                *criteria,
+            )
+            .order_by(TrajectoryStepRow.id)
+            .limit(limit)
+        )
+        async with self.transaction() as session:
+            return list((await session.scalars(statement)).all())
+
+    # --- chat_messages -------------------------------------------------------------------
+
+    async def add_chat_message(self, **fields: Any) -> ChatMessageRow:
+        return await self.add(ChatMessageRow(**_column_values(ChatMessageRow, fields)))
+
+    async def list_chat_messages(self, workspace_id: str) -> list[ChatMessageRow]:
+        return await self.list_for_workspace(
+            ChatMessageRow, workspace_id, order_by=("created_at", "id")
+        )
 
     async def events_after(
         self, workspace_id: str, last_id: int | None, *, limit: int = DEFAULT_EVENT_PAGE

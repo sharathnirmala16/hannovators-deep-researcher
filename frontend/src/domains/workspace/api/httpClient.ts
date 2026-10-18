@@ -1,29 +1,38 @@
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import {
   WorkspaceApiError,
+  type TrajectoryQuery,
   type WorkspaceClient,
-  type WorkspaceEventHandlers,
 } from './contract';
+import {
+  parseJson,
+  subscribeEvents,
+  subscribeTrajectory,
+  workspacePath,
+} from './eventStreams';
+import {
+  chatMessageViewSchema,
+  chatRequestSchema,
+  deepResearchRecordSchema,
+  sourceDetailSchema,
+  trajectoryPageSchema,
+  trajectoryStepSchema,
+  userActionRequestSchema,
+  workspaceSummarySchema,
+} from './auditSchema';
 import {
   apiErrorSchema,
   createWorkspaceRequestSchema,
+  decompositionSchema,
   graphViewSchema,
-  traceEventSchema,
+  seedReferenceRequestSchema,
+  sourceViewSchema,
   workspaceStateSchema,
   workspaceViewSchema,
 } from './schema';
 
-const workspacePath = (id: string) =>
-  `/api/workspaces/${encodeURIComponent(id)}`;
-
-function parseJson(text: string): unknown {
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return null;
-  }
-}
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 /** Normalizes a failed response, using the `ApiError` body when present. */
 async function toApiError(response: Response): Promise<WorkspaceApiError> {
@@ -59,46 +68,126 @@ async function request<S extends z.ZodType>(
   return decoded.data;
 }
 
-function subscribeEvents(
-  id: string,
-  { onEvent, onEnd, onError }: WorkspaceEventHandlers,
-): () => void {
-  // EventSource reconnects by itself and sends Last-Event-ID on reconnect.
-  const source = new EventSource(`${workspacePath(id)}/events`);
-  source.addEventListener('trace', (message: MessageEvent<string>) => {
-    const event = traceEventSchema.safeParse(parseJson(message.data));
-    if (event.success) onEvent(event.data);
-    else onError(new Error(`Invalid trace event: ${event.error.message}`));
-  });
-  source.addEventListener('end', () => {
-    source.close();
-    onEnd();
-  });
-  source.addEventListener('error', () => {
-    onError(new Error('The event stream was interrupted.'));
-  });
-  return () => source.close();
+const withSignal = (signal?: AbortSignal): RequestInit => ({
+  signal: signal ?? null,
+});
+
+const postJson = (body: unknown, method = 'POST'): RequestInit => ({
+  method,
+  headers: JSON_HEADERS,
+  body: JSON.stringify(body),
+});
+
+function trajectoryPath(id: string, query: TrajectoryQuery = {}): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== '') params.set(key, String(value));
+  }
+  const search = params.toString();
+  return `${workspacePath(id)}/trajectory${search ? `?${search}` : ''}`;
 }
+
+const sourceList = z.array(sourceViewSchema);
 
 export const httpClient: WorkspaceClient = {
   source: 'http',
   defaultWorkspaceId: () => Promise.resolve(null),
+  listWorkspaces: (signal) =>
+    request(
+      '/api/workspaces',
+      z.array(workspaceSummarySchema),
+      withSignal(signal),
+    ),
   getWorkspace: (id, signal) =>
-    request(workspacePath(id), workspaceStateSchema, {
-      signal: signal ?? null,
-    }),
+    request(workspacePath(id), workspaceStateSchema, withSignal(signal)),
   getGraph: (id, signal) =>
-    request(`${workspacePath(id)}/graph`, graphViewSchema, {
-      signal: signal ?? null,
-    }),
+    request(`${workspacePath(id)}/graph`, graphViewSchema, withSignal(signal)),
   createWorkspace: (body) =>
-    request('/api/workspaces', workspaceViewSchema, {
+    request(
+      '/api/workspaces',
+      workspaceViewSchema,
+      postJson(createWorkspaceRequestSchema.parse(body)),
+    ),
+  uploadSeedFiles: (id, files) => {
+    const form = new FormData();
+    for (const file of files) form.append('files', file);
+    return request(`${workspacePath(id)}/seeds`, sourceList, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(createWorkspaceRequestSchema.parse(body)),
-    }),
+      body: form,
+    });
+  },
+  addSeedReference: (id, body) =>
+    request(
+      `${workspacePath(id)}/seeds`,
+      sourceList,
+      postJson(seedReferenceRequestSchema.parse(body)),
+    ),
   runWorkspace: async (id) => {
     await send(`${workspacePath(id)}/run`, { method: 'POST' });
   },
+  updateDecomposition: (id, decomposition) =>
+    request(
+      `${workspacePath(id)}/decomposition`,
+      workspaceStateSchema,
+      postJson(decompositionSchema.parse(decomposition), 'PUT'),
+    ),
+  getSource: (id, sourceId, signal) =>
+    request(
+      `${workspacePath(id)}/sources/${encodeURIComponent(sourceId)}`,
+      sourceDetailSchema,
+      withSignal(signal),
+    ),
   subscribeEvents,
+  getTrajectory: (id, query, signal) =>
+    request(
+      trajectoryPath(id, query),
+      trajectoryPageSchema,
+      withSignal(signal),
+    ),
+  getTrajectoryStep: (id, stepId, signal) =>
+    request(
+      `${workspacePath(id)}/trajectory/${stepId}`,
+      trajectoryStepSchema,
+      withSignal(signal),
+    ),
+  subscribeTrajectory,
+  recordAction: async (id, action) => {
+    try {
+      await send(
+        `${workspacePath(id)}/trajectory/actions`,
+        postJson(userActionRequestSchema.parse(action)),
+      );
+    } catch {
+      // Best effort: a failed audit write must never break the UI action.
+    }
+  },
+  listChat: (id, signal) =>
+    request(
+      `${workspacePath(id)}/chat`,
+      z.array(chatMessageViewSchema),
+      withSignal(signal),
+    ),
+  ask: (id, question) =>
+    request(
+      `${workspacePath(id)}/chat`,
+      chatMessageViewSchema,
+      postJson(chatRequestSchema.parse({ question })),
+    ),
+  startDeepResearch: (id) =>
+    request(`${workspacePath(id)}/deep-research`, deepResearchRecordSchema, {
+      method: 'POST',
+    }),
+  getDeepResearch: async (id, signal) => {
+    try {
+      return await request(
+        `${workspacePath(id)}/deep-research`,
+        deepResearchRecordSchema,
+        withSignal(signal),
+      );
+    } catch (error) {
+      if (error instanceof WorkspaceApiError && error.status === 404)
+        return null;
+      throw error;
+    }
+  },
 };

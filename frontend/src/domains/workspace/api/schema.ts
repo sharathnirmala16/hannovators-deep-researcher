@@ -14,6 +14,8 @@ import {
   claimKindSchema,
   claimVerdictSchema,
   directnessSchema,
+  evidenceLevelSchema,
+  evidenceStanceSchema,
   gradeCertaintySchema,
   highlightMethodSchema,
   recommendationDirectionSchema,
@@ -21,6 +23,7 @@ import {
   rejectionCodeSchema,
   requestedDomainModeSchema,
   robJudgementSchema,
+  searchIntentSchema,
   sourceLinkKindSchema,
   sourceOriginSchema,
   sourceStatusSchema,
@@ -34,15 +37,15 @@ export * from './enums';
 
 // --- Shared field types (models/base.py) ------------------------------------
 
-const probability = z.number().min(0).max(1);
-const nonNegativeInt = z.int().min(0);
-const nonEmptyText = z.string().trim().min(1);
+export const probability = z.number().min(0).max(1);
+export const nonNegativeInt = z.int().min(0);
+export const nonEmptyText = z.string().trim().min(1);
 /** Pydantic `datetime`: ISO 8601, with or without a UTC offset. */
-const dateTime = z.iso.datetime({ offset: true, local: true });
-const stringList = z.array(z.string()).default(() => []);
-const nullableString = z.string().nullable().default(null);
+export const dateTime = z.iso.datetime({ offset: true, local: true });
+export const stringList = z.array(z.string()).default(() => []);
+export const nullableString = z.string().nullable().default(null);
 /** `[x0, y0, x1, y1]` in PDF points. */
-const rect = z.tuple([z.number(), z.number(), z.number(), z.number()]);
+export const rect = z.tuple([z.number(), z.number(), z.number(), z.number()]);
 
 // --- Decomposition ----------------------------------------------------------
 
@@ -186,7 +189,14 @@ export const sourceViewSchema = z.strictObject({
   decision_explanation: nullableString,
   raw_url: nullableString,
   highlighted_url: nullableString,
+  evidence_level: evidenceLevelSchema.nullable().default(null),
+  evidence_rank: z.int().min(1).nullable().default(null),
+  stance: evidenceStanceSchema.nullable().default(null),
+  search_intent: searchIntentSchema.nullable().default(null),
+  found_by: nullableString,
 });
+
+export const jsonRecord = z.record(z.string(), z.json()).default(() => ({}));
 
 const funnelCount = nonNegativeInt.default(0);
 

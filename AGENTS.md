@@ -17,7 +17,8 @@
 
 ## Tests
 
-- This is a hackathon build. Write tests only for edge cases in pure logic, one cheap live check per external provider, and a few end-to-end tests of the critical path. Each `PLAN.md` lane card lists its required tests.
+- Do not write new unit tests or rerun the suite while you build. Run all checks once at the end of your work and fix what fails. Keep existing tests green; update them when a contract change breaks them.
+- New tests are limited to a few live end-to-end tests of critical functions (`tests/e2e/test_live_*.py`, markers `live` and `e2e`), written after the features work.
 - Do not test trivial happy paths, DTOs, wiring, layout, or styling. No snapshot tests. No coverage targets.
 - Mark tests `unit`, `integration`, `live`, or `e2e`. Live checks skip when an API key is missing and make one small request each.
 - Mock HTTP with `respx` at the adapter boundary. Use the fakes in `adapters/fake/` for service and end-to-end tests.
@@ -46,7 +47,7 @@ Each worktree has fixed, isolated ports in its root `.env` so agents can run ser
 
 - From the root: `uv run ruff format --check`, `uv run ruff check`, `uv run mypy`, and `uv build`.
 - From `frontend/`: `pnpm check` and `pnpm build`.
-- Run `uv run pytest` (skips `live` after Phase 0). Run `uv run pytest -m live` when you change an adapter. Run `pnpm test` when frontend tests exist. Keep empty-suite failures visible.
+- At the end of your work, run `uv run pytest` (skips `live`) and `pnpm test`. Run `uv run pytest -m live` only when you changed an adapter or a live e2e test.
 - Keep strict types and complexity limits. Correct violations instead of broad rule exceptions.
 - Update the README when commands or structure change.
 

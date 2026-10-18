@@ -47,6 +47,7 @@ from hannovators_deep_researcher.services.documents.files import WORKSPACES_DIR,
 from hannovators_deep_researcher.services.events import DatabaseEventSink
 from hannovators_deep_researcher.services.pipeline.context import PipelineServices
 from hannovators_deep_researcher.services.pipeline.orchestrator import Orchestrator
+from hannovators_deep_researcher.services.trajectory import TrajectoryRecorder
 from hannovators_deep_researcher.services.websearch_router import create_web_search_router
 from hannovators_deep_researcher.services.workspace_state import WorkspaceStateService
 
@@ -203,6 +204,7 @@ def build_container(settings: Settings, *, database_url: str | URL | None = None
         web=ports.web,
         literature=ports.literature,
         events=DatabaseEventSink(repositories),
+        trajectory=TrajectoryRecorder(repositories),
     )
     return ApiContainer(
         settings=settings,

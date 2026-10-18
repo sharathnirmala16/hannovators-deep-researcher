@@ -5,6 +5,7 @@ export {
 } from './model/evidenceSelectionContext';
 export type {
   EvidenceSelection,
+  SelectableCitation,
   SelectableClaim,
   SelectableHighlight,
 } from './model/selection';

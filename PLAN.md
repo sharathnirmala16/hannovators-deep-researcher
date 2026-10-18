@@ -413,6 +413,57 @@ return plausible data, so the full pipeline and the frontend run offline:
 SSE uses a plain `StreamingResponse` that tails `trace_events` by ID. No extra dependency. This works
 across reconnects and survives a browser reload.
 
+### 5.3 Round 2 contract: workspaces, seeds, sources, trajectory, chat, deep research
+
+Models: `models/contracts.py` (`WorkspaceSummary`, `SourceDetail`, new `SourceView` fields),
+`models/trajectory.py`, `models/chat.py`, `models/deep_research.py`, enums `EvidenceLevel`
+(+ `EVIDENCE_RANK`), `EvidenceStance`, `SearchIntent`, `Trajectory*`, `VerdictOutcome`, `ChatRole`.
+Tables (revision `0003_trajectory_chat`): `trajectory_steps`, `chat_messages`, and `sources.evidence_level`,
+`sources.stance`, `sources.search_intent`. Frontend mirrors: `domains/workspace/api/schema.ts` and
+`auditSchema.ts`; the typed client is `domains/workspace/api/contract.ts` (`WorkspaceClient`).
+
+| Method + path | Body / response | Owner lane |
+| :--- | :--- | :--- |
+| `GET /workspaces` | `list[WorkspaceSummary]`, newest first | platform |
+| `POST /workspaces/{id}/seeds` | multipart `files` (PDFs) or JSON `SeedReferenceRequest` -> `list[SourceView]` (status `SEED`, file saved at `data/workspaces/<ws>/sources/<src>/raw.pdf`) | platform (storage) + grounding (S1 ingest processes it) |
+| `GET /workspaces/{id}/sources/{source_id}` | `SourceDetail` (abstract, screen/appraisal JSON, chunk count, claim ids, trajectory step ids) | platform |
+| `GET /workspaces/{id}/trajectory` | query `after, limit (<=500), kind, actor, stage, outcome, q` -> `TrajectoryPage` of `TrajectoryStepSummary` | platform |
+| `GET /workspaces/{id}/trajectory/stream` | SSE `event: step`, `id:` = step id, data = `TrajectoryStepSummary`; honors `Last-Event-ID`; re-sends a step when it closes (RUNNING -> OK/ERROR); heartbeat 15 s. Declare this route before `/{step_id}`. | platform |
+| `GET /workspaces/{id}/trajectory/{step_id}` | `TrajectoryStep` (request + response bodies) | platform |
+| `POST /workspaces/{id}/trajectory/actions` | `UserActionRequest` -> 201 `TrajectoryStepSummary` (actor USER, kind USER_ACTION) | platform |
+| `GET /workspaces/{id}/chat` | `list[ChatMessageView]`, oldest first | grounding |
+| `POST /workspaces/{id}/chat` | `ChatRequest` -> `ChatMessageView` (assistant answer with `[n]` citations; the user turn is stored too; one CHAT trajectory step parents the retrieval and LLM steps) | grounding |
+| `POST /workspaces/{id}/deep-research` | 202 `DeepResearchRecord` (409 while running) | research-quality |
+| `GET /workspaces/{id}/deep-research` | `DeepResearchRecord` or 404 | research-quality |
+
+Router modules already exist as 501 stubs and are registered in `routers/__init__.py`; lanes replace
+the stub bodies and never edit `routers/__init__.py`.
+
+**Trajectory recording rules** (`services/trajectory.py`, `TrajectoryRecorder` on `PipelineServices`
+as `ctx.trajectory` and on `ApiContainer.services.trajectory`):
+
+- The orchestrator binds workspace + stage and opens one STAGE step per stage (done in the contract).
+- Port wrappers (platform lane) record every port call automatically: `LLM` (role, model, system and
+  user prompt, parsed reply), `DECISION` (Jev state, questions, answers with probabilities and
+  confidence), `SEARCH` (provider, query, filters, hit count, result URLs), `FETCH`/`DOWNLOAD` (URL,
+  status, bytes, content type), `EMBED` (count, model, dimensions; no vectors).
+- Stages record outcomes: one `VERDICT` step per source decision with `outcome` KEPT/REMOVED/FLAGGED,
+  `confidence`, `source_ids=[id]`, and the reason (rejection code, votes, z-score, M-score, evidence
+  level) in `response`. Screen, appraise, and ingest/acquire failures all record verdicts.
+- Every user action records a `USER_ACTION` step: routers record server-visible actions
+  (`user.workspace.create`, `user.seed.upload`, `user.run.start`, `user.run.continue`,
+  `user.decomposition.edit`, `user.chat.ask`, `user.deep_research.start`); the UI posts the rest
+  (`user.source.open`, `user.citation.open`, `user.claim.open`, `user.tab.switch`).
+- Use `trajectory.step()` for anything with a duration so nested calls get it as parent. Never put
+  secrets or embedding vectors in bodies.
+
+**Evidence quality rules** (research-quality lane): every candidate gets `evidence_level` (Jev choice
+over the `EvidenceLevel` values from title + abstract + publication types; keyword fallback) and
+`stance`. Screening and appraisal rank by evidence rank first, then relevance. Search always runs
+NEGATIVE (null, harm, failed, discontinued, contradicting trials), ALTERNATIVE (other interventions and
+comparators), and SAFETY queries in addition to CORE, records `search_intent` on each source, and the
+synthesis must cite at least the strongest opposing or null evidence when it exists.
+
 ---
 
 ## 6. Configuration (`configuration/settings.py`, `.env.example`)
@@ -819,6 +870,24 @@ Rules:
 - If a session changes a contract, `PLAN.md` must change in the same commit (integrator only).
 - A gate task is done only when all its acceptance criteria pass on `main`.
 
+### 7.9 Round 2 lanes (UI redesign, trajectory, grounding, research quality)
+
+Contract: section 5.3 and section 10. Each lane runs in its own worktree on a `feat/*` branch and
+owns only the files listed. During development, do not write or run tests; run the full checks once
+at the end (AGENTS.md "Tests").
+
+| Lane | Worktree / branch | Owns |
+| :--- | :--- | :--- |
+| `ui-shell` | `hdr_wt_1` / `feat/ui-shell` | `frontend/src/app/**`, `frontend/src/index.css`, `frontend/src/shared/ui/**`, `frontend/src/domains/workspace/model/**`, `frontend/src/domains/evidence/**`, features `workbench-shell`, `scope-builder`, `screening-funnel`, `evidence-table`, `pdf-viewer`, `citation-graph`; may add new features `workspace-list`, `new-workspace` |
+| `ui-trajectory-chat` | `hdr_wt_2` / `feat/ui-trajectory-chat` | `frontend/src/features/trajectory/**`, `frontend/src/features/research-chat/**`, `frontend/src/test/fixtures/trajectory.*.json`, `chat.*.json` |
+| `grounding` | `hdr_wt_3` / `feat/grounding` | stages `ingest`, `acquire`, `highlight`; `services/retrieval/**`; `services/chat.py`; `routers/chat.py`; `adapters/pubmed.py` (`open_access_pdf_url` only); `persistence/queries/{ingest,acquire,highlight,chat}.py` |
+| `research-quality` | `hdr_wt_4` / `feat/research-quality` | stages `decompose`, `search`, `screen`, `appraise`, `synthesize`; `services/evidence.py` (new); `adapters/tavily_research.py`, `services/deep_research.py`, `routers/deep_research.py`; `persistence/queries/{search,screen,appraise,synthesize}.py` |
+| `platform` | `hdr_wt_5` / `feat/platform` | `services/trajectory_wrappers.py` (new), `main.py` (wrap ports + startup recovery), `routers/{workspaces,seeds,sources,trajectory,events,health}.py`, `services/workspace_state.py`, `routers/dependencies.py`, `tests/e2e/**` (live e2e, written last) |
+
+Shared contract files (`models/**`, `persistence/tables.py`, migrations, `services/trajectory.py`,
+`domains/workspace/api/**`, `pyproject.toml`, `uv.lock`, `frontend/package.json`, the pnpm lockfile)
+change only through the integrator. A lane that needs a contract change writes it in its PR summary.
+
 ---
 
 ## 8. Test policy (hackathon)
@@ -832,6 +901,11 @@ Rules:
 - Mock HTTP with `respx` at the adapter boundary. Use `adapters/fake/` for ports in service and e2e tests.
 - Live checks make one small request each. No loops. No extra retries.
 - Behave and Playwright-BDD are deferred. Phase 3 adds one plain Playwright smoke test.
+- Round 2 (supersedes the lane-card test lists): write no new unit tests during development and do
+  not rerun the suite while building. Run all checks once at the end of the lane and keep existing
+  tests green (update them when a contract change breaks them). The only new tests are a few live e2e
+  tests (`tests/e2e/test_live_*.py`, markers `live` + `e2e`): full run with seed PDFs, cited chat,
+  trajectory completeness, and Tavily deep research.
 
 ---
 
@@ -849,3 +923,54 @@ Rules:
 | A web provider fails during the demo | `auto` failover; replay bundle (I2) |
 | Windows paths | `pathlib` everywhere; POSIX relative paths in the database |
 | Merge conflicts | Pre-created stubs, frozen `[P0]` files, per-lane query modules, no lane migrations or lockfile edits |
+
+---
+
+## 10. UI specification (round 2)
+
+Desktop only (1280 px and wider). Use the `frontend-design` skill for the visual direction; the rules
+below are fixed.
+
+### 10.1 Pages and navigation
+
+No router dependency: a small hash router in `app/` (`#/` and `#/w/<workspace_id>?tab=research|trajectory`).
+
+- **Workspaces page (`#/`)**: recent workspaces (question, mode, status, stage, counts, updated time)
+  and a "New workspace" form: research question, mode AUTO/MEDICAL/GENERAL, auto-continue, a seed PDF
+  drop zone (several files), and PMID/DOI/URL seed inputs. Create -> upload seeds -> open the workspace.
+- **Workspace page (`#/w/<id>`)**: a slim header (back to workspaces, the question, status pill with
+  the 9-stage stepper, provider badges real/fake) and two tabs.
+  - **Research**: three resizable panes.
+    - Left, "Plan and progress": scope chips (PICOTS or scope; editable at the checkpoint, Save +
+      Continue), compact run timeline, PRISMA-style funnel with the search intents, deep research
+      trigger and status.
+    - Center, "Evidence": segmented views: Evidence (GRADE profile or claim matrix, ranked by
+      evidence level, stance badges, opposing and null evidence always visible), Synthesis
+      (recommendation, pairwise summaries, provenance), Sources (sortable table: evidence level,
+      stance, intent, status, screen score), Chat (cited Q&A).
+    - Right, "Source": Document (pdf.js viewer with page navigation that draws highlight rectangles
+      for claims and chat citations and scrolls to them), Graph (citation graph), Details
+      (`SourceDetail` audit record with links to its trajectory steps).
+  - **Trajectory**: a browser network-tab style audit view. Toolbar: text filter, kind chips, actor,
+    stage, outcome (kept/removed/flagged), errors only, live toggle, count. Table columns: #, time
+    since run start, actor, kind, name, target (URL or model, monospace, truncated), status, outcome,
+    confidence, duration, waterfall bar. Selecting a row opens a detail panel on the right with tabs:
+    Overview (summary, linked sources that open in the Research tab), Request and Response (formatted
+    JSON; DECISION shows probability bars; SEARCH lists result URLs; VERDICT shows the reason), Timing,
+    and the parent/child chain. New steps stream in live; RUNNING rows update in place.
+
+### 10.2 Design rules
+
+- One scroll container per pane (`min-h-0 overflow-hidden` pane, one inner scroll area). No page-level
+  scrollbars. Scrollbars use one shared thin style and stay consistent (never appear and disappear on
+  hover). Only the trajectory table body and its detail panel scroll independently.
+- One hairline border token, only between regions (pane dividers, table rows, header). No cards inside
+  cards and no ad-hoc borders; group with spacing and a subtle background tint.
+- Type scale 12/13/14/16/20 px; tabular numbers for metrics; monospace for URLs, IDs, and JSON.
+- 8 px spacing grid; one shared section-header pattern (title, meta, actions).
+- Neutral base palette; semantic color only for status (kept, removed, flagged, running, error),
+  GRADE certainty, RoB 2, and stance (supports, opposes, null, mixed).
+- Every panel has empty, loading (skeleton), and error states.
+- Keyboard: table rows and chips are focusable with visible focus rings; Escape closes the detail panel.
+- Every citation `[n]` is a button: it selects the citation (evidence selection store), switches the
+  right pane to Document, opens the page, draws the rectangles, and posts `user.citation.open`.

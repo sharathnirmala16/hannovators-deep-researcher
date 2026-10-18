@@ -29,6 +29,16 @@ export type EvidenceSelection =
       highlightId: string;
       sourceId: string;
       page: number;
+    }
+  /** A chat citation `[n]`: the viewer opens `page` and draws `rects` itself. */
+  | {
+      kind: 'citation';
+      sourceId: string;
+      page: number | null;
+      rects: readonly (readonly [number, number, number, number])[];
+      quote: string;
+      messageId: string;
+      n: number;
     };
 
 export const NO_SELECTION: EvidenceSelection = { kind: 'none' };
@@ -55,6 +65,29 @@ export function claimSelection(
     if (highlight) return highlightSelection(highlight);
   }
   return { kind: 'claim', claimId: claim.id, sourceId: claim.source_id };
+}
+
+export interface SelectableCitation {
+  readonly n: number;
+  readonly source_id: string;
+  readonly page: number | null;
+  readonly rects: readonly (readonly [number, number, number, number])[];
+  readonly quote: string;
+}
+
+export function citationSelection(
+  messageId: string,
+  citation: SelectableCitation,
+): EvidenceSelection {
+  return {
+    kind: 'citation',
+    sourceId: citation.source_id,
+    page: citation.page,
+    rects: citation.rects,
+    quote: citation.quote,
+    messageId,
+    n: citation.n,
+  };
 }
 
 export function sourceSelection(

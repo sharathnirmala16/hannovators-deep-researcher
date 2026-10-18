@@ -29,6 +29,7 @@ from hannovators_deep_researcher.persistence.repositories import (
 from hannovators_deep_researcher.services.events import DatabaseEventSink
 from hannovators_deep_researcher.services.pipeline.context import PipelineServices, StageContext
 from hannovators_deep_researcher.services.pipeline.orchestrator import Orchestrator
+from hannovators_deep_researcher.services.trajectory import TrajectoryRecorder
 
 
 @pytest.fixture
@@ -51,6 +52,7 @@ async def services(tmp_path: Path) -> AsyncIterator[PipelineServices]:
             web=FakeWebSearch(),
             literature=FakeLiteratureSearch(),
             events=DatabaseEventSink(repositories),
+            trajectory=TrajectoryRecorder(repositories),
         )
     finally:
         await engine.dispose()

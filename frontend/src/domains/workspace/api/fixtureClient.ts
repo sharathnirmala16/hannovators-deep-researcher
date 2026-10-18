@@ -61,12 +61,47 @@ async function findFixture(id: string): Promise<FixtureWorkspace> {
   return found;
 }
 
+const notInFixtures = (what: string) =>
+  Promise.reject(
+    new WorkspaceApiError(
+      501,
+      'NOT_IN_FIXTURES',
+      `${what} needs the live API.`,
+    ),
+  );
+
 export const fixtureClient: WorkspaceClient = {
   source: 'fixtures',
   defaultWorkspaceId: async () =>
     (await loadFixtures())[0]?.state.workspace.id ?? null,
+  listWorkspaces: async () =>
+    (await loadFixtures()).map(({ state }) => ({
+      id: state.workspace.id,
+      research_question: state.workspace.research_question,
+      domain_mode: state.workspace.domain_mode,
+      status: state.workspace.status,
+      current_stage: state.workspace.current_stage,
+      created_at: state.workspace.created_at,
+      updated_at: state.workspace.updated_at,
+      source_count: state.sources.length,
+      promoted_count: state.funnel.appraise_promoted,
+      seed_count: state.funnel.seeds,
+    })),
   getWorkspace: async (id) => (await findFixture(id)).state,
   getGraph: async (id) => (await findFixture(id)).graph,
+  uploadSeedFiles: () => notInFixtures('Seed upload'),
+  addSeedReference: () => notInFixtures('Seed references'),
+  updateDecomposition: async (id) => (await findFixture(id)).state,
+  getSource: () => notInFixtures('Source detail'),
+  getTrajectory: () =>
+    Promise.resolve({ steps: [], next_after: null, total: 0 }),
+  getTrajectoryStep: () => notInFixtures('Trajectory detail'),
+  subscribeTrajectory: () => () => undefined,
+  recordAction: () => Promise.resolve(),
+  listChat: () => Promise.resolve([]),
+  ask: () => notInFixtures('Chat'),
+  startDeepResearch: () => notInFixtures('Deep research'),
+  getDeepResearch: () => Promise.resolve(null),
   createWorkspace: async (body) => {
     const mode = body.domain_mode === 'GENERAL' ? 'GENERAL' : 'MEDICAL';
     const all = await loadFixtures();

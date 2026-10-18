@@ -12,6 +12,8 @@ from hannovators_deep_researcher.models.enums import (
     ClaimVerdict,
     Directness,
     DomainMode,
+    EvidenceLevel,
+    EvidenceStance,
     GradeCertainty,
     HighlightMethod,
     RecommendationDirection,
@@ -19,6 +21,7 @@ from hannovators_deep_researcher.models.enums import (
     RejectionCode,
     RequestedDomainMode,
     RobJudgement,
+    SearchIntent,
     SourceLinkKind,
     SourceOrigin,
     SourceStatus,
@@ -199,6 +202,40 @@ class SourceView(ContractModel):
     decision_explanation: str | None = None
     raw_url: str | None = None
     highlighted_url: str | None = None
+    evidence_level: EvidenceLevel | None = None
+    evidence_rank: int | None = Field(default=None, ge=1)
+    stance: EvidenceStance | None = None
+    search_intent: SearchIntent | None = None
+    found_by: str | None = None
+
+
+class SourceDetail(ContractModel):
+    """`GET /api/workspaces/{id}/sources/{source_id}`: one source with its full audit record."""
+
+    source: SourceView
+    abstract: str | None = None
+    pdf_url: str | None = None
+    screen: dict[str, object] = Field(default_factory=dict)
+    appraisal: dict[str, object] = Field(default_factory=dict)
+    extra: dict[str, object] = Field(default_factory=dict)
+    chunk_count: int = Field(default=0, ge=0)
+    claim_ids: list[str] = Field(default_factory=list)
+    trajectory_step_ids: list[int] = Field(default_factory=list)
+
+
+class WorkspaceSummary(ContractModel):
+    """One row of `GET /api/workspaces` (newest first)."""
+
+    id: str
+    research_question: str
+    domain_mode: RequestedDomainMode
+    status: WorkspaceStatus
+    current_stage: StageId | None = None
+    created_at: datetime
+    updated_at: datetime
+    source_count: int = Field(default=0, ge=0)
+    promoted_count: int = Field(default=0, ge=0)
+    seed_count: int = Field(default=0, ge=0)
 
 
 class Funnel(ContractModel):

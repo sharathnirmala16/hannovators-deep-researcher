@@ -13,7 +13,13 @@ from types import MappingProxyType
 from sqlalchemy import update
 
 from hannovators_deep_researcher.models.contracts import WorkspaceSettings
-from hannovators_deep_researcher.models.enums import StageId, TraceEventKind, WorkspaceStatus
+from hannovators_deep_researcher.models.enums import (
+    StageId,
+    TraceEventKind,
+    TrajectoryActor,
+    TrajectoryKind,
+    WorkspaceStatus,
+)
 from hannovators_deep_researcher.persistence.tables import WorkspaceRow
 from hannovators_deep_researcher.services.pipeline.context import PipelineServices, StageContext
 from hannovators_deep_researcher.services.pipeline.stages import (
@@ -27,6 +33,7 @@ from hannovators_deep_researcher.services.pipeline.stages import (
     search,
     synthesize,
 )
+from hannovators_deep_researcher.services.trajectory import bind
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +134,14 @@ class Orchestrator:
             **vars(self._services), workspace_id=workspace_id, settings=settings, stage=stage
         )
         try:
-            await self._stages[stage](context)
+            with bind(workspace_id, stage):
+                async with self._services.trajectory.step(
+                    kind=TrajectoryKind.STAGE,
+                    name=f"stage.{stage}",
+                    actor=TrajectoryActor.SYSTEM,
+                    summary=f"Stage {stage}",
+                ):
+                    await self._stages[stage](context)
         except asyncio.CancelledError:
             await self._fail(workspace_id, stage, "run cancelled")
             raise
