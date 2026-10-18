@@ -23,6 +23,25 @@
 - Mock HTTP with `respx` at the adapter boundary. Use the fakes in `adapters/fake/` for service and end-to-end tests.
 - Behave and Playwright-BDD are deferred. Phase 3 adds one plain Playwright smoke test.
 
+## Worktrees and ports
+
+Each worktree has fixed, isolated ports in its root `.env` so agents can run servers at the same time.
+
+| Workspace | Directory | Backend API (`API_PORT`) | UI dev (`VITE_PORT`) |
+| :--- | :--- | :--- | :--- |
+| Main | `hannovators-deep-researcher` | `8001` | `5174` |
+| WT 1 | `hdr_wt_1` | `8011` | `5175` |
+| WT 2 | `hdr_wt_2` | `8021` | `5176` |
+| WT 3 | `hdr_wt_3` | `8031` | `5177` |
+| WT 4 | `hdr_wt_4` | `8041` | `5178` |
+| WT N (up to 9) | `hdr_wt_N` | `8001 + 10 * N` | `5174 + N` |
+
+- Create a worktree from the main repository root: `scripts\windows\create_worktree.bat <branch> <slot> [full|backend|frontend|bare]`. It writes the slot ports into the worktree `.env`, runs `uv sync --locked`, `uv run alembic upgrade head`, and `pnpm install --frozen-lockfile`.
+- Delete it: `scripts\windows\delete_worktree.bat <slot|branch> [--force] [--keep-branch]`.
+- Each worktree has its own `.env`, `.venv`, `node_modules`, and `data/hannovators.db`.
+- Launch servers without port flags. They read the local `.env` and stop when a port is missing.
+- Keep ports out of committed files.
+
 ## Checks
 
 - From the root: `uv run ruff format --check`, `uv run ruff check`, `uv run mypy`, and `uv build`.

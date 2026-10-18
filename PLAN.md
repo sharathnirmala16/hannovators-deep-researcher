@@ -379,7 +379,8 @@ across reconnects and survives a browser reload.
 | Variable | Default | Notes |
 | :--- | :--- | :--- |
 | `PROVIDER_MODE` | `real` | `fake` = offline fakes for every port |
-| `API_PORT` / `VITE_PORT` | `8000` / `5173` | Use different values in each worktree |
+| `API_HOST` | `127.0.0.1` | |
+| `API_PORT` / `VITE_PORT` | none (required) | Main repository `8001` / `5174`; worktree slot N uses `8001 + 10N` / `5174 + N` (AGENTS.md). A missing port stops the launch. |
 | `NEBIUS_API_KEY` | - | Required in `real` mode |
 | `NEBIUS_BASE_URL` | `https://api.tokenfactory.nebius.com/v1/` | |
 | `AGENT_MODEL` | `nvidia/Nemotron-3.5-Super-VL` | Default for every `ModelRole` |
@@ -405,9 +406,12 @@ Never log key values. `GET /health/providers` reports only "configured" or "miss
 
 ### 7.1 Worktree protocol
 
-1. Create a worktree per lane from the current `main`:
-   `git worktree add ../hdr-<lane> -b lane/<lane>` (e.g. `lane/a3-websearch`).
-2. Copy `.env` and set a unique `API_PORT` and `VITE_PORT`. Each worktree has its own `data/` and database.
+1. Create a worktree per lane from the current `main` in a free slot (1 to 9):
+   `scripts\windows\create_worktree.bat lane/<lane> <slot>` (e.g. `lane/a3-websearch 3`).
+   The worktree lands in `..\hdr_wt_<slot>`. Delete it after merge with
+   `scripts\windows\delete_worktree.bat <slot>`, then reuse the slot.
+2. The script copies the main `.env`, writes the slot's `API_PORT` and `VITE_PORT` (AGENTS.md table),
+   installs backend and frontend, and migrates the worktree's own `data/hannovators.db`.
 3. Edit only the files your lane owns (section 2 and the lane card). Create new files only inside your
    owned folders, or as `persistence/queries/<lane>.py`.
 4. Do not edit frozen `[P0]` files, `pyproject.toml`, `uv.lock`, `frontend/package.json`,
@@ -455,7 +459,9 @@ Phase 0 cards edit `[P0]` files, so they run on `main` (or short-lived branches 
 **P0.2 frontend dependencies and dev server** (no dependencies; parallel with everything in Phase 0)
 - Add `zod`, `cytoscape`, and shadcn primitives (button, card, badge, tabs, table, input, textarea,
   dialog, tooltip, scroll-area, progress, separator, resizable, sonner) in one change.
-- Vite proxy for `/api` and `/files` to `http://localhost:${API_PORT}`; dev server on `VITE_PORT`.
+- `vite.config.ts` reads `VITE_PORT` and `API_PORT` from the root `.env` with `loadEnv(mode, rootDir, '')`
+  (shell environment wins); proxies `/api` and `/files` to `http://127.0.0.1:${API_PORT}`; serves on
+  `VITE_PORT` with `strictPort: true`; fails with a clear message when either port is missing.
 
 **P0.3 persistence** (needs P0.1)
 - `persistence/tables.py`, revision `0002_core_schema` (section 4.2), `persistence/repositories.py`
@@ -478,7 +484,10 @@ Phase 0 cards edit `[P0]` files, so they run on `main` (or short-lived branches 
   `POST /run`, and SSE needed by the e2e test; `main.py` composition root; `/files` mount.
 - `tests/e2e/test_pipeline_offline.py`: create workspace -> run -> SSE until `COMPLETED`.
 - `tests/integration/contract/test_fixtures.py`: both frontend fixtures validate as `WorkspaceState`.
-- README: run commands (`uv run uvicorn hannovators_deep_researcher.main:app --port $API_PORT`, `PROVIDER_MODE=fake`).
+- Console script `hdr-api` in `pyproject.toml` (`hannovators_deep_researcher.main:run`): runs uvicorn on
+  `API_HOST`/`API_PORT` from settings, accepts `--host`/`--port` overrides, and stops with a clear error
+  when no port is configured (no numeric fallback, as in freesearch `require_transport_port`).
+- README: run commands (`uv run hdr-api`, `PROVIDER_MODE=fake`).
 
 **P0.6 frontend contract and fixtures** (needs P0.1; parallel with P0.3 to P0.4)
 - `domains/workspace/api/schema.ts`: zod mirrors of section 4 (`WorkspaceState`, `TraceEvent`, `GraphView`, enums).

@@ -57,6 +57,18 @@ The frontend has no tests. Vitest reports an empty suite and returns a nonzero e
 Do not add artificial tests or suppress empty suites. This project has no GitHub CI.
 BDD directories reserve space for future scenarios. Add the browser test tools with the first browser workflow.
 
+## Worktrees
+
+Parallel agents work in separate Git worktrees. From the repository root on Windows:
+
+```bat
+scripts\windows\create_worktree.bat <branch> <slot 1-9> [full|backend|frontend|bare]
+scripts\windows\delete_worktree.bat <slot|branch> [--force] [--keep-branch]
+```
+
+The create script makes `..\hdr_wt_<slot>`, copies `.env` with the slot ports, installs the backend and the frontend, and migrates the worktree database.
+AGENTS.md lists the port for each slot. Copy `.env.example` to `.env` in the main repository first and set `API_PORT=8001` and `VITE_PORT=5174`.
+
 ## Database and seed material
 
 The default SQLite database is `data/hannovators.db`. The database path stays at the repository root when the process directory changes.
