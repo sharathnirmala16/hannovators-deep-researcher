@@ -2,7 +2,12 @@ import { createContext, useContext } from 'react';
 
 import type { UserActionRequest } from '../api/auditSchema';
 import type { WorkspaceClient } from '../api/contract';
-import type { GraphView, TraceEvent, WorkspaceState } from '../api/schema';
+import type {
+  GraphView,
+  SourceDecisionRequest,
+  TraceEvent,
+  WorkspaceState,
+} from '../api/schema';
 import type { EventStreamStatus } from './useWorkspaceEvents';
 
 export type WorkspaceLoad =
@@ -27,6 +32,19 @@ export interface WorkspaceContextValue {
    * event stream and reload. Rejects with the API error.
    */
   startRun: () => Promise<void>;
+  /**
+   * Include or exclude a source by hand, then reload. The server records the
+   * decision in the trajectory. Rejects with the API error.
+   */
+  decideSource: (
+    sourceId: string,
+    body: SourceDecisionRequest,
+  ) => Promise<void>;
+  /**
+   * Re-synthesize with the pending source decisions, then reconnect the event
+   * stream and reload. Rejects with the API error.
+   */
+  resynthesize: () => Promise<void>;
   /** Record a UI action in the trajectory (best effort, never throws). */
   recordAction: (action: UserActionRequest) => void;
 }

@@ -40,6 +40,8 @@ export const sourceStatusSchema = z.enum([
   'APPRAISE_DISCOUNTED',
   'ACQUIRE_FAILED',
 ]);
+/** A researcher's manual override of the agent's decision on a source. */
+export const sourceDecisionKindSchema = z.enum(['INCLUDE', 'EXCLUDE']);
 export const rejectionCodeSchema = z.enum([
   'LOW_RELEVANCE',
   'VOTES_BELOW_T',
@@ -166,6 +168,7 @@ export type WorkspaceStatus = z.infer<typeof workspaceStatusSchema>;
 export type StageId = z.infer<typeof stageIdSchema>;
 export type SourceOrigin = z.infer<typeof sourceOriginSchema>;
 export type SourceStatus = z.infer<typeof sourceStatusSchema>;
+export type SourceDecisionKind = z.infer<typeof sourceDecisionKindSchema>;
 export type RejectionCode = z.infer<typeof rejectionCodeSchema>;
 export type Directness = z.infer<typeof directnessSchema>;
 export type RobJudgement = z.infer<typeof robJudgementSchema>;

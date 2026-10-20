@@ -427,6 +427,8 @@ Tables (revision `0003_trajectory_chat`): `trajectory_steps`, `chat_messages`, a
 | `GET /workspaces` | `list[WorkspaceSummary]`, newest first | platform |
 | `POST /workspaces/{id}/seeds` | multipart `files` (PDFs) or JSON `SeedReferenceRequest` -> `list[SourceView]` (status `SEED`, file saved at `data/workspaces/<ws>/sources/<src>/raw.pdf`) | platform (storage) + grounding (S1 ingest processes it) |
 | `GET /workspaces/{id}/sources/{source_id}` | `SourceDetail` (abstract, screen/appraisal JSON, chunk count, claim ids, trajectory step ids) | platform |
+| `POST /workspaces/{id}/sources/{source_id}/decision` | `SourceDecisionRequest` `{decision: INCLUDE|EXCLUDE, reason?}` -> `WorkspaceState`. Researcher override: sets APPRAISE_PROMOTED or APPRAISE_DISCOUNTED and stores `SourceView.decision` (reason, agent status, `applied=false`). COMPLETED runs only; not seeds (422); 409 when unchanged. | platform |
+| `POST /workspaces/{id}/resynthesize` | 202 `WorkspaceView`. COMPLETED -> RUNNING: acquire and appraise the newly included sources (appraisal cannot undo the inclusion), then synthesize, highlight, and compose; marks the decisions applied. A failed stage returns the workspace to COMPLETED with the error and keeps the decisions pending. | platform |
 | `GET /workspaces/{id}/trajectory` | query `after, limit (<=500), kind, actor, stage, outcome, q` -> `TrajectoryPage` of `TrajectoryStepSummary` | platform |
 | `GET /workspaces/{id}/trajectory/stream` | SSE `event: step`, `id:` = step id, data = `TrajectoryStepSummary`; honors `Last-Event-ID`; re-sends a step when it closes (RUNNING -> OK/ERROR); heartbeat 15 s. Declare this route before `/{step_id}`. | platform |
 | `GET /workspaces/{id}/trajectory/{step_id}` | `TrajectoryStep` (request + response bodies) | platform |
@@ -452,7 +454,8 @@ as `ctx.trajectory` and on `ApiContainer.services.trajectory`):
   level) in `response`. Screen, appraise, and ingest/acquire failures all record verdicts.
 - Every user action records a `USER_ACTION` step: routers record server-visible actions
   (`user.workspace.create`, `user.seed.upload`, `user.run.start`, `user.run.continue`,
-  `user.decomposition.edit`, `user.chat.ask`, `user.deep_research.start`); the UI posts the rest
+  `user.decomposition.edit`, `user.chat.ask`, `user.deep_research.start`, `user.source.include`
+  and `user.source.exclude` with outcome KEPT/REMOVED and the reason, `user.run.resynthesize`); the UI posts the rest
   (`user.source.open`, `user.citation.open`, `user.claim.open`, `user.tab.switch`).
 - Use `trajectory.step()` for anything with a duration so nested calls get it as parent. Never put
   secrets or embedding vectors in bodies.

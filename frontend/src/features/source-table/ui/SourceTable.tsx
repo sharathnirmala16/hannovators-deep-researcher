@@ -1,10 +1,10 @@
 import { useWorkspace } from '@/domains/workspace';
 import { EmptyState, ErrorState, SkeletonBlock } from '@/shared/ui/states';
 
-import { SourceList } from './SourceList';
+import { SourceList, type RowAction } from './SourceList';
 
 /** Every source in the workspace: sortable, filterable; a row opens it. */
-export function SourceTable() {
+export function SourceTable({ rowAction }: { rowAction?: RowAction }) {
   const { load, reload } = useWorkspace();
   if (load.status === 'idle' || load.status === 'loading') {
     return (
@@ -35,5 +35,5 @@ export function SourceTable() {
       </div>
     );
   }
-  return <SourceList sources={load.state.sources} />;
+  return <SourceList sources={load.state.sources} rowAction={rowAction} />;
 }

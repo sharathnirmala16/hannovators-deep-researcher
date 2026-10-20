@@ -146,6 +146,7 @@ class SourceRow(Base):
     evidence_level: Mapped[str | None] = mapped_column(String(ENUM_LENGTH))
     stance: Mapped[str | None] = mapped_column(String(ENUM_LENGTH))
     search_intent: Mapped[str | None] = mapped_column(String(ENUM_LENGTH))
+    decision_json: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created_at()
 
 

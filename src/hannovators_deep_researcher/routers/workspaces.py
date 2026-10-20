@@ -15,6 +15,7 @@ from hannovators_deep_researcher.models.contracts import (
 )
 from hannovators_deep_researcher.models.enums import StageId, WorkspaceStatus
 from hannovators_deep_researcher.routers.dependencies import Container
+from hannovators_deep_researcher.services.source_decisions import pending_decisions
 from hannovators_deep_researcher.services.trajectory_wrappers import record_user_action
 from hannovators_deep_researcher.services.workspace_state import (
     parse_decomposition,
@@ -69,6 +70,37 @@ async def run_workspace(workspace_id: str, container: Container) -> WorkspaceVie
         stage=start,
     )
     container.start_run(workspace_id, start)
+    return workspace_view(await container.state.require_workspace(workspace_id))
+
+
+@router.post("/{workspace_id}/resynthesize", status_code=status.HTTP_202_ACCEPTED)
+async def resynthesize(workspace_id: str, container: Container) -> WorkspaceView:
+    """Bring researcher decisions into the synthesis: acquire and appraise newly included
+    sources, then synthesize, highlight, and compose again. 409 unless the run is COMPLETED."""
+
+    await container.state.require_workspace(workspace_id)
+    pending = await pending_decisions(container.services.repositories, workspace_id)
+    await container.orchestrator.begin_revision(workspace_id)
+    await record_user_action(
+        container.services.trajectory,
+        workspace_id,
+        "user.run.resynthesize",
+        summary=f"Re-synthesized with {len(pending)} researcher decision(s)",
+        request={
+            "decisions": [
+                {
+                    "source_id": source.id,
+                    "title": source.title,
+                    "decision": decision.decision,
+                    "reason": decision.reason,
+                }
+                for source, decision in pending
+            ]
+        },
+        source_ids=[source.id for source, _ in pending],
+        stage=StageId.SYNTHESIZE,
+    )
+    container.start_revision(workspace_id)
     return workspace_view(await container.state.require_workspace(workspace_id))
 
 

@@ -22,6 +22,7 @@ from hannovators_deep_researcher.models.enums import (
     RequestedDomainMode,
     RobJudgement,
     SearchIntent,
+    SourceDecisionKind,
     SourceLinkKind,
     SourceOrigin,
     SourceStatus,
@@ -179,6 +180,21 @@ class Rob2Assessment(ContractModel):
     overall: RobJudgement
 
 
+SOURCE_DECISION_REASON_CHARS = 1000
+
+
+class SourceDecision(ContractModel):
+    """The researcher's override of a source. `agent_status` is the status the pipeline gave
+    it before any manual decision; `applied` is False until a re-synthesis has used it."""
+
+    decision: SourceDecisionKind
+    reason: str | None = None
+    agent_status: SourceStatus
+    decided_at: datetime
+    applied: bool = False
+    trajectory_step_id: int | None = None
+
+
 class SourceView(ContractModel):
     """A source as the UI sees it. The abstract is not in the state payload."""
 
@@ -207,6 +223,7 @@ class SourceView(ContractModel):
     stance: EvidenceStance | None = None
     search_intent: SearchIntent | None = None
     found_by: str | None = None
+    decision: SourceDecision | None = None
 
 
 class SourceDetail(ContractModel):
@@ -334,6 +351,19 @@ class SeedReferenceRequest(ContractModel):
         if len(given) != 1:
             raise ValueError("give exactly one of pmid, doi, or url")
         return self
+
+
+class SourceDecisionRequest(ContractModel):
+    """Body of `POST /api/workspaces/{id}/sources/{source_id}/decision`."""
+
+    decision: SourceDecisionKind
+    reason: (
+        Annotated[
+            str,
+            StringConstraints(strip_whitespace=True, max_length=SOURCE_DECISION_REASON_CHARS),
+        ]
+        | None
+    ) = None
 
 
 class ApiErrorDetail(ContractModel):

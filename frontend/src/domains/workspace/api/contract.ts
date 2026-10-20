@@ -13,6 +13,7 @@ import type {
   Decomposition,
   GraphView,
   SeedReferenceRequest,
+  SourceDecisionRequest,
   SourceView,
   TraceEvent,
   TrajectoryKind,
@@ -76,6 +77,14 @@ export interface WorkspaceClient {
     sourceId: string,
     signal?: AbortSignal,
   ) => Promise<SourceDetail>;
+  /** Include or exclude a source by hand; resolves with the new state. */
+  decideSource: (
+    id: string,
+    sourceId: string,
+    body: SourceDecisionRequest,
+  ) => Promise<WorkspaceState>;
+  /** Re-run the synthesis so pending source decisions take effect. */
+  resynthesize: (id: string) => Promise<void>;
   /** Subscribe to trace events. Returns a function that closes the stream. */
   subscribeEvents: (id: string, handlers: WorkspaceEventHandlers) => () => void;
   getTrajectory: (

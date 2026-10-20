@@ -23,6 +23,7 @@ from hannovators_deep_researcher.models.enums import (
     StageId,
     TrajectoryActor,
     TrajectoryKind,
+    VerdictOutcome,
 )
 from hannovators_deep_researcher.models.literature import CandidateRecord, SourceLinkRecord
 from hannovators_deep_researcher.models.ports import (
@@ -506,6 +507,7 @@ async def record_user_action(
     request: Mapping[str, object] | None = None,
     source_ids: Sequence[str] = (),
     stage: StageId | None = None,
+    outcome: VerdictOutcome | None = None,
 ) -> int | None:
     """Record a finished USER_ACTION step (actor USER) and return its ID."""
 
@@ -519,6 +521,7 @@ async def record_user_action(
         summary=summary,
         request=request,
         source_ids=source_ids,
+        outcome=outcome,
     )
 
 

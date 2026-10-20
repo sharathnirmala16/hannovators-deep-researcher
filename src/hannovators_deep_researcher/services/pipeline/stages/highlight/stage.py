@@ -10,7 +10,7 @@ that chunk's bbox. Web sources have no pages, so they get no highlight rows.
 import asyncio
 import json
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 
 from hannovators_deep_researcher.models.contracts import Rect
 from hannovators_deep_researcher.models.decisions import DecisionQuestion
@@ -262,10 +262,23 @@ async def highlight_source(
 
 
 async def run(ctx: StageContext) -> None:
+    await _highlight(ctx, None)
+
+
+async def highlight_included(ctx: StageContext, source_ids: Collection[str]) -> None:
+    """Highlight only the given sources (researcher-included ones after a re-appraisal)."""
+
+    await _highlight(ctx, set(source_ids))
+
+
+async def _highlight(ctx: StageContext, only: Collection[str] | None) -> None:
     claims = [
         claim
         for claim in await ctx.repositories.list_claims(ctx.workspace_id)
-        if claim.source_id and claim.quote and claim.quote.strip()
+        if claim.source_id
+        and claim.quote
+        and claim.quote.strip()
+        and (only is None or claim.source_id in only)
     ]
     sources = {
         source.id: source for source in await ctx.repositories.list_sources(ctx.workspace_id)

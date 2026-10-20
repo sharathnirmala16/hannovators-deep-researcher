@@ -115,7 +115,7 @@ uv run alembic current
 
 Create each schema change with `uv run alembic revision --autogenerate -m "describe change"`.
 Review the revision before you run `uv run alembic upgrade head`.
-Revisions `0002` and `0003` hold the product schema.
+Revisions `0002` to `0004` hold the product schema (`0004` adds researcher decisions on sources).
 
 Source files live in `data/workspaces/<workspace_id>/sources/<source_id>/` (`raw.pdf`, `snapshot.md`,
 `highlighted.pdf`). See [PLAN.md](PLAN.md) section 4 for the schema.

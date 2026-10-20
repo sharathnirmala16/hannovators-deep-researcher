@@ -239,6 +239,41 @@ async def link_sources(ctx: StageContext) -> int:
     return await add_links(ctx.repositories, ctx.workspace_id, links)
 
 
+async def acquire_included(ctx: StageContext, sources: Sequence[SourceRow]) -> None:
+    """Full text for sources a researcher included that were never acquired. The decision
+    stands: a source left with no text and no abstract stays included, with its agent record."""
+
+    counts = await chunk_counts(ctx.repositories, ctx.workspace_id)
+    targets = [s for s in sources if not any(counts.get((s.id, t), 0) for t in ChunkTier)]
+    await ctx.emit(
+        TraceEventKind.PROGRESS,
+        f"Acquiring full text for {len(targets)} researcher-included sources",
+        {"total": len(targets)},
+    )
+    limit = asyncio.Semaphore(CONCURRENCY)
+
+    async def one(http: httpx.AsyncClient, source: SourceRow) -> Acquired:
+        async with limit:
+            result = await acquire_source(ctx, http, source)
+        if result.kind == "none":
+            await ctx.repositories.update_source_fields(
+                source.id,
+                status=source.status,
+                rejection_code=source.rejection_code,
+                decision_explanation=source.decision_explanation,
+            )
+        return result
+
+    async with http_client(ctx) as http:
+        results = await asyncio.gather(*(one(http, source) for source in targets))
+    full = sum(result.full_text for result in results)
+    await ctx.emit(
+        TraceEventKind.DECISION,
+        f"Acquire done for included sources: {full} of {len(targets)} with full text",
+        {"total": len(targets), "full_text": full},
+    )
+
+
 async def run(ctx: StageContext) -> None:
     targets = await _targets(ctx)
     total = len(targets)

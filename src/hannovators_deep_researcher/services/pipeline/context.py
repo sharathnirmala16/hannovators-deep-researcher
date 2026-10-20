@@ -1,6 +1,6 @@
 """What a pipeline stage receives: shared services plus the workspace it works on."""
 
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -56,3 +56,6 @@ class StageContext(PipelineServices):
         self, kind: TraceEventKind, message: str, payload: Mapping[str, object] | None = None
     ) -> None:
         await self.events.emit(self.workspace_id, self.stage, kind, message, payload)
+
+
+StageRunner = Callable[[StageContext], Awaitable[None]]

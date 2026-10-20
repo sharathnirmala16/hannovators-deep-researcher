@@ -27,6 +27,7 @@ import {
   decompositionSchema,
   graphViewSchema,
   seedReferenceRequestSchema,
+  sourceDecisionRequestSchema,
   sourceViewSchema,
   workspaceStateSchema,
   workspaceViewSchema,
@@ -137,6 +138,15 @@ export const httpClient: WorkspaceClient = {
       sourceDetailSchema,
       withSignal(signal),
     ),
+  decideSource: (id, sourceId, body) =>
+    request(
+      `${workspacePath(id)}/sources/${encodeURIComponent(sourceId)}/decision`,
+      workspaceStateSchema,
+      postJson(sourceDecisionRequestSchema.parse(body)),
+    ),
+  resynthesize: async (id) => {
+    await send(`${workspacePath(id)}/resynthesize`, { method: 'POST' });
+  },
   subscribeEvents,
   getTrajectory: (id, query, signal) =>
     request(

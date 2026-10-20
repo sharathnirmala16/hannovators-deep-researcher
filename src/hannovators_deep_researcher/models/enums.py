@@ -57,6 +57,13 @@ class SourceStatus(StrEnum):
     ACQUIRE_FAILED = "ACQUIRE_FAILED"
 
 
+class SourceDecisionKind(StrEnum):
+    """A researcher's manual override of the agent's screening or appraisal decision."""
+
+    INCLUDE = "INCLUDE"
+    EXCLUDE = "EXCLUDE"
+
+
 class RejectionCode(StrEnum):
     LOW_RELEVANCE = "LOW_RELEVANCE"
     VOTES_BELOW_T = "VOTES_BELOW_T"

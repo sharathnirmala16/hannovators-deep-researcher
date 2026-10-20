@@ -43,9 +43,12 @@ function ariaSort(column: Column, sort: Sort) {
 export function SourceTableHeader({
   sort,
   onSort,
+  withAction,
 }: {
   sort: Sort;
   onSort: (key: SortKey) => void;
+  /** Rows end with an action cell. */
+  withAction: boolean;
 }) {
   return (
     <TableHeader>
@@ -69,6 +72,11 @@ export function SourceTableHeader({
             </span>
           </TableHead>
         ))}
+        {withAction ? (
+          <TableHead className={cn(STICKY, 'w-10')}>
+            <span className="sr-only">Include or exclude</span>
+          </TableHead>
+        ) : null}
       </TableRow>
     </TableHeader>
   );

@@ -24,6 +24,7 @@ import {
   requestedDomainModeSchema,
   robJudgementSchema,
   searchIntentSchema,
+  sourceDecisionKindSchema,
   sourceLinkKindSchema,
   sourceOriginSchema,
   sourceStatusSchema,
@@ -168,6 +169,22 @@ const rob2AssessmentSchema = z.strictObject({
   overall: robJudgementSchema,
 });
 
+/** Longest reason the API accepts for a manual decision. */
+export const SOURCE_DECISION_REASON_CHARS = 1000;
+
+/**
+ * A researcher's override. `agent_status` is the status before any manual
+ * decision; `applied` stays false until a re-synthesis has used it.
+ */
+export const sourceDecisionSchema = z.strictObject({
+  decision: sourceDecisionKindSchema,
+  reason: nullableString,
+  agent_status: sourceStatusSchema,
+  decided_at: dateTime,
+  applied: z.boolean().default(false),
+  trajectory_step_id: z.int().nullable().default(null),
+});
+
 export const sourceViewSchema = z.strictObject({
   id: z.string(),
   origin: sourceOriginSchema,
@@ -194,6 +211,7 @@ export const sourceViewSchema = z.strictObject({
   stance: evidenceStanceSchema.nullable().default(null),
   search_intent: searchIntentSchema.nullable().default(null),
   found_by: nullableString,
+  decision: sourceDecisionSchema.nullable().default(null),
 });
 
 export const jsonRecord = z.record(z.string(), z.json()).default(() => ({}));
@@ -304,6 +322,17 @@ export const seedReferenceRequestSchema = z
     { message: 'give exactly one of pmid, doi, or url' },
   );
 
+/** Body of `POST /api/workspaces/{id}/sources/{source_id}/decision`. */
+export const sourceDecisionRequestSchema = z.strictObject({
+  decision: sourceDecisionKindSchema,
+  reason: z
+    .string()
+    .trim()
+    .max(SOURCE_DECISION_REASON_CHARS)
+    .nullable()
+    .default(null),
+});
+
 /** Error body: `{"detail": {"code": "<UPPER_SNAKE>", "message": "<text>"}}`. */
 export const apiErrorSchema = z.strictObject({
   detail: z.strictObject({
@@ -321,6 +350,7 @@ export type Synthesis = z.infer<typeof synthesisSchema>;
 export type WorkspaceSettings = z.infer<typeof workspaceSettingsSchema>;
 export type WorkspaceView = z.infer<typeof workspaceViewSchema>;
 export type QueryView = z.infer<typeof queryViewSchema>;
+export type SourceDecision = z.infer<typeof sourceDecisionSchema>;
 export type SourceView = z.infer<typeof sourceViewSchema>;
 export type Funnel = z.infer<typeof funnelSchema>;
 export type ClaimView = z.infer<typeof claimViewSchema>;
@@ -335,4 +365,5 @@ export type CreateWorkspaceRequest = z.input<
   typeof createWorkspaceRequestSchema
 >;
 export type SeedReferenceRequest = z.input<typeof seedReferenceRequestSchema>;
+export type SourceDecisionRequest = z.input<typeof sourceDecisionRequestSchema>;
 export type ApiError = z.infer<typeof apiErrorSchema>;

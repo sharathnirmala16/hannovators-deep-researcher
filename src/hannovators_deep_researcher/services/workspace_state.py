@@ -35,6 +35,7 @@ from hannovators_deep_researcher.models.contracts import (
     Rob2Assessment,
     ScopeDecomposition,
     SeedReferenceRequest,
+    SourceDecision,
     SourceDetail,
     SourceView,
     Synthesis,
@@ -100,6 +101,8 @@ _PAST_SCREENING = (
 )
 _PROMOTED = (SourceStatus.SCREEN_PROMOTED, SourceStatus.APPRAISE_PROMOTED)
 """Statuses counted as `promoted_count`: sources currently kept by screening or appraisal."""
+_DROPPED = frozenset({SourceStatus.SCREEN_DISCOUNTED, SourceStatus.APPRAISE_DISCOUNTED})
+"""Statuses whose claims and highlights stay out of the state (a researcher excluded them)."""
 
 STREAM_PAGE = 500
 SHA256_PREFIX = "sha256:"
@@ -215,6 +218,17 @@ def _search_intent(row: SourceRow) -> SearchIntent | None:
     return intent
 
 
+def parse_source_decision(text: str | None) -> SourceDecision | None:
+    """The stored researcher decision; an unreadable value reads as no decision."""
+
+    if not text:
+        return None
+    try:
+        return SourceDecision.model_validate_json(text)
+    except ValueError:
+        return None
+
+
 def source_view(row: SourceRow) -> SourceView:
     level = _safe_enum(EvidenceLevel, row.evidence_level)
     return SourceView(
@@ -243,6 +257,7 @@ def source_view(row: SourceRow) -> SourceView:
         stance=_safe_enum(EvidenceStance, row.stance),
         search_intent=_search_intent(row),
         found_by=_found_by(_json_object(row.extra_json)),
+        decision=parse_source_decision(row.decision_json),
     )
 
 
@@ -731,8 +746,17 @@ class WorkspaceStateService:
         row = await self.require_workspace(workspace_id)
         repositories = self._repositories
         sources = await repositories.list_sources(workspace_id)
-        claims = await repositories.list_claims(workspace_id)
-        highlights = await repositories.list_highlights(workspace_id)
+        dropped = {source.id for source in sources if source.status in _DROPPED}
+        claims = [
+            claim
+            for claim in await repositories.list_claims(workspace_id)
+            if claim.source_id not in dropped
+        ]
+        highlights = [
+            highlight
+            for highlight in await repositories.list_highlights(workspace_id)
+            if highlight.source_id not in dropped
+        ]
         highlighted_paths = {source.id: source.highlighted_path for source in sources}
         highlight_ids: defaultdict[str, list[str]] = defaultdict(list)
         for highlight in highlights:

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useWorkspace } from '@/domains/workspace';
 import { EvidenceTable } from '@/features/evidence-table';
 import { ResearchChat } from '@/features/research-chat';
+import { DecisionRowAction, ResynthesisBar } from '@/features/source-decision';
 import { SourceTable } from '@/features/source-table';
 import { Pane, PaneBody } from '@/shared/ui/pane';
 import { SectionHeader } from '@/shared/ui/section-header';
@@ -40,6 +41,7 @@ export function EvidencePane() {
           />
         }
       />
+      <ResynthesisBar />
       <PaneBody hidden={view !== 'evidence'}>
         <EvidenceTable view="evidence" />
       </PaneBody>
@@ -50,7 +52,9 @@ export function EvidencePane() {
       ) : null}
       {visited.has('sources') ? (
         <PaneBody hidden={view !== 'sources'}>
-          <SourceTable />
+          <SourceTable
+            rowAction={(source) => <DecisionRowAction source={source} />}
+          />
         </PaneBody>
       ) : null}
       {visited.has('chat') ? (

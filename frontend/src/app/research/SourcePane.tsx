@@ -1,5 +1,6 @@
 import { CitationGraph } from '@/features/citation-graph';
 import { PdfViewer } from '@/features/pdf-viewer';
+import { SourceDecisionPanel } from '@/features/source-decision';
 import { SourceDetails } from '@/features/source-details';
 import { Pane, PaneBody } from '@/shared/ui/pane';
 import { SectionHeader } from '@/shared/ui/section-header';
@@ -48,7 +49,10 @@ export function SourcePane({ onOpenStep }: SourcePaneProps) {
       ) : null}
       {visited.has('details') ? (
         <PaneBody hidden={tab !== 'details'}>
-          <SourceDetails onOpenStep={onOpenStep} />
+          <SourceDetails
+            onOpenStep={onOpenStep}
+            renderDecision={(source) => <SourceDecisionPanel source={source} />}
+          />
         </PaneBody>
       ) : null}
     </Pane>

@@ -9,6 +9,7 @@ import {
 
 import type { UserActionRequest } from '../api/auditSchema';
 import type { WorkspaceClient } from '../api/contract';
+import type { SourceDecisionRequest } from '../api/schema';
 import { useWorkspaceClient } from './clientContext';
 import { useWorkspaceEvents } from './useWorkspaceEvents';
 import {
@@ -126,6 +127,22 @@ export function WorkspaceProvider({
     reload();
   }, [client, workspaceId, reload]);
 
+  const decideSource = useCallback(
+    async (sourceId: string, body: SourceDecisionRequest) => {
+      if (!workspaceId) return;
+      await client.decideSource(workspaceId, sourceId, body);
+      reload();
+    },
+    [client, workspaceId, reload],
+  );
+
+  const resynthesize = useCallback(async () => {
+    if (!workspaceId) return;
+    await client.resynthesize(workspaceId);
+    setConnection((value) => value + 1);
+    reload();
+  }, [client, workspaceId, reload]);
+
   const recordAction = useCallback(
     (action: UserActionRequest) => {
       if (workspaceId) void client.recordAction(workspaceId, action);
@@ -146,6 +163,8 @@ export function WorkspaceProvider({
       openWorkspace,
       reload,
       startRun,
+      decideSource,
+      resynthesize,
       recordAction,
     };
   }, [
@@ -157,6 +176,8 @@ export function WorkspaceProvider({
     openWorkspace,
     reload,
     startRun,
+    decideSource,
+    resynthesize,
     recordAction,
   ]);
 

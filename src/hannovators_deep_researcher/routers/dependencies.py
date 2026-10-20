@@ -2,8 +2,9 @@
 
 import asyncio
 import logging
+from collections.abc import Coroutine
 from dataclasses import dataclass, field
-from typing import Annotated, cast
+from typing import Annotated, Any, cast
 
 import httpx
 from fastapi import Depends, Request
@@ -42,7 +43,15 @@ class ApiContainer:
     def start_run(self, workspace_id: str, start: StageId) -> None:
         """Run the orchestrator in the background. `begin_run` must have marked it RUNNING."""
 
-        task = asyncio.create_task(self.orchestrator.run_from(workspace_id, start))
+        self._track(workspace_id, self.orchestrator.run_from(workspace_id, start))
+
+    def start_revision(self, workspace_id: str) -> None:
+        """Re-synthesize in the background. `begin_revision` must have marked it RUNNING."""
+
+        self._track(workspace_id, self.orchestrator.run_revision(workspace_id))
+
+    def _track(self, workspace_id: str, run: Coroutine[Any, Any, WorkspaceStatus]) -> None:
+        task = asyncio.create_task(run)
         self.runs[workspace_id] = task
 
         def finished(done: asyncio.Task[WorkspaceStatus]) -> None:

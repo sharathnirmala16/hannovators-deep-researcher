@@ -7,7 +7,7 @@ Every status change writes the workspace row first and then a STATUS event with
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Mapping
 from types import MappingProxyType
 
 from sqlalchemy import update
@@ -21,7 +21,15 @@ from hannovators_deep_researcher.models.enums import (
     WorkspaceStatus,
 )
 from hannovators_deep_researcher.persistence.tables import WorkspaceRow
-from hannovators_deep_researcher.services.pipeline.context import PipelineServices, StageContext
+from hannovators_deep_researcher.services.pipeline.context import (
+    PipelineServices,
+    StageContext,
+    StageRunner,
+)
+from hannovators_deep_researcher.services.pipeline.revision import (
+    REVISION_RUNNERS,
+    REVISION_STAGES,
+)
 from hannovators_deep_researcher.services.pipeline.stages import (
     acquire,
     appraise,
@@ -33,11 +41,10 @@ from hannovators_deep_researcher.services.pipeline.stages import (
     search,
     synthesize,
 )
+from hannovators_deep_researcher.services.source_decisions import mark_decisions_applied
 from hannovators_deep_researcher.services.trajectory import bind
 
 logger = logging.getLogger(__name__)
-
-StageRunner = Callable[[StageContext], Awaitable[None]]
 
 STAGE_ORDER: tuple[StageId, ...] = tuple(StageId)
 REVIEW_CHECKPOINT = StageId.DECOMPOSE
@@ -123,10 +130,55 @@ class Orchestrator:
                 return await self._set_status(workspace_id, stage, WorkspaceStatus.AWAITING_REVIEW)
         return await self._set_status(workspace_id, STAGE_ORDER[-1], WorkspaceStatus.COMPLETED)
 
+    async def begin_revision(self, workspace_id: str) -> None:
+        """Mark a COMPLETED workspace RUNNING for a re-synthesis, in one statement.
+
+        Raises `LookupError` for an unknown workspace and `RunStateError` for any other status.
+        """
+
+        statement = (
+            update(WorkspaceRow)
+            .where(
+                WorkspaceRow.id == workspace_id, WorkspaceRow.status == WorkspaceStatus.COMPLETED
+            )
+            .values(status=WorkspaceStatus.RUNNING, error=None)
+            .returning(WorkspaceRow.id)
+        )
+        async with self._services.repositories.transaction() as session:
+            if (await session.execute(statement)).one_or_none() is None:
+                row = await session.get(WorkspaceRow, workspace_id)
+                if row is None:
+                    raise LookupError(f"workspace {workspace_id} not found")
+                raise RunStateError(workspace_id, row.status)
+
+    async def run_revision(self, workspace_id: str) -> WorkspaceStatus:
+        """Bring researcher decisions into the synthesis (see `revision`) for a workspace that
+        `begin_revision` marked RUNNING.
+
+        A failed stage returns the workspace to COMPLETED with the error kept: the last results
+        stay usable, and the decisions stay pending so the researcher can try again.
+        """
+
+        workspace = await self._services.repositories.get_workspace(workspace_id)
+        if workspace is None:
+            raise LookupError(f"workspace {workspace_id} not found")
+        settings = WorkspaceSettings.model_validate_json(workspace.settings_json)
+        await self._emit_status(workspace_id, REVISION_STAGES[0], WorkspaceStatus.RUNNING)
+        for stage in REVISION_STAGES:
+            if not await self._run_stage(workspace_id, settings, stage, REVISION_RUNNERS[stage]):
+                return await self._set_status(workspace_id, stage, WorkspaceStatus.COMPLETED)
+        await mark_decisions_applied(self._services.repositories, workspace_id)
+        return await self._set_status(workspace_id, STAGE_ORDER[-1], WorkspaceStatus.COMPLETED)
+
     async def _run_stage(
-        self, workspace_id: str, settings: WorkspaceSettings, stage: StageId
+        self,
+        workspace_id: str,
+        settings: WorkspaceSettings,
+        stage: StageId,
+        runner: StageRunner | None = None,
     ) -> bool:
-        """Run one stage. On an exception, mark the run FAILED and return False."""
+        """Run one stage (`runner` overrides the default one). On an exception, mark the run
+        FAILED and return False."""
 
         await self._services.repositories.update_workspace_fields(workspace_id, current_stage=stage)
         await self._emit(workspace_id, stage, TraceEventKind.STAGE_STARTED, f"{stage} started")
@@ -141,7 +193,7 @@ class Orchestrator:
                     actor=TrajectoryActor.SYSTEM,
                     summary=f"Stage {stage}",
                 ):
-                    await self._stages[stage](context)
+                    await (runner or self._stages[stage])(context)
         except asyncio.CancelledError:
             await self._fail(workspace_id, stage, "run cancelled")
             raise

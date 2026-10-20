@@ -1,8 +1,9 @@
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 
 import {
   EVIDENCE_LEVEL,
   SEARCH_INTENT,
+  SOURCE_DECISION,
   SOURCE_STATUS,
   STANCE,
   type SourceView,
@@ -17,21 +18,36 @@ interface SourceRowProps {
   source: SourceView;
   selected: boolean;
   onOpen: (source: SourceView) => void;
+  /** Content of the trailing action cell; undefined means no such column. */
+  action?: ReactNode;
 }
 
 const SELECTED =
   'bg-accent hover:bg-accent data-[state=selected]:bg-accent [&>td:first-child]:shadow-[inset_2px_0_0_rgba(24,34,58,1)]';
 
+/** The labels a row shows, looked up once. */
+function rowLabels(source: SourceView) {
+  return {
+    // A researcher's decision names who made it; the bare status would not.
+    status: source.decision
+      ? SOURCE_DECISION[source.decision.decision]
+      : SOURCE_STATUS[source.status],
+    stance: source.stance ? STANCE[source.stance] : null,
+    intent: source.search_intent ? SEARCH_INTENT[source.search_intent] : null,
+    level: source.evidence_level
+      ? EVIDENCE_LEVEL[source.evidence_level]
+      : source.study_design,
+  };
+}
+
 /** Title and study line; level and intent; status and stance; score. */
-export function SourceRow({ source, selected, onOpen }: SourceRowProps) {
-  const status = SOURCE_STATUS[source.status];
-  const stance = source.stance ? STANCE[source.stance] : null;
-  const intent = source.search_intent
-    ? SEARCH_INTENT[source.search_intent]
-    : null;
-  const level = source.evidence_level
-    ? EVIDENCE_LEVEL[source.evidence_level]
-    : source.study_design;
+export function SourceRow({
+  source,
+  selected,
+  onOpen,
+  action,
+}: SourceRowProps) {
+  const { status, stance, intent, level } = rowLabels(source);
   const onKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
@@ -81,6 +97,9 @@ export function SourceRow({ source, selected, onOpen }: SourceRowProps) {
           source.screen_score.toFixed(2)
         )}
       </TableCell>
+      {action === undefined ? null : (
+        <TableCell className="pt-1.5 text-right align-top">{action}</TableCell>
+      )}
     </TableRow>
   );
 }

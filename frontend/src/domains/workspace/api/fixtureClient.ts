@@ -130,6 +130,8 @@ export const fixtureClient: WorkspaceClient = {
   addSeedReference: () => notInFixtures('Seed references'),
   updateDecomposition: async (id) => (await findFixture(id)).state,
   getSource: () => notInFixtures('Source detail'),
+  decideSource: () => notInFixtures('Including or excluding a source'),
+  resynthesize: () => notInFixtures('Re-synthesis'),
   getTrajectory: () =>
     Promise.resolve({ steps: [], next_after: null, total: 0 }),
   getTrajectoryStep: () => notInFixtures('Trajectory detail'),

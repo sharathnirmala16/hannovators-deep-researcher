@@ -10,6 +10,7 @@ trajectory step.
 
 import asyncio
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from hannovators_deep_researcher.models.contracts import (
@@ -193,8 +194,11 @@ async def _persist(
         decision_explanation=explanation,
     )
     await _verdict(ctx, source, item, promoted, code, explanation, position, protected)
-    if not promoted:
-        return
+    if promoted:
+        await _create_claims(ctx, result)
+
+
+async def _create_claims(ctx: StageContext, result: SourceAppraisal) -> None:
     for claim in result.claims:
         await ctx.repositories.create_claim(
             ctx.workspace_id,
@@ -265,6 +269,66 @@ async def _record_failure(ctx: StageContext, source: SourceRow) -> None:
         response={"explanation": explanation, "evidence_level": source.evidence_level},
         source_ids=[source.id],
         outcome=VerdictOutcome.REMOVED,
+    )
+
+
+async def _persist_included(ctx: StageContext, source: SourceRow, item: Ranked) -> None:
+    """Store an appraisal of a researcher-included source. It stays APPRAISE_PROMOTED whatever
+    the appraisal finds, and the agent's original explanation stays on the source."""
+
+    result = item.result
+    appraisal = json.loads(result.appraisal_json or "{}")
+    appraisal |= {
+        "appraised_evidence_level": result.evidence_level,
+        "appraised_stance": result.stance,
+        "screen_evidence_level": source.evidence_level,
+        "screen_stance": source.stance,
+        "included_by_researcher": True,
+        "eligible": result.eligible,
+        "appraisal_explanation": result.explanation,
+    }
+    await ctx.repositories.update_source_fields(
+        source.id,
+        status=SourceStatus.APPRAISE_PROMOTED,
+        m_score=result.m_score,
+        directness=result.directness,
+        study_design=result.study_design,
+        rob2_json=result.rob2_json,
+        appraisal_json=appraisal,
+        evidence_level=item.level,
+        stance=item.stance,
+    )
+    explanation = f"Included by the researcher. {result.explanation}"
+    await _verdict(ctx, source, item, True, None, explanation, None, False)
+    await _create_claims(ctx, result)
+
+
+async def appraise_included(ctx: StageContext, sources: Sequence[SourceRow]) -> None:
+    """Appraise researcher-included sources that have no extracted claims yet, so synthesis
+    sees their design, risk of bias, and claims."""
+
+    decomposition = await _load_decomposition(ctx)
+    if decomposition is None:
+        await ctx.emit(TraceEventKind.WARNING, "appraise skipped: no decomposition")
+        return
+    claimed = {claim.source_id for claim in await ctx.repositories.list_claims(ctx.workspace_id)}
+    targets = [source for source in sources if source.id not in claimed]
+    await ctx.emit(
+        TraceEventKind.PROGRESS, f"appraising {len(targets)} researcher-included sources"
+    )
+    limit = asyncio.Semaphore(CONCURRENCY)
+    replies = await asyncio.gather(*(_guarded(ctx, limit, decomposition, s) for s in targets))
+    appraised = 0
+    for source, result in zip(targets, replies, strict=True):
+        if result is None:
+            continue
+        item = Ranked(result, _final_level(source, result), _final_stance(source, result))
+        await _persist_included(ctx, source, item)
+        appraised += 1
+    await ctx.emit(
+        TraceEventKind.DECISION,
+        f"appraised {appraised} of {len(targets)} researcher-included sources",
+        {"appraised": appraised, "total": len(targets)},
     )
 
 

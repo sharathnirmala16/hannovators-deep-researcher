@@ -117,4 +117,4 @@ def test_core_schema_migration_upgrades_and_downgrades(tmp_path: Path) -> None:
     command.upgrade(config, "head")
     with sqlite3.connect(database_path) as connection:
         reupgraded_versions = list(connection.execute("SELECT version_num FROM alembic_version"))
-    assert reupgraded_versions == [("0003_trajectory_chat",)]
+    assert reupgraded_versions == [("0004_source_decisions",)]

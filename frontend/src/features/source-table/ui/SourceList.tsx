@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { useEvidenceSelection } from '@/domains/evidence';
 import { studyLabel, useWorkspace, type SourceView } from '@/domains/workspace';
 import { plural } from '@/shared/lib/format';
@@ -18,8 +20,17 @@ const EMPTY_FILTER: Record<StatusFilter, string> = {
   seeds: 'This workspace has no seed documents.',
 };
 
+/** Extra controls at the end of a row, for example include or exclude. */
+export type RowAction = (source: SourceView) => ReactNode;
+
 /** The source table with its status filter; a row opens the source. */
-export function SourceList({ sources }: { sources: readonly SourceView[] }) {
+export function SourceList({
+  sources,
+  rowAction,
+}: {
+  sources: readonly SourceView[];
+  rowAction?: RowAction | undefined;
+}) {
   const { recordAction } = useWorkspace();
   const { selection, selectSource } = useEvidenceSelection();
   const { rows, sort, onSort, filter, setFilter, options } =
@@ -59,7 +70,11 @@ export function SourceList({ sources }: { sources: readonly SourceView[] }) {
         </EmptyState>
       ) : (
         <Table className="table-fixed border-separate border-spacing-0 [&_td]:border-b [&_tbody_tr:last-child_td]:border-b-0">
-          <SourceTableHeader sort={sort} onSort={onSort} />
+          <SourceTableHeader
+            sort={sort}
+            onSort={onSort}
+            withAction={rowAction !== undefined}
+          />
           <TableBody>
             {rows.map((source) => (
               <SourceRow
@@ -67,6 +82,7 @@ export function SourceList({ sources }: { sources: readonly SourceView[] }) {
                 source={source}
                 selected={selectedId === source.id}
                 onOpen={open}
+                action={rowAction?.(source)}
               />
             ))}
           </TableBody>

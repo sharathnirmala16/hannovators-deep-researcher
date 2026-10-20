@@ -8,6 +8,7 @@ import {
   type RejectionCode,
   type RequestedDomainMode,
   type SearchIntent,
+  type SourceDecisionKind,
   type SourceStatus,
   type WorkspaceStatus,
 } from '../api/enums';
@@ -36,6 +37,17 @@ export const SOURCE_STATUS: Record<SourceStatus, Labelled> = {
   APPRAISE_DISCOUNTED: { label: 'Excluded', tone: 'negative' },
   ACQUIRE_FAILED: { label: 'No full text', tone: 'caution' },
 };
+
+/** A researcher's override, named for the person who made it. */
+export const SOURCE_DECISION: Record<SourceDecisionKind, Labelled> = {
+  INCLUDE: { label: 'Included by you', tone: 'positive' },
+  EXCLUDE: { label: 'Excluded by you', tone: 'negative' },
+};
+
+/** Sources whose manual decision no re-synthesis has used yet. */
+export function pendingDecisions(sources: readonly SourceView[]): SourceView[] {
+  return sources.filter((source) => source.decision?.applied === false);
+}
 
 export const EVIDENCE_LEVEL: Record<EvidenceLevel, string> = {
   META_ANALYSIS: 'Meta-analysis',

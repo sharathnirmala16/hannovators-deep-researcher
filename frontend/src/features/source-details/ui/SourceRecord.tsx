@@ -1,4 +1,10 @@
-import type { SourceDetail, WorkspaceSettings } from '@/domains/workspace';
+import type { ReactNode } from 'react';
+
+import type {
+  SourceDetail,
+  SourceView,
+  WorkspaceSettings,
+} from '@/domains/workspace';
 import { plural } from '@/shared/lib/format';
 
 import { AbstractText } from './AbstractText';
@@ -7,10 +13,13 @@ import { ScreeningDecision } from './ScreeningDecision';
 import { SourceHeader } from './SourceHeader';
 import { TrajectoryLinks } from './TrajectoryLinks';
 
+export type SourceSlot = (source: SourceView) => ReactNode;
+
 interface SourceRecordProps {
   detail: SourceDetail;
   settings: WorkspaceSettings | null;
   onOpenStep: (stepId: number) => void;
+  renderDecision?: SourceSlot | undefined;
 }
 
 /** "RoB 2 overall SOME_CONCERNS" reads as "RoB 2 overall some concerns". */
@@ -25,15 +34,17 @@ export function SourceRecord({
   detail,
   settings,
   onOpenStep,
+  renderDecision,
 }: SourceRecordProps) {
   const { source } = detail;
   return (
     <article className="flex flex-col gap-6 p-4">
       <SourceHeader detail={detail} />
+      {renderDecision?.(source)}
       {source.decision_explanation ? (
         <section className="flex flex-col gap-1 rounded-md bg-desk px-3 py-2">
           <h3 className="text-xs font-medium text-muted-foreground">
-            Decision
+            {source.decision ? "The agent's decision" : 'Decision'}
           </h3>
           <p className="text-sm text-foreground">
             {humanizeCodes(source.decision_explanation)}
