@@ -10,12 +10,6 @@ const MODES: readonly SegmentOption<RequestedDomainMode>[] = [
   { value: 'GENERAL', label: 'General' },
 ];
 
-const MODE_HINT: Record<RequestedDomainMode, string> = {
-  AUTO: 'Picks medical or general from the question.',
-  MEDICAL: 'PICOTS scope, RoB 2 appraisal, and a GRADE evidence profile.',
-  GENERAL: 'Entities and claims, credibility checks, and a claim matrix.',
-};
-
 interface RunOptionsProps {
   mode: RequestedDomainMode;
   onModeChange: (mode: RequestedDomainMode) => void;
@@ -24,7 +18,7 @@ interface RunOptionsProps {
   disabled: boolean;
 }
 
-/** Research mode and auto-continue, as a label and value list. */
+/** The composer's controls: research mode and whether to pause on the scope. */
 export function RunOptions({
   mode,
   onModeChange,
@@ -34,36 +28,24 @@ export function RunOptions({
 }: RunOptionsProps) {
   const switchId = useId();
   return (
-    <dl className="grid grid-cols-[8rem_minmax(0,1fr)] items-center gap-x-6 gap-y-5">
-      <dt className="text-sm font-semibold">Mode</dt>
-      <dd className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <Segmented
-          label="Research mode"
-          size="md"
-          value={mode}
-          options={MODES}
-          onChange={onModeChange}
-        />
-        <span className="text-xs text-muted-foreground">{MODE_HINT[mode]}</span>
-      </dd>
-      <dt>
-        <label htmlFor={switchId} className="text-sm font-semibold">
-          Auto-continue
-        </label>
-      </dt>
-      <dd className="flex items-center gap-4">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <Segmented
+        label="Research mode"
+        value={mode}
+        options={MODES}
+        onChange={onModeChange}
+      />
+      <span className="inline-flex items-center gap-2">
         <Switch
           id={switchId}
-          checked={autoContinue}
-          onCheckedChange={onAutoContinueChange}
+          checked={!autoContinue}
+          onCheckedChange={(review) => onAutoContinueChange(!review)}
           disabled={disabled}
         />
-        <span className="text-xs text-muted-foreground">
-          {autoContinue
-            ? 'Runs straight through to the synthesis.'
-            : 'Pauses after the scope so you can edit it.'}
-        </span>
-      </dd>
-    </dl>
+        <label htmlFor={switchId} className="text-xs text-muted-foreground">
+          Review the scope first
+        </label>
+      </span>
+    </div>
   );
 }

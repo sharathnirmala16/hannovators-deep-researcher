@@ -54,7 +54,7 @@ export function SeedDropZone({
         onDragLeave={() => setOver(false)}
         onDrop={onDrop}
         className={cn(
-          'flex cursor-pointer items-center gap-4 rounded-lg border border-dashed border-shade-3 bg-shade-0 px-5 py-5 transition-colors',
+          'flex cursor-pointer items-center gap-4 rounded-lg border border-dashed border-shade-3 bg-background px-4 py-4 transition-colors',
           'hover:border-shade-4 hover:bg-desk',
           'has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-ring',
           over && 'border-ring bg-tone-info-tint',
@@ -89,7 +89,7 @@ export function SeedDropZone({
         />
       </label>
       {files.length > 0 ? (
-        <ul className="flex flex-col divide-y rounded-md bg-shade-0 px-3">
+        <ul className="flex flex-col divide-y rounded-md border border-border bg-background px-3">
           {files.map((file) => (
             <li
               key={`${file.name}:${file.size}`}

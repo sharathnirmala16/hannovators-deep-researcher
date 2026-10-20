@@ -20,10 +20,10 @@ export function WorkspacesPage() {
           </Tag>
         ) : null}
       </header>
-      <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,7fr)_minmax(22rem,5fr)]">
+      <main className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">
         <Pane aria-label="New workspace" className="border-r">
           <PaneBody>
-            <div className="mx-auto w-full max-w-[680px] px-10 pt-12 pb-16">
+            <div className="mx-auto w-full max-w-[680px] px-10 pt-16 pb-16">
               <NewWorkspaceForm
                 onCreated={(id) => navigate(workspaceHref(id))}
               />

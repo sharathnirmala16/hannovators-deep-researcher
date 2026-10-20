@@ -45,7 +45,7 @@ export function SeedReferenceInput({
   return (
     <div className="flex flex-col gap-2">
       <label htmlFor={inputId} className="text-sm font-semibold">
-        Or add a PubMed ID, DOI, or web address
+        Or paste a PubMed ID, DOI, or link
       </label>
       <div className="flex items-center gap-2">
         <Input
@@ -54,8 +54,8 @@ export function SeedReferenceInput({
           disabled={disabled}
           aria-invalid={invalid}
           aria-describedby={hintId}
-          placeholder="PMID, DOI, or URL"
-          className="font-mono text-sm"
+          placeholder="PubMed ID, DOI, or link"
+          className="bg-background font-mono text-sm placeholder:font-sans"
           onChange={(event) => {
             setText(event.target.value);
             setInvalid(false);
@@ -84,7 +84,7 @@ export function SeedReferenceInput({
       >
         {invalid
           ? 'Enter a PubMed ID (digits), a DOI starting with 10., or a web address.'
-          : 'For example 35363499, 10.1056/NEJMoa1911303, or a report URL.'}
+          : 'The type is detected from what you paste.'}
       </p>
       {references.length > 0 ? (
         <ul className="flex flex-wrap gap-2">

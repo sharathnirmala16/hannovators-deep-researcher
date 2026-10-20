@@ -32,35 +32,34 @@ function Row({ item, href }: { item: WorkspaceSummary; href: string }) {
       ? item.current_stage
       : null;
   return (
-    <li className="border-b border-shade-2 last:border-b-0">
+    <li>
       <a
         href={href}
-        className="group flex flex-col gap-2.5 px-6 py-4 transition-colors hover:bg-background focus-visible:bg-background focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+        className="group flex flex-col gap-2 rounded-lg px-3 py-3 transition-colors hover:bg-background focus-visible:bg-background focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
       >
         <span
-          className="reading line-clamp-3 text-base leading-6 text-foreground group-hover:underline group-hover:decoration-shade-3 group-hover:underline-offset-4"
+          className="reading line-clamp-2 text-[15px] leading-6 text-foreground"
           title={plainMath(item.research_question)}
         >
           {plainMath(item.research_question)}
         </span>
-        <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground tabular-nums">
+        <span className="flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
           <Tag tone={status.tone} live={item.status === 'RUNNING'}>
             {status.label}
             {stage ? `: ${STAGE_LABEL[stage].toLowerCase()}` : ''}
           </Tag>
           <span>{DOMAIN_MODE[item.domain_mode]}</span>
-          <span>
-            {plural(item.source_count, 'source')}, {item.promoted_count}{' '}
-            included
-            {item.seed_count > 0 ? `, ${plural(item.seed_count, 'seed')}` : ''}
-          </span>
           <time
             dateTime={item.updated_at}
             title={absoluteTime(item.updated_at)}
-            className="ml-auto"
+            className="ml-auto whitespace-nowrap"
           >
             {relativeTime(item.updated_at)}
           </time>
+        </span>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {plural(item.source_count, 'source')}, {item.promoted_count} included
+          {item.seed_count > 0 ? `, ${plural(item.seed_count, 'seed')}` : ''}
         </span>
       </a>
     </li>
@@ -101,12 +100,12 @@ function ListBody({
       if (load.items.length === 0) {
         return (
           <EmptyState className="mx-6 my-4" title="No workspaces yet">
-            Ask a question on the left to start the first one.
+            Ask a question to start the first one.
           </EmptyState>
         );
       }
       return (
-        <ol>
+        <ol className="flex flex-col gap-0.5 px-3 py-2">
           {load.items.map((item) => (
             <Row key={item.id} item={item} href={hrefFor(item.id)} />
           ))}
@@ -124,7 +123,7 @@ export function WorkspaceList({ hrefFor, className }: WorkspaceListProps) {
       <SectionHeader
         variant="pane"
         id="workspace-list-title"
-        title="Your workspaces"
+        title="Recent workspaces"
         meta={count !== null ? <span>{count}</span> : null}
         className="px-6"
         actions={
