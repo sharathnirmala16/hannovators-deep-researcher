@@ -61,10 +61,15 @@ export interface IntentCount {
   kept: number;
 }
 
-/** Sources found and kept per search intent; empty when none is recorded. */
+/**
+ * Sources found and kept per search intent. Seeds carry no intent, so before the search
+ * stage every intent shows zero; the list is empty only when searched candidates exist but
+ * none records its intent.
+ */
 export function intentCounts(sources: readonly SourceView[]): IntentCount[] {
-  const tagged = sources.filter((source) => source.search_intent !== null);
-  if (tagged.length === 0) return [];
+  const tagged = sources.filter((source) => source.search_intent != null);
+  const searched = sources.some((source) => source.status !== 'SEED');
+  if (tagged.length === 0 && searched) return [];
   const count = (intent: SearchIntent): IntentCount => {
     const own = tagged.filter((source) => source.search_intent === intent);
     return {

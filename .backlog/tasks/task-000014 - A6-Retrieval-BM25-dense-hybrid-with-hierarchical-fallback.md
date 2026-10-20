@@ -4,7 +4,7 @@ title: 'A6 Retrieval: BM25 + dense hybrid with hierarchical fallback'
 status: To Do
 assignee: []
 created_date: '2026-10-18 12:21'
-updated_date: '2026-10-18 12:25'
+updated_date: '2026-10-20 17:40'
 labels:
   - phase-1
   - backend
@@ -44,3 +44,9 @@ Worktree: lane/a6-retrieval
 - [ ] #2 Rebased on main; AGENTS.md checks pass; `uv run pytest -m e2e` passes offline
 - [ ] #3 Required edge-case tests from the card exist and pass; no extra tests without a reason
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Round 2 delivered this behavior; see TASK-000047..TASK-000050. Unit-test ACs stay open because the round-2 test policy allows only live e2e tests.
+<!-- SECTION:NOTES:END -->

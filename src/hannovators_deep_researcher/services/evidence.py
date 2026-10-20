@@ -60,7 +60,7 @@ _MEDICAL_STANCES: dict[str, str | None] = {
     EvidenceStance.OPPOSES: "Finds harm, worse outcomes, or evidence against the intervention",
     EvidenceStance.NULL_RESULT: "Finds no significant effect, futility, or a failed/stopped trial",
     EvidenceStance.MIXED: "Benefit on some outcomes but harm or no effect on others",
-    EvidenceStance.ALTERNATIVE: "Mainly studies a different intervention or comparator",
+    EvidenceStance.ALTERNATIVE: "Tests a different intervention, not the review intervention",
     EvidenceStance.UNCLEAR: "Reports no directional result for the review question",
 }
 _GENERAL_STANCES: dict[str, str | None] = {
@@ -78,8 +78,10 @@ def stance_question(mode: DomainMode) -> DecisionQuestion:
     return DecisionQuestion(
         type=DecisionQuestionType.CHOICE,
         instructions=(
-            "Relative to the research scope above, what does this record conclude? Pick "
-            "OPPOSES or NULL_RESULT whenever the record reports harm, no benefit, or failure."
+            "Relative to the research scope above, what does this record conclude? When it "
+            "studies the scope's intervention or claims, judge its result: SUPPORTS, OPPOSES, "
+            "NULL_RESULT, or MIXED. Pick OPPOSES or NULL_RESULT whenever it reports harm, no "
+            "benefit, or failure. Pick ALTERNATIVE only when it tests something else."
         ),
         criteria=criteria,
     )

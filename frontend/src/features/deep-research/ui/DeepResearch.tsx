@@ -1,14 +1,14 @@
 import { Loader2Icon, SparklesIcon } from 'lucide-react';
 
 import type { DeepResearchRecord } from '@/domains/workspace';
-import { formatDuration, relativeTime } from '@/shared/lib/format';
+import { formatDuration } from '@/shared/lib/format';
 import { Button } from '@/shared/ui/button';
 import { SectionHeader } from '@/shared/ui/section-header';
 import { EmptyState, ErrorState, SkeletonBlock } from '@/shared/ui/states';
 import { Tag, type Tone } from '@/shared/ui/tag';
 
 import { useDeepResearch } from '../model/useDeepResearch';
-import { DeepResearchReport } from './DeepResearchReport';
+import { DeepResearchBody } from './DeepResearchBody';
 
 const STATUS: Record<
   DeepResearchRecord['status'],
@@ -20,46 +20,12 @@ const STATUS: Record<
   failed: { label: 'Failed', tone: 'negative' },
 };
 
-function elapsed(record: DeepResearchRecord): string {
-  if (!record.started_at || !record.finished_at) return '';
+function elapsed(record: DeepResearchRecord | null): string {
+  if (!record?.started_at || !record.finished_at) return '';
   return formatDuration(
     new Date(record.finished_at).getTime() -
       new Date(record.started_at).getTime(),
   );
-}
-
-function Body({ record }: { record: DeepResearchRecord | null }) {
-  if (!record) {
-    return (
-      <EmptyState title="No deep research yet">
-        Tavily writes an independent cited report on the same question. Use it
-        to cross-check what the pipeline found.
-      </EmptyState>
-    );
-  }
-  switch (record.status) {
-    case 'pending':
-    case 'running':
-      return (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs text-muted-foreground">
-            Started{' '}
-            {record.started_at ? relativeTime(record.started_at) : 'just now'}.
-            This takes a few minutes.
-          </p>
-          <SkeletonBlock lines={4} label="Deep research is running" />
-        </div>
-      );
-    case 'failed':
-      return (
-        <ErrorState
-          title="Deep research failed"
-          message={record.error ?? 'The provider gave no reason.'}
-        />
-      );
-    case 'completed':
-      return <DeepResearchReport record={record} />;
-  }
 }
 
 /** Tavily deep research: trigger, status, and the cited report. */
@@ -68,11 +34,16 @@ export function DeepResearch() {
   const record = load.status === 'ready' ? load.record : null;
   const status = record ? STATUS[record.status] : null;
   const canStart = load.status === 'ready' && !running;
+  const icon = starting ? (
+    <Loader2Icon className="animate-spin" />
+  ) : (
+    <SparklesIcon />
+  );
 
   return (
     <section
       aria-labelledby="deep-research-title"
-      className="flex flex-col gap-2"
+      className="flex min-w-0 flex-col gap-2"
     >
       <SectionHeader
         id="deep-research-title"
@@ -83,31 +54,32 @@ export function DeepResearch() {
               <Tag tone={status.tone} live={running}>
                 {status.label}
               </Tag>
-              {record ? <span>{elapsed(record)}</span> : null}
+              <span>{elapsed(record)}</span>
             </>
           ) : null
         }
         actions={
-          canStart ? (
+          canStart && record ? (
             <Button
               size="xs"
-              variant={record ? 'ghost' : 'outline'}
+              variant="ghost"
               onClick={() => void start()}
               disabled={starting}
             >
-              {starting ? (
-                <Loader2Icon className="animate-spin" />
-              ) : (
-                <SparklesIcon />
-              )}
-              {record ? 'Run again' : 'Run deep research'}
+              {icon}
+              Run again
             </Button>
           ) : null
         }
       />
-      {load.status === 'loading' ? <SkeletonBlock lines={2} /> : null}
+      {load.status === 'loading' ? (
+        <SkeletonBlock lines={3} label="Loading the deep research" />
+      ) : null}
       {load.status === 'unavailable' ? (
-        <EmptyState title="Deep research is not available on this server yet" />
+        <EmptyState title="Deep research is not available on this server">
+          This server does not offer deep research yet. The pipeline results are
+          not affected.
+        </EmptyState>
       ) : null}
       {load.status === 'error' ? (
         <ErrorState
@@ -116,7 +88,22 @@ export function DeepResearch() {
           onRetry={refetch}
         />
       ) : null}
-      {load.status === 'ready' ? <Body record={record} /> : null}
+      {load.status === 'ready' ? (
+        <DeepResearchBody
+          record={record}
+          trigger={
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void start()}
+              disabled={starting}
+            >
+              {icon}
+              Run deep research
+            </Button>
+          }
+        />
+      ) : null}
     </section>
   );
 }

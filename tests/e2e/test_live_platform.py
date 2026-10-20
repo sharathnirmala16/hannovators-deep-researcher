@@ -137,8 +137,7 @@ async def test_live_platform_run_records_a_complete_trajectory(
     assert {step["kind"] for step in filtered["steps"]} == {"DECISION"}
 
     verdicts = [step for step in steps if step["kind"] == "VERDICT"]
-    if not verdicts:
-        pytest.xfail("no VERDICT steps: the stages do not record verdicts on this branch yet")
+    assert verdicts, "the stages recorded no VERDICT steps"
     removed = {
         source_id
         for step in verdicts

@@ -1,117 +1,76 @@
-import type {
-  RecommendationDirection,
-  RecommendationStrength,
-  WorkspaceState,
-} from '@/domains/workspace';
-import { cn } from '@/shared/lib/cn';
+import type { WorkspaceState } from '@/domains/workspace';
+import { plural } from '@/shared/lib/format';
+import { SectionHeader } from '@/shared/ui/section-header';
+import { EmptyState } from '@/shared/ui/states';
 
-import { studyLabel } from '@/domains/workspace';
+import { AnalysisProse } from './AnalysisProse';
+import { citationIndex } from './citations';
+import { PairwiseSummary } from './PairwiseSummary';
+import { Provenance } from './Provenance';
+import { RecommendationLead } from './RecommendationLead';
 
-import { indexById } from '../model/evidence';
-import { CertaintyBadge } from './CertaintyBadge';
-import { ClaimCell } from './ClaimCell';
+/** The one intervention the recommendation is about (MEDICAL only). */
+function subjectOf(state: WorkspaceState): string | null {
+  const { decomposition, synthesis } = state;
+  if (decomposition?.mode !== 'MEDICAL' || !synthesis) return null;
+  const compared = new Set(
+    synthesis.pairwise_summaries.map((summary) => summary.intervention),
+  );
+  if (compared.size === 1) return [...compared][0] ?? null;
+  return decomposition.interventions.length === 1
+    ? (decomposition.interventions[0] ?? null)
+    : null;
+}
 
-const DIRECTION: Record<RecommendationDirection, string> = {
-  FOR: 'For',
-  AGAINST: 'Against',
-  NONE: 'No direction',
-};
-
-const STRENGTH: Record<RecommendationStrength, string> = {
-  STRONG: 'Strong',
-  CONDITIONAL: 'Conditional',
-};
-
-const DIRECTION_TONE: Record<RecommendationDirection, string> = {
-  FOR: 'bg-shade-2 text-tone-positive',
-  AGAINST: 'bg-shade-2 text-tone-negative',
-  NONE: 'bg-shade-2 text-foreground',
-};
-
-/** Pairwise summaries, then the analysis, then the recommendation. */
+/** Recommendation first, then the analysis, the comparisons, provenance. */
 export function SynthesisPanel({ state }: { state: WorkspaceState }) {
   const { synthesis } = state;
   if (!synthesis) {
     return (
-      <p className="text-sm text-muted-foreground">
-        The synthesis appears after the synthesis stage.
-      </p>
+      <EmptyState className="mx-4" title="No synthesis yet">
+        The recommendation and its GRADE assessment are written in the synthesis
+        stage. Run or continue the workspace from the plan pane.
+      </EmptyState>
     );
   }
-  const sources = indexById(state.sources);
-  const recommendationClaim = state.claims.find(
-    (claim) => claim.kind === 'RECOMMENDATION',
-  );
-  const { recommendation, provenance } = synthesis;
+  const citations = citationIndex(state);
+  const summaries = synthesis.pairwise_summaries;
   return (
-    <article className="flex flex-col gap-4 text-sm">
-      <ol className="flex flex-col gap-3">
-        {synthesis.pairwise_summaries.map((summary) => (
-          <li
-            key={`${summary.intervention}|${summary.outcome}`}
-            className="border-l-2 border-border pl-3"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-medium">
-                {summary.intervention} vs {summary.comparison}
-              </span>
-              <CertaintyBadge certainty={summary.grade.certainty} />
-            </div>
-            <p className="text-xs text-muted-foreground">{summary.outcome}</p>
-            <p className="mt-1">{summary.summary}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {summary.source_ids
-                .map((id) => sources.get(id))
-                .filter((source) => source !== undefined)
-                .map(studyLabel)
-                .join(', ')}
-            </p>
-          </li>
-        ))}
-      </ol>
-      <section>
-        <h3 className="mb-1 font-semibold">Analysis</h3>
-        <p className="leading-relaxed">{synthesis.analysis}</p>
+    <article className="flex flex-col gap-6 px-4">
+      <RecommendationLead
+        recommendation={synthesis.recommendation}
+        subject={subjectOf(state)}
+        citations={citations}
+      />
+      <section
+        aria-labelledby="synthesis-analysis"
+        className="flex flex-col gap-2"
+      >
+        <SectionHeader id="synthesis-analysis" title="Analysis" />
+        <AnalysisProse text={synthesis.analysis} citations={citations} />
       </section>
-      <section className="rounded-md bg-muted p-3">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <h3 className="font-semibold">Recommendation</h3>
-          <span
-            className={cn(
-              'rounded-sm px-2 py-0.5 text-xs font-semibold',
-              DIRECTION_TONE[recommendation.direction],
-            )}
-          >
-            {STRENGTH[recommendation.strength]}{' '}
-            {DIRECTION[recommendation.direction].toLowerCase()}
-          </span>
-        </div>
-        {recommendationClaim ? (
-          <ClaimCell
-            claim={recommendationClaim}
-            highlights={state.highlights}
-            className="leading-relaxed"
-          >
-            {recommendation.text}
-          </ClaimCell>
-        ) : (
-          <p className="leading-relaxed">{recommendation.text}</p>
-        )}
-      </section>
-      <footer className="flex flex-wrap gap-x-4 gap-y-1 border-t pt-3 text-xs text-muted-foreground">
-        <span>
-          Canary <code className="text-foreground">{provenance.canary}</code>
-        </span>
-        {Object.entries(provenance.models).map(([role, model]) => (
-          <span key={role}>
-            {role.toLowerCase()}{' '}
-            <code className="text-foreground">{model}</code>
-          </span>
-        ))}
-        <span>
-          Generated {new Date(provenance.generated_at).toLocaleString()}
-        </span>
-      </footer>
+      {summaries.length > 0 ? (
+        <section
+          aria-labelledby="synthesis-comparisons"
+          className="flex flex-col gap-4"
+        >
+          <SectionHeader
+            id="synthesis-comparisons"
+            title="Comparisons"
+            meta={plural(summaries.length, 'outcome')}
+          />
+          <div className="flex flex-col gap-8">
+            {summaries.map((summary) => (
+              <PairwiseSummary
+                key={`${summary.intervention}|${summary.comparison}|${summary.outcome}`}
+                summary={summary}
+                citations={citations}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+      <Provenance provenance={synthesis.provenance} />
     </article>
   );
 }

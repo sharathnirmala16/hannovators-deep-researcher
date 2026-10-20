@@ -44,7 +44,8 @@ PERSISTENT_INTENTS = frozenset({SearchIntent.NEGATIVE, SearchIntent.ALTERNATIVE}
 MAX_SEEDS = 5
 RELATED_LIMIT = 40
 MIN_BROAD_WORDS = 2
-RETRY_ATTEMPTS = 3
+# The PubMed adapter already retries throttling; this outer retry covers other providers.
+RETRY_ATTEMPTS = 2
 RETRY_BASE_SECONDS = 1.0
 RETRY_MAX_SECONDS = 10.0
 
@@ -289,7 +290,9 @@ def _title_query(title: str) -> str | None:
     return " ".join(words)
 
 
-async def seed_citation_groups(ctx: StageContext) -> tuple[list[Group], dict[str, str]]:
+async def seed_citation_groups(
+    ctx: StageContext, pubmed_slots: asyncio.Semaphore | None = None
+) -> tuple[list[Group], dict[str, str]]:
     """Related and cited records of the seeds (PubMed elink), plus seed-title look-alikes.
 
     Returns the groups and a map of seed PMID -> seed source ID for the citation links.
@@ -310,7 +313,7 @@ async def seed_citation_groups(ctx: StageContext) -> tuple[list[Group], dict[str
                 QuerySpec(SearchIntent.SEED_CITATION, query, "pubmed", Variant.HIERARCHY, 10)
             )
     groups = [await _related(ctx, pmid_to_seed)] if pmid_to_seed else []
-    groups += [await run_spec(ctx, spec) for spec in title_specs]
+    groups += [await run_spec(ctx, spec, pubmed_slots) for spec in title_specs]
     return [group for group in groups if group.attempts], pmid_to_seed
 
 

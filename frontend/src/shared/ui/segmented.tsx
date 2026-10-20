@@ -56,7 +56,7 @@ export function Segmented<T extends string>({
       aria-label={label}
       onKeyDown={onKeyDown}
       className={cn(
-        'inline-flex shrink-0 items-center gap-0.5 rounded-md bg-muted p-0.5',
+        'inline-flex shrink-0 items-center gap-0.5 rounded-md bg-shade-1 p-0.5 ring-1 ring-shade-2 ring-inset',
         className,
       )}
     >
@@ -75,15 +75,16 @@ export function Segmented<T extends string>({
             tabIndex={checked ? 0 : -1}
             onClick={() => onChange(option.value)}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-sm px-2 font-medium whitespace-nowrap text-muted-foreground transition-colors',
-              'hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-40',
+              'inline-flex items-center gap-1.5 rounded-[4px] px-2.5 font-medium whitespace-nowrap text-muted-foreground transition-colors',
+              'hover:text-foreground disabled:opacity-40',
               size === 'sm' ? 'h-6 text-xs' : 'h-7 text-sm',
-              checked && 'bg-background text-foreground shadow-xs',
+              checked &&
+                'bg-background font-semibold text-foreground shadow-[0_1px_2px_rgba(24,34,58,0.14),0_0_0_1px_rgba(24,34,58,0.06)]',
             )}
           >
             {option.label}
             {option.count !== undefined ? (
-              <span className="text-muted-foreground tabular-nums">
+              <span className="font-normal text-muted-foreground tabular-nums">
                 {option.count}
               </span>
             ) : null}

@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 
 import { useWorkspace } from '@/domains/workspace';
+import { EmptyState } from '@/shared/ui/states';
 import { TooltipProvider } from '@/shared/ui/tooltip';
 
 import { trajectorySource } from '../api/trajectorySource';
-import { Notice } from './Notice';
 import { TrajectoryWorkspace } from './TrajectoryWorkspace';
 
 interface TrajectoryViewProps {
@@ -13,6 +13,8 @@ interface TrajectoryViewProps {
    * it), so the shell can switch to the Research tab.
    */
   onOpenSource?: (sourceId: string) => void;
+  /** A step to open, from a `?step=<id>` deep link. */
+  step?: number | null;
 }
 
 /**
@@ -20,7 +22,10 @@ interface TrajectoryViewProps {
  * workspace: filters, stage swimlanes, a windowed step table with a waterfall,
  * and a detail panel with the request and response bodies.
  */
-export function TrajectoryView({ onOpenSource }: TrajectoryViewProps) {
+export function TrajectoryView({
+  onOpenSource,
+  step = null,
+}: TrajectoryViewProps) {
   const { client, workspaceId } = useWorkspace();
   const source = useMemo(
     () => (workspaceId ? trajectorySource(client, workspaceId) : null),
@@ -28,10 +33,12 @@ export function TrajectoryView({ onOpenSource }: TrajectoryViewProps) {
   );
   if (!source) {
     return (
-      <Notice title="No workspace is open">
-        Open or create a workspace. Its trajectory lists every search, fetch,
-        model call, decision, verdict, and user action of the run.
-      </Notice>
+      <div className="p-4">
+        <EmptyState title="No workspace is open">
+          Open or create a workspace. Its trajectory lists every search, fetch,
+          model call, decision, verdict, and user action of the run.
+        </EmptyState>
+      </div>
     );
   }
   return (
@@ -40,6 +47,7 @@ export function TrajectoryView({ onOpenSource }: TrajectoryViewProps) {
         key={source.workspaceId}
         source={source}
         onOpenSource={onOpenSource}
+        step={step}
       />
     </TooltipProvider>
   );

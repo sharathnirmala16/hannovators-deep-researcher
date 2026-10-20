@@ -2,26 +2,26 @@ import type { ComponentProps } from 'react';
 
 import { cn } from '@/shared/lib/cn';
 
-/** Semantic tones, rendered in solid grays; callers map status, certainty, RoB 2, and stance onto them. */
+/** Semantic tones; callers map status, certainty, RoB 2, and stance onto them. */
 export type Tone =
   'positive' | 'negative' | 'caution' | 'info' | 'null' | 'neutral';
 
 const TINT: Record<Tone, string> = {
-  positive: 'bg-shade-6 text-white',
-  negative: 'border border-shade-4 bg-background text-foreground',
-  caution: 'bg-shade-3 text-foreground',
-  info: 'bg-shade-2 text-foreground',
-  null: 'bg-shade-2 text-foreground',
-  neutral: 'bg-muted text-muted-foreground',
+  positive: 'bg-tone-positive-tint text-tone-positive',
+  negative: 'bg-tone-negative-tint text-tone-negative',
+  caution: 'bg-tone-caution-tint text-tone-caution',
+  info: 'bg-tone-info-tint text-tone-info',
+  null: 'bg-tone-null-tint text-tone-null',
+  neutral: 'bg-tone-neutral-tint text-tone-neutral',
 };
 
 const DOT: Record<Tone, string> = {
-  positive: 'bg-shade-6',
-  negative: 'bg-shade-5',
-  caution: 'bg-shade-4',
-  info: 'bg-shade-6',
-  null: 'bg-shade-4',
-  neutral: 'bg-shade-3',
+  positive: 'bg-tone-positive',
+  negative: 'bg-tone-negative',
+  caution: 'bg-tone-caution',
+  info: 'bg-tone-info',
+  null: 'bg-tone-null',
+  neutral: 'bg-tone-neutral',
 };
 
 interface TagProps extends ComponentProps<'span'> {
@@ -42,7 +42,7 @@ function Tag({
     <span
       data-slot="tag"
       className={cn(
-        'inline-flex h-5 shrink-0 items-center gap-1.5 rounded-sm px-1.5 text-xs font-medium whitespace-nowrap',
+        'inline-flex h-5 shrink-0 items-center gap-1.5 rounded-[3px] px-1.5 text-xs font-semibold whitespace-nowrap',
         TINT[tone],
         className,
       )}

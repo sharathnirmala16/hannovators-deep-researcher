@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useRef,
   type KeyboardEvent,
   type ReactNode,
@@ -8,21 +7,16 @@ import {
 
 import type { TrajectoryStepSummary } from '@/domains/workspace';
 import { cn } from '@/shared/lib/cn';
-import { TableBody, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
+import { TableBody } from '@/shared/ui/table';
 
 import { moveCursor } from '../model/keyboard';
 import type { TimeRange } from '../model/timing';
+import { useEndPaging } from '../model/useEndPaging';
 import { useRowWindow } from '../model/useRowWindow';
-import {
-  COLUMN,
-  COLUMN_COUNT,
-  HEADER_HEIGHT,
-  ROW_HEIGHT,
-  stepRowId,
-} from './columns';
+import { HEADER_HEIGHT, ROW_HEIGHT, stepRowId } from './columns';
 import { StepRow } from './StepRow';
-import { SCROLL_Y } from './statusStyles';
-import { TableFooterRow, type PagingState } from './TableFooterRow';
+import { StepTableHead } from './StepTableHead';
+import { PagingFooter, type PagingState } from './PagingFooter';
 
 interface StepTableProps {
   rows: readonly TrajectoryStepSummary[];
@@ -39,23 +33,7 @@ interface StepTableProps {
   gridRef: RefObject<HTMLTableElement | null>;
 }
 
-const HEADERS: readonly (readonly [keyof typeof COLUMN, string])[] = [
-  ['index', '#'],
-  ['time', 'Time'],
-  ['actor', 'Actor'],
-  ['kind', 'Kind'],
-  ['name', 'Name'],
-  ['target', 'Target'],
-  ['status', 'Status'],
-  ['outcome', 'Outcome'],
-  ['confidence', 'Conf.'],
-  ['duration', 'Duration'],
-  ['waterfall', 'Waterfall'],
-];
-
-/** Load the next page when the user scrolls within this many rows of the end. */
-const END_THRESHOLD_ROWS = 8;
-
+/** The windowed, keyboard-driven step grid; only its body scrolls. */
 export function StepTable({
   rows,
   origin,
@@ -71,22 +49,10 @@ export function StepTable({
 }: StepTableProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const view = useRowWindow(scrollRef, rows.length, ROW_HEIGHT, HEADER_HEIGHT);
-  const { hasMore, loadingMore, onLoadMore } = paging;
-
-  // Keep paging while the loaded rows do not fill the viewport.
-  useEffect(() => {
-    const element = scrollRef.current;
-    if (!element || !hasMore || loadingMore) return;
-    if (element.scrollHeight <= element.clientHeight + ROW_HEIGHT) onLoadMore();
-  }, [rows.length, hasMore, loadingMore, onLoadMore]);
-
+  const pageNearEnd = useEndPaging(scrollRef, rows.length, paging, ROW_HEIGHT);
   const onScroll = () => {
     view.onScroll();
-    const element = scrollRef.current;
-    if (!element || !hasMore || loadingMore) return;
-    const left =
-      element.scrollHeight - element.scrollTop - element.clientHeight;
-    if (left < ROW_HEIGHT * END_THRESHOLD_ROWS) onLoadMore();
+    pageNearEnd();
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTableElement>) => {
@@ -96,7 +62,7 @@ export function StepTable({
       return;
     }
     const index = rows.findIndex((step) => step.id === cursorId);
-    if (event.key === 'Enter' && cursorId !== null) {
+    if ((event.key === 'Enter' || event.key === ' ') && cursorId !== null) {
       event.preventDefault();
       onOpen(cursorId);
       return;
@@ -116,7 +82,7 @@ export function StepTable({
     <div
       ref={scrollRef}
       onScroll={onScroll}
-      className={cn('@container h-full min-h-0', SCROLL_Y)}
+      className="@container scroll-y h-full min-h-0 bg-background"
     >
       <table
         ref={gridRef}
@@ -128,25 +94,12 @@ export function StepTable({
         }
         tabIndex={0}
         onKeyDown={onKeyDown}
-        className="group/grid w-full table-fixed text-xs outline-none"
+        className={cn(
+          'group/grid w-full table-fixed text-xs',
+          cursorId === null ? '-outline-offset-2' : 'outline-none',
+        )}
       >
-        <TableHeader className="[&_tr]:border-b-0">
-          <TableRow className="hover:bg-transparent">
-            {HEADERS.map(([column, label]) => (
-              <TableHead
-                key={column}
-                scope="col"
-                style={{ height: HEADER_HEIGHT }}
-                className={cn(
-                  COLUMN[column],
-                  'sticky top-0 z-10 bg-background px-2 text-xs font-medium text-muted-foreground shadow-[inset_0_-1px_0_var(--color-border)]',
-                )}
-              >
-                {label}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
+        <StepTableHead />
         <TableBody>
           {view.padTop > 0 ? (
             <tr aria-hidden style={{ height: view.padTop }} />
@@ -162,17 +115,13 @@ export function StepTable({
               onSelect={onOpen}
             />
           ))}
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={COLUMN_COUNT}>{empty}</td>
-            </tr>
-          ) : null}
           {view.padBottom > 0 ? (
             <tr aria-hidden style={{ height: view.padBottom }} />
           ) : null}
-          <TableFooterRow paging={paging} columns={COLUMN_COUNT} />
         </TableBody>
       </table>
+      {rows.length === 0 ? <div className="p-4">{empty}</div> : null}
+      <PagingFooter paging={paging} />
     </div>
   );
 }

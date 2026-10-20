@@ -1,9 +1,10 @@
 """Pure screening selection: T-threshold eligibility, evidence-hierarchy ranking, top-N promotion.
 
-Eligible candidates (votes >= T) rank by evidence level first (meta-analysis before RCT before
-cohort ...), then by z(relevance x confidence). About a quarter of the N slots are reserved for
-the best eligible opposing, null, mixed, or alternative evidence, so supportive records cannot
-crowd disconfirming evidence out of the review.
+Eligible candidates (votes >= T) that are at least moderately relevant rank by evidence level
+first (meta-analysis before RCT before cohort ...), then by z(relevance x confidence); weakly
+relevant ones follow in the same order. About a quarter of the N slots are reserved for the
+best relevant opposing, null, mixed, or alternative evidence (opposing and null first), so
+supportive records cannot crowd disconfirming evidence out of the review.
 """
 
 from collections.abc import Mapping, Sequence
@@ -14,6 +15,8 @@ from hannovators_deep_researcher.services.evidence import evidence_rank, is_cont
 from hannovators_deep_researcher.services.ranking import z_scores
 
 VOTE_THRESHOLD = 0.5
+MIN_RELEVANCE = 2.0
+"""Jev relevance 0..4; 2 = "Moderately relevant". Weaker records rank after relevant ones."""
 RESERVE_SHARE = 0.25
 MIN_N_FOR_RESERVE = 2
 
@@ -39,6 +42,12 @@ class ScreenResult:
     @property
     def evidence_rank(self) -> int:
         return evidence_rank(self.evidence_level)
+
+    @property
+    def is_relevant(self) -> bool:
+        """At least moderately relevant; the embedding fallback has no such scale."""
+
+        return self.votes is None or self.relevance >= MIN_RELEVANCE
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,14 +85,22 @@ def select(
 
     zs = z_scores([result.strength for result in results])
 
-    def order(index: int) -> tuple[int, float]:
-        return results[index].evidence_rank, -zs[index]
+    def order(index: int) -> tuple[int, int, float]:
+        return (
+            0 if results[index].is_relevant else 1,
+            results[index].evidence_rank,
+            -zs[index],
+        )
 
     eligible = sorted(
         (index for index, result in enumerate(results) if is_eligible(result, votes_t)), key=order
     )
     contrarian = sorted(
-        (index for index in eligible if is_contrarian(results[index].stance)),
+        (
+            index
+            for index in eligible
+            if is_contrarian(results[index].stance) and results[index].is_relevant
+        ),
         key=lambda index: (0 if is_opposing(results[index].stance) else 1, *order(index)),
     )
     reserved = contrarian[: min(reserved_slots(top_n, reserve_share), top_n)]
@@ -140,7 +157,7 @@ def _decide(
             False,
             RejectionCode.LOW_RELEVANCE,
             f"Eligible with {facts}, but ranks below the top {top_n} "
-            "(evidence level first, then z).",
+            "(relevant records first, then evidence level, then z).",
         )
     exclusion = result.exclusion or ""
     if exclusion in RejectionCode.__members__:

@@ -1,13 +1,11 @@
 import { ExternalLink } from 'lucide-react';
 
-import { cn } from '@/shared/lib/cn';
+import { SectionHeader } from '@/shared/ui/section-header';
 
 import { searchView } from '../model/bodies';
 import type { JsonRecord } from '../model/json';
 import { formatCount } from '../model/timing';
 import { FactList } from './FactList';
-import { SectionTitle } from './SectionTitle';
-import { FOCUS_RING } from './statusStyles';
 
 interface SearchResultsProps {
   request: JsonRecord;
@@ -31,27 +29,29 @@ export function SearchResults({ request, response }: SearchResultsProps) {
       />
       {view.hits.length > 0 ? (
         <>
-          <SectionTitle title="Results" meta={formatCount(view.hits.length)} />
-          <ol className="flex flex-col gap-2">
+          <SectionHeader
+            title="Results"
+            meta={<span>{formatCount(view.hits.length)}</span>}
+          />
+          <ol className="flex flex-col gap-3">
             {view.hits.map((hit, index) => (
               <li
                 key={`${index}-${hit.url ?? hit.title}`}
-                className="flex gap-2 text-[13px]"
+                className="flex gap-2 text-sm"
               >
-                <span className="w-6 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
+                <span className="w-6 shrink-0 text-right text-xs leading-5 text-muted-foreground tabular-nums">
                   {index + 1}
                 </span>
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <span className="font-medium">{hit.title}</span>
+                <div className="flex min-w-0 max-w-prose flex-col gap-0.5">
+                  <span className="font-medium text-foreground">
+                    {hit.title}
+                  </span>
                   {hit.url ? (
                     <a
                       href={hit.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={cn(
-                        'flex items-center gap-1 font-mono text-xs break-all text-muted-foreground underline-offset-2 hover:text-foreground hover:underline',
-                        FOCUS_RING,
-                      )}
+                      className="flex items-center gap-1 rounded-sm font-mono text-xs break-all text-link underline-offset-2 hover:underline"
                     >
                       {hit.url}
                       <ExternalLink aria-hidden className="size-3 shrink-0" />

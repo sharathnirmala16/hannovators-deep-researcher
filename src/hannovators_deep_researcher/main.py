@@ -43,7 +43,11 @@ from hannovators_deep_researcher.persistence.repositories import (
 from hannovators_deep_researcher.routers import include_routers
 from hannovators_deep_researcher.routers.dependencies import ApiContainer, PortStatus
 from hannovators_deep_researcher.routers.errors import install_error_handlers
-from hannovators_deep_researcher.services.documents.files import WORKSPACES_DIR, data_root
+from hannovators_deep_researcher.services.documents.files import (
+    WORKSPACES_DIR,
+    configure_data_root,
+    data_root,
+)
 from hannovators_deep_researcher.services.events import DatabaseEventSink
 from hannovators_deep_researcher.services.pipeline.context import PipelineServices
 from hannovators_deep_researcher.services.pipeline.orchestrator import Orchestrator
@@ -311,6 +315,7 @@ def create_app(
     `files_dir` is a `workspaces` folder; stored paths are relative to its parent.
     """
 
+    configure_data_root(files_dir.parent if files_dir else None)
     workspaces_dir = files_dir or data_root() / WORKSPACES_DIR
     container = build_container(
         settings or get_settings(), database_url=database_url, data_dir=workspaces_dir.parent

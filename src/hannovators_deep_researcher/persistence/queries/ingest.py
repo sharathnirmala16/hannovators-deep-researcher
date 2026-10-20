@@ -1,11 +1,11 @@
-"""Chunk storage for seed and acquired documents: replace a source's chunks in one transaction."""
+"""Chunk and seed-claim storage for seed and acquired documents, one transaction per replace."""
 
 from collections.abc import Sequence
 
 from sqlalchemy import delete, func, select
 
 from hannovators_deep_researcher.persistence.repositories import Repositories
-from hannovators_deep_researcher.persistence.tables import ChunkRow
+from hannovators_deep_researcher.persistence.tables import ChunkRow, ClaimRow
 
 
 async def replace_chunks(
@@ -30,3 +30,16 @@ async def chunk_counts(repositories: Repositories, workspace_id: str) -> dict[tu
     async with repositories.transaction() as session:
         rows = (await session.execute(statement)).all()
     return {(source_id, tier): int(count) for source_id, tier, count in rows}
+
+
+async def replace_labelled_claims(
+    repositories: Repositories, source_id: str, label: str, rows: Sequence[ClaimRow]
+) -> list[ClaimRow]:
+    """Delete the claims of `source_id` that carry `label` and insert `rows`, atomically."""
+
+    async with repositories.transaction() as session:
+        await session.execute(
+            delete(ClaimRow).where(ClaimRow.source_id == source_id, ClaimRow.label == label)
+        )
+        session.add_all(rows)
+    return list(rows)

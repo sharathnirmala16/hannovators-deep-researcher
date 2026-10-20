@@ -1,7 +1,8 @@
 """Highlight claim quotes in source PDFs: highlight rows + `highlighted.pdf` per source.
 
-Each claim with a quote whose source has a `raw.pdf` is located with `page.search_for` (full
-quote, then its first ~60 characters). When that fails, Jev chooses among at most 19 retrieved
+Each claim with a quote whose source has a `raw.pdf` (appraised sources and the "Seed finding"
+claims that ingest extracts from seed PDFs) is located with `page.search_for` (full quote, then
+its first ~60 characters). When that fails, Jev chooses among at most 19 retrieved
 chunks of the source (plus NONE); a choice at or above `highlight_confidence_floor` highlights
 that chunk's bbox. Web sources have no pages, so they get no highlight rows.
 """
@@ -40,7 +41,11 @@ from hannovators_deep_researcher.services.documents.highlighter import (
 from hannovators_deep_researcher.services.pipeline.context import StageContext
 from hannovators_deep_researcher.services.pipeline.stages.acquire.fulltext import describe_error
 from hannovators_deep_researcher.services.retrieval.hybrid import hierarchical_retrieve
-from hannovators_deep_researcher.services.retrieval.quotes import QuoteMatch, locate_quote
+from hannovators_deep_researcher.services.retrieval.quotes import (
+    SHORT_QUOTE_CHARS,
+    QuoteMatch,
+    locate_quote,
+)
 
 CLAIM_COLORS: dict[str, str] = {
     ClaimKind.METRIC: "#FFE066",
@@ -52,6 +57,8 @@ JEV_KEY = "passage"
 NONE_OPTION = "NONE"
 OPTION_CHARS = 500
 PREFIX_SCORE = 0.8
+SHORT_QUOTE_SCORE = 0.5
+"""A whole quote shorter than `SHORT_QUOTE_CHARS` is found, but it may match the wrong spot."""
 
 
 def _is_pdf(source: SourceRow) -> bool:
@@ -150,6 +157,12 @@ async def _jev_choice(
     return chunk, float(confidence), f"Jev chose {choice} ({confidence:.2f})"
 
 
+def _search_score(match: QuoteMatch) -> float:
+    if not match.full:
+        return PREFIX_SCORE
+    return SHORT_QUOTE_SCORE if len(match.needle) < SHORT_QUOTE_CHARS else 1.0
+
+
 async def _locate(
     ctx: StageContext,
     source: SourceRow,
@@ -167,7 +180,7 @@ async def _locate(
                 page=match.page,
                 rects=match.rects,
                 method=HighlightMethod.SEARCH,
-                score=1.0 if match.full else PREFIX_SCORE,
+                score=_search_score(match),
                 chunk_id=_chunk_at(chunks, match.page, match.rects[0]),
             ),
             "search: full quote" if match.full else "search: quote prefix",

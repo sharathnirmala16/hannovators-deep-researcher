@@ -37,10 +37,7 @@ export function ProviderBadge() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
-          type="button"
-          className="rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        >
+        <button type="button" className="rounded-sm">
           <Tag tone={tone}>{label}</Tag>
         </button>
       </TooltipTrigger>
@@ -52,7 +49,7 @@ export function ProviderBadge() {
                 tone={status.implementation === 'real' ? 'positive' : 'caution'}
               />
               <span className="w-20">{port}</span>
-              <span className="opacity-80">
+              <span className="text-shade-3">
                 {status.implementation}, {status.provider}
               </span>
             </li>

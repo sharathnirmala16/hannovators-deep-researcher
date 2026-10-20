@@ -1,11 +1,10 @@
 import type { TrajectoryStepSummary } from '@/domains/workspace';
-import { cn } from '@/shared/lib/cn';
+import { SectionHeader } from '@/shared/ui/section-header';
 
 import { ancestorIds, childrenOf } from '../model/steps';
-import { SectionTitle } from './SectionTitle';
-import type { StepContext } from './stepContext';
+import { ChainEntry } from './ChainEntry';
+import type { StepContext } from '../model/stepContext';
 import { StepLink } from './StepLink';
-import { FOCUS_RING } from './statusStyles';
 
 interface ChainTabProps {
   step: TrajectoryStepSummary;
@@ -17,9 +16,9 @@ export function ChainTab({ step, context }: ChainTabProps) {
   const ancestors = ancestorIds(context.byId, step);
   const children = childrenOf(context.steps, step.id);
   return (
-    <div className="flex flex-col gap-4">
-      <section className="flex flex-col gap-1">
-        <SectionTitle title="Parents" meta={String(ancestors.length)} />
+    <div className="flex flex-col gap-6">
+      <section className="flex flex-col gap-2">
+        <SectionHeader title="Parents" meta={<span>{ancestors.length}</span>} />
         {ancestors.length === 0 ? (
           <p className="text-xs text-muted-foreground">
             This is a top-level step.
@@ -27,17 +26,17 @@ export function ChainTab({ step, context }: ChainTabProps) {
         ) : null}
         <ol className="flex flex-col">
           {ancestors.map((id, depth) => (
-            <li key={id} style={{ paddingLeft: depth * 12 }}>
+            <li key={id} style={{ paddingLeft: depth * 16 }}>
               <ChainEntry id={id} context={context} />
             </li>
           ))}
-          <li style={{ paddingLeft: ancestors.length * 12 }}>
+          <li style={{ paddingLeft: ancestors.length * 16 }}>
             <StepLink step={step} onOpen={context.onOpenStep} current />
           </li>
         </ol>
       </section>
-      <section className="flex flex-col gap-1">
-        <SectionTitle title="Children" meta={String(children.length)} />
+      <section className="flex flex-col gap-2">
+        <SectionHeader title="Children" meta={<span>{children.length}</span>} />
         {children.length === 0 ? (
           <p className="text-xs text-muted-foreground">
             No loaded step has this step as its parent.
@@ -53,23 +52,5 @@ export function ChainTab({ step, context }: ChainTabProps) {
         )}
       </section>
     </div>
-  );
-}
-
-/** An ancestor; it may sit on a page that is not loaded yet. */
-function ChainEntry({ id, context }: { id: number; context: StepContext }) {
-  const loaded = context.byId.get(id);
-  if (loaded) return <StepLink step={loaded} onOpen={context.onOpenStep} />;
-  return (
-    <button
-      type="button"
-      onClick={() => context.onOpenStep(id)}
-      className={cn(
-        'flex h-7 items-center gap-2 rounded-md px-2 text-xs text-muted-foreground hover:bg-muted',
-        FOCUS_RING,
-      )}
-    >
-      #{id} (not loaded yet)
-    </button>
   );
 }

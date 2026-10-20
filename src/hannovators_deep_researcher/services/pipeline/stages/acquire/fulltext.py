@@ -1,7 +1,8 @@
 """Full-text helpers shared by `ingest` and `acquire`: download PDFs, snapshot web pages, index.
 
-Downloads and fetches each record one DOWNLOAD or FETCH trajectory step. Indexing chunks the
-document (PDF: ABSTRACT + FULLTEXT tiers with page and bbox; markdown: FULLTEXT) and stores
+Every PDF download goes through `trajectory_wrappers.record_download` (one DOWNLOAD step), and
+every web snapshot is one DOWNLOAD step that parents the web port's FETCH step. Indexing chunks
+the document (PDF: ABSTRACT + FULLTEXT tiers with page and bbox; markdown: FULLTEXT) and stores
 document embeddings.
 """
 
@@ -28,7 +29,6 @@ from hannovators_deep_researcher.services.documents.files import (
     RAW_PDF,
     SNAPSHOT_MD,
     DownloadError,
-    download,
     resolve_data_path,
     source_path,
     write_bytes,
@@ -44,6 +44,7 @@ from hannovators_deep_researcher.services.retrieval.indexing import (
     pdf_drafts,
     store_chunks,
 )
+from hannovators_deep_researcher.services.trajectory_wrappers import record_download
 
 MAX_PDF_BYTES = 40 * 1024 * 1024
 SNAPSHOT_MAX_CHARS = 120_000
@@ -119,31 +120,23 @@ async def download_pdf(
     """Download `url` to the source's `raw.pdf` and return the stored relative path."""
 
     relative = source_path(workspace_id, source_id, RAW_PDF)
-    async with services.trajectory.step(
-        kind=TrajectoryKind.DOWNLOAD,
-        name="download.pdf",
-        workspace_id=workspace_id,
-        target=url,
-        summary=f"Download PDF {url}",
-        request={"url": url, "max_bytes": MAX_PDF_BYTES},
+    # The orchestrator binds the workspace and stage, so the DOWNLOAD step lands in the run.
+    result = await record_download(
+        services.trajectory,
+        http,
+        url,
+        relative,
         source_ids=[source_id],
-    ) as step:
-        result = await download(
-            http, url, relative, allowed_content_types=_PDF_TYPES, max_bytes=MAX_PDF_BYTES
-        )
-        path = resolve_data_path(relative)
-        with path.open("rb") as handle:
-            magic = handle.read(len(_PDF_MAGIC))
-        if magic != _PDF_MAGIC:
-            path.unlink(missing_ok=True)
-            raise DownloadError(f"{url} did not return a PDF ({result.content_type})")
-        step.response = {
-            "status": "ok",
-            "bytes": result.size_bytes,
-            "content_type": result.content_type,
-            "path": relative,
-        }
-        step.summary = f"Downloaded {result.size_bytes // 1024} KB PDF"
+        allowed_content_types=_PDF_TYPES,
+        max_bytes=MAX_PDF_BYTES,
+        name="download.pdf",
+    )
+    path = resolve_data_path(relative)
+    with path.open("rb") as handle:
+        magic = handle.read(len(_PDF_MAGIC))
+    if magic != _PDF_MAGIC:
+        path.unlink(missing_ok=True)
+        raise DownloadError(f"{url} did not return a PDF ({result.content_type})")
     return relative
 
 
@@ -152,27 +145,30 @@ async def fetch_snapshot(
 ) -> tuple[str, str, str | None]:
     """Fetch a web page as markdown into `snapshot.md`. Returns (path, markdown, title)."""
 
+    relative = source_path(workspace_id, source_id, SNAPSHOT_MD)
     async with services.trajectory.step(
-        kind=TrajectoryKind.FETCH,
-        name="web.fetch",
+        kind=TrajectoryKind.DOWNLOAD,
+        name="download.snapshot",
         workspace_id=workspace_id,
         target=url,
-        summary=f"Fetch {url}",
-        request={"url": url, "max_chars": SNAPSHOT_MAX_CHARS},
+        summary=f"Snapshot {url}",
+        request={"url": url, "max_chars": SNAPSHOT_MAX_CHARS, "relative_path": relative},
         source_ids=[source_id],
     ) as step:
         document = await services.web.fetch(url, max_chars=SNAPSHOT_MAX_CHARS)
+        if not document.content.strip():
+            raise DownloadError(f"{url} returned an empty page")
+        data = document.content.encode("utf-8")
+        write_bytes(relative, data)
         step.response = {
-            "status": "ok",
+            "relative_path": relative,
+            "content_type": "text/markdown",
+            "size_bytes": len(data),
             "chars": len(document.content),
-            "content_type": document.content_type,
             "provider": document.provider,
             "title": document.title,
         }
-    if not document.content.strip():
-        raise DownloadError(f"{url} returned an empty page")
-    relative = source_path(workspace_id, source_id, SNAPSHOT_MD)
-    write_bytes(relative, document.content.encode("utf-8"))
+        step.summary = f"{len(data)} bytes snapshot via {document.provider}"
     return relative, document.content, document.title
 
 

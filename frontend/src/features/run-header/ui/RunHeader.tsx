@@ -10,6 +10,7 @@ import {
   type WorkspaceView,
 } from '@/domains/workspace';
 import { errorMessage } from '@/shared/lib/format';
+import { plainMath } from '@/shared/lib/plainMath';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/states';
 import { Tag } from '@/shared/ui/tag';
@@ -49,7 +50,7 @@ function RunStatus({ workspace }: { workspace: WorkspaceView }) {
   const { events } = useWorkspace();
   const status = WORKSPACE_STATUS[workspace.status];
   return (
-    <div className="flex shrink-0 items-center gap-4">
+    <div className="flex shrink-0 items-center gap-3">
       <Tag
         tone={status.tone}
         live={workspace.status === 'RUNNING'}
@@ -72,24 +73,22 @@ export function RunHeader({ backHref, tabs }: RunHeaderProps) {
       ? (load.state.decomposition?.mode ?? load.state.workspace.domain_mode)
       : null;
   return (
-    <header className="flex h-12 shrink-0 items-center gap-4 border-b pr-4 pl-2">
+    <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-background pr-4 pl-3">
       <Button asChild size="icon-sm" variant="ghost">
         <a href={backHref} aria-label="Back to workspaces">
           <ArrowLeftIcon />
         </a>
       </Button>
-      <div className="flex min-w-0 flex-1 items-baseline gap-2">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         {workspace ? (
           <>
             <h1
-              className="truncate font-serif text-lg text-foreground"
-              title={workspace.research_question}
+              className="reading truncate text-lg font-medium text-foreground"
+              title={plainMath(workspace.research_question)}
             >
-              {workspace.research_question}
+              {plainMath(workspace.research_question)}
             </h1>
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {mode ? DOMAIN_MODE[mode] : null}
-            </span>
+            {mode ? <Tag tone="neutral">{DOMAIN_MODE[mode]}</Tag> : null}
           </>
         ) : (
           <Skeleton className="h-4 w-96" />
@@ -97,7 +96,7 @@ export function RunHeader({ backHref, tabs }: RunHeaderProps) {
       </div>
       {workspace ? <RunStatus workspace={workspace} /> : null}
       <ProviderBadge />
-      <div className="h-5 w-px bg-border" aria-hidden />
+      <div className="h-6 w-px bg-border" aria-hidden />
       {tabs}
     </header>
   );

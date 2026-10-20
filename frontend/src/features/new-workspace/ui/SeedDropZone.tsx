@@ -54,20 +54,25 @@ export function SeedDropZone({
         onDragLeave={() => setOver(false)}
         onDrop={onDrop}
         className={cn(
-          'flex cursor-pointer items-center gap-4 rounded-md bg-muted px-4 py-4 transition-colors',
-          'outline-2 -outline-offset-2 outline-transparent outline-dashed hover:bg-accent',
-          'has-[input:focus-visible]:outline-ring',
-          over && 'bg-marker outline-marker-ink',
+          'flex cursor-pointer items-center gap-4 rounded-lg border border-dashed border-shade-3 bg-shade-0 px-5 py-5 transition-colors',
+          'hover:border-shade-4 hover:bg-desk',
+          'has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-ring',
+          over && 'border-ring bg-tone-info-tint',
           disabled && 'pointer-events-none opacity-60',
         )}
       >
-        <UploadIcon aria-hidden className="size-4 text-muted-foreground" />
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-background text-muted-foreground shadow-[0_0_0_1px_#dde3eb]">
+          <UploadIcon aria-hidden className="size-4" />
+        </span>
         <span className="flex flex-col">
-          <span className="text-sm font-medium">
-            Drop seed PDFs here, or browse
+          <span className="text-sm font-semibold">
+            Drop PDFs here, or{' '}
+            <span className="text-link underline underline-offset-2">
+              browse
+            </span>
           </span>
           <span className="text-xs text-muted-foreground">
-            Papers you already trust. The search starts from them.
+            Several files at once. PDFs only.
           </span>
         </span>
         <input
@@ -84,11 +89,11 @@ export function SeedDropZone({
         />
       </label>
       {files.length > 0 ? (
-        <ul className="flex flex-col">
+        <ul className="flex flex-col divide-y rounded-md bg-shade-0 px-3">
           {files.map((file) => (
             <li
               key={`${file.name}:${file.size}`}
-              className="flex h-8 items-center gap-2 text-sm"
+              className="flex h-9 items-center gap-2 text-sm"
             >
               <FileTextIcon
                 aria-hidden

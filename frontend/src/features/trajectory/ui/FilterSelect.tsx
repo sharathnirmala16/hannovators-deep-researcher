@@ -1,7 +1,5 @@
 import { cn } from '@/shared/lib/cn';
 
-import { FOCUS_RING } from './statusStyles';
-
 interface FilterSelectProps<T extends string> {
   label: string;
   value: T | null;
@@ -32,9 +30,10 @@ export function FilterSelect<T extends string>({
         onChange(parse(raw) ? raw : null);
       }}
       className={cn(
-        'h-7 rounded-md border border-input bg-background px-1.5 text-xs text-foreground',
-        value !== null && 'border-shade-4 font-medium',
-        FOCUS_RING,
+        'h-7 rounded-md border border-input bg-background px-1.5 text-xs transition-colors hover:bg-shade-0',
+        value === null
+          ? 'text-muted-foreground'
+          : 'border-shade-5 font-medium text-foreground',
       )}
     >
       <option value="">{allLabel}</option>

@@ -12,11 +12,13 @@ export function FactList({ facts }: { facts: readonly Fact[] }) {
   );
   if (shown.length === 0) return null;
   return (
-    <dl className="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-4 gap-y-1.5 text-[13px]">
+    <dl className="grid grid-cols-[minmax(7rem,auto)_1fr] items-baseline gap-x-4 gap-y-2 text-sm">
       {shown.map((fact) => (
         <div key={fact.label} className="contents">
-          <dt className="text-muted-foreground">{fact.label}</dt>
-          <dd className="min-w-0 break-words">{fact.value}</dd>
+          <dt className="text-xs text-muted-foreground">{fact.label}</dt>
+          <dd className="min-w-0 break-words text-foreground tabular-nums">
+            {fact.value}
+          </dd>
         </div>
       ))}
     </dl>

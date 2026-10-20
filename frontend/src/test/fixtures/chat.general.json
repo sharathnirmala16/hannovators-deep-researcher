@@ -1,0 +1,55 @@
+{
+  "content": "Parity by 2030 is plausible but not certain.\n\n1. A techno-economic model puts the **base-case parity year** between 2028 and 2031 [1].\n2. In 2025 sodium-ion cells still cost more: 87 USD/kWh against 74 USD/kWh for LFP [2].\n3. Scale is the swing factor: announced capacity totals 162 GWh per year by 2030, but only 31 GWh is under construction [3].\n\nThe main counter-view: *below 15,000 USD per tonne of lithium carbonate, LFP keeps its cost lead through 2030* [4].",
+  "citations": [
+    {
+      "n": 1,
+      "source_id": "cf7393cd-faf5-54e4-be19-f96d57e8d3cf",
+      "source_title": "Techno-economic assessment of sodium-ion versus LFP cells for stationary storage",
+      "chunk_id": null,
+      "page": 9,
+      "rects": [
+        [72.0, 318.2, 540.0, 330.0],
+        [72.0, 331.4, 318.6, 343.2]
+      ],
+      "quote": "In the base case, sodium-ion cells reach cost parity with LFP between 2028 and 2031.",
+      "pdf_url": "/files/workspaces/8c2d5f1a-6e4b-4a9d-b3c7-2e8f1a0d9b52/sources/cf7393cd-faf5-54e4-be19-f96d57e8d3cf/raw.pdf",
+      "url": "https://doi.org/10.5555/hdr-fixture.g-tea"
+    },
+    {
+      "n": 2,
+      "source_id": "a9d22fa6-efd9-5ec3-93f0-a825d31892a1",
+      "source_title": "Sodium-ion battery cost outlook 2025-2030",
+      "chunk_id": null,
+      "page": null,
+      "rects": [],
+      "quote": "Average sodium-ion cell prices reached 87 USD/kWh in 2025, against 74 USD/kWh for LFP.",
+      "pdf_url": null,
+      "url": "https://grid-analytics.example.com/reports/sodium-ion-cost-outlook-2025"
+    },
+    {
+      "n": 3,
+      "source_id": "bb2d8694-a970-565c-83a8-a4b2a5950da5",
+      "source_title": "Supply-chain constraints for sodium-ion manufacturing scale-up",
+      "chunk_id": null,
+      "page": 3,
+      "rects": [
+        [72.0, 402.9, 540.0, 414.7],
+        [72.0, 416.1, 318.6, 427.9]
+      ],
+      "quote": "Announced capacity totals 162 GWh per year by 2030, of which 31 GWh is under construction.",
+      "pdf_url": "/files/workspaces/8c2d5f1a-6e4b-4a9d-b3c7-2e8f1a0d9b52/sources/bb2d8694-a970-565c-83a8-a4b2a5950da5/raw.pdf",
+      "url": "https://doi.org/10.5555/hdr-fixture.g-supply"
+    },
+    {
+      "n": 4,
+      "source_id": "f8a0ad67-7392-5884-8e9b-37fa2540d979",
+      "source_title": "Lithium carbonate price scenarios to 2030",
+      "chunk_id": null,
+      "page": null,
+      "rects": [],
+      "quote": "Below 15,000 USD per tonne of lithium carbonate, LFP keeps its cost lead through 2030.",
+      "pdf_url": null,
+      "url": "https://commodity-insights.example.org/analysis/lithium-carbonate-2030"
+    }
+  ]
+}

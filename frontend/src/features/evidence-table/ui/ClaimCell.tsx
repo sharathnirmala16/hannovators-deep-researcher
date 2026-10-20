@@ -8,6 +8,8 @@ import {
 } from '@/domains/workspace';
 import { cn } from '@/shared/lib/cn';
 
+import { MARK_BUTTON, markClasses } from './marker';
+
 interface ClaimCellProps {
   claim: ClaimView;
   highlights: readonly HighlightView[];
@@ -16,8 +18,9 @@ interface ClaimCellProps {
 }
 
 /**
- * A value that opens its highlighted sentence in the source. The selected
- * value carries the marker stroke, like the rectangles on the PDF page.
+ * A value that opens its highlighted sentence in the source. A value with a
+ * source passage carries the marker underline; the selected value carries
+ * the marker stroke, like the rectangles on the PDF page.
  */
 export function ClaimCell({
   claim,
@@ -30,7 +33,7 @@ export function ClaimCell({
   const active =
     (selection.kind === 'claim' || selection.kind === 'highlight') &&
     selection.claimId === claim.id;
-  const grounded = claim.highlight_ids.length > 0;
+  const traceable = claim.highlight_ids.length > 0 || claim.quote !== null;
 
   const open = () => {
     selectClaim(claim, highlights);
@@ -49,17 +52,11 @@ export function ClaimCell({
       onClick={open}
       aria-pressed={active}
       title={claim.quote ?? claim.text}
-      className={cn(
-        'rounded-sm px-0.5 text-left tabular-nums underline decoration-1 underline-offset-4 transition-colors',
-        'hover:bg-marker focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-        grounded
-          ? 'decoration-shade-4 decoration-dotted'
-          : 'decoration-transparent',
-        active && 'marked decoration-marker-ink hover:bg-marker',
-        className,
-      )}
+      className={cn(MARK_BUTTON, className)}
     >
-      {children ?? claim.text}
+      <span className={markClasses(active, traceable)}>
+        {children ?? claim.text}
+      </span>
     </button>
   );
 }

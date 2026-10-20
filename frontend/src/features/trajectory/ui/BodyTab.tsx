@@ -1,17 +1,16 @@
 import type { ReactNode } from 'react';
 
 import type { TrajectoryStep } from '@/domains/workspace';
+import { SectionHeader } from '@/shared/ui/section-header';
+import { EmptyState, ErrorState, SkeletonBlock } from '@/shared/ui/states';
 
 import type { StepDetail } from '../model/useStepDetail';
-import { BodySkeleton } from './BodySkeleton';
 import { CopyJsonButton } from './CopyJsonButton';
 import { DecisionAnswers } from './DecisionAnswers';
 import { JsonView } from './JsonView';
 import { LlmPromptView } from './LlmPromptView';
 import { LlmReplyView } from './LlmReplyView';
-import { Notice } from './Notice';
 import { SearchResults } from './SearchResults';
-import { SectionTitle } from './SectionTitle';
 import { VerdictSummary } from './VerdictSummary';
 
 type Part = 'request' | 'response';
@@ -41,31 +40,33 @@ function specialized(step: TrajectoryStep, part: Part): ReactNode {
   }
 }
 
+/** Request or response: the readable view first, then the raw JSON. */
 export function BodyTab({ part, detail }: BodyTabProps) {
   if (detail.phase === 'idle' || detail.phase === 'loading') {
-    return <BodySkeleton />;
+    return <SkeletonBlock lines={5} label={`Loading the ${part}`} />;
   }
-  if (detail.phase !== 'ready') {
-    const title =
-      detail.phase === 'unavailable'
-        ? 'Step bodies are not available yet'
-        : 'The step bodies could not be loaded';
+  if (detail.phase === 'unavailable') {
     return (
-      <Notice
-        title={title}
-        tone={detail.phase === 'error' ? 'error' : 'neutral'}
-      >
+      <EmptyState title="Step bodies are not available yet">
         {detail.message}
-      </Notice>
+      </EmptyState>
+    );
+  }
+  if (detail.phase === 'error') {
+    return (
+      <ErrorState
+        title={`Could not load the ${part} body`}
+        message={detail.message}
+      />
     );
   }
   const body = detail.step[part];
   const empty = Object.keys(body).length === 0;
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       {specialized(detail.step, part)}
       <section className="flex flex-col gap-2">
-        <SectionTitle
+        <SectionHeader
           title={part === 'request' ? 'Request JSON' : 'Response JSON'}
           actions={empty ? null : <CopyJsonButton value={body} />}
         />

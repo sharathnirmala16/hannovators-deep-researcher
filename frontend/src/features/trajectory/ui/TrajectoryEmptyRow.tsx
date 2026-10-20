@@ -1,7 +1,7 @@
 import { Button } from '@/shared/ui/button';
+import { EmptyState } from '@/shared/ui/states';
 
 import { hasFilters, type TrajectoryFilters } from '../model/filters';
-import { Notice } from './Notice';
 
 interface TrajectoryEmptyRowProps {
   filters: TrajectoryFilters;
@@ -17,7 +17,7 @@ export function TrajectoryEmptyRow({
 }: TrajectoryEmptyRowProps) {
   if (hasFilters(filters)) {
     return (
-      <Notice
+      <EmptyState
         title="No steps match these filters"
         action={
           <Button size="xs" variant="outline" onClick={onClear}>
@@ -28,13 +28,13 @@ export function TrajectoryEmptyRow({
         {loaded > 0
           ? 'Change or clear the filters to see more of the loaded steps.'
           : 'Change or clear the filters to see more steps.'}
-      </Notice>
+      </EmptyState>
     );
   }
   return (
-    <Notice title="No steps recorded yet">
-      Start the run. Every stage, model call, search, fetch, decision, and
-      verdict appears here as it happens.
-    </Notice>
+    <EmptyState title="No steps recorded yet">
+      Start or continue the run from the Research tab. Every stage, model call,
+      search, fetch, decision, and verdict appears here as it happens.
+    </EmptyState>
   );
 }

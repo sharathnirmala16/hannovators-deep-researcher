@@ -4,6 +4,7 @@ title: T1 Tavily deep research report and cited web candidates
 status: To Do
 assignee: []
 created_date: '2026-10-18 14:22'
+updated_date: '2026-10-20 17:39'
 labels:
   - phase-1
   - backend
@@ -38,3 +39,9 @@ Worktree: hdr_wt_6, branch demo/deep-research.
 - [ ] #4 A failed research task records status failed and never breaks the workspace run (test)
 - [ ] #5 Live check: one mini research call on a short question
 <!-- AC:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Round 2 delivered this behavior; see TASK-000047..TASK-000050. Unit-test ACs stay open because the round-2 test policy allows only live e2e tests.
+<!-- SECTION:NOTES:END -->

@@ -7,11 +7,11 @@ import {
 import { cn } from '@/shared/lib/cn';
 
 const SEGMENT: Record<StageState, string> = {
-  done: 'bg-shade-6',
+  done: 'bg-foreground',
   active: 'bg-tone-info animate-pulse',
   review: 'bg-tone-caution',
   failed: 'bg-tone-negative',
-  pending: 'bg-shade-2',
+  pending: 'bg-shade-3',
 };
 
 const STATE_TEXT: Record<StageState, string> = {
@@ -41,12 +41,12 @@ export function StageStepper({ states }: StageStepperProps) {
   const done = STAGES.filter((stage) => states[stage] === 'done').length;
   return (
     <div className="flex items-center gap-2">
-      <ol aria-label="Pipeline stages" className="flex items-center gap-0.5">
+      <ol aria-label="Pipeline stages" className="flex items-center gap-[3px]">
         {STAGES.map((stage) => (
           <li
             key={stage}
             title={`${STAGE_LABEL[stage]}: ${STATE_TEXT[states[stage]]}`}
-            className={cn('h-1.5 w-3 rounded-full', SEGMENT[states[stage]])}
+            className={cn('h-1 w-3.5 rounded-full', SEGMENT[states[stage]])}
           >
             <span className="sr-only">
               {STAGE_LABEL[stage]}: {STATE_TEXT[states[stage]]}

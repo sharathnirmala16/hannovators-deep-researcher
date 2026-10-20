@@ -1,5 +1,8 @@
-"""The critical path through the HTTP API in fake mode: create, run, review, continue, complete."""
+"""The critical path through the HTTP API in fake mode: create, run, review, continue, complete,
+with the round-2 research-quality checks (search intents, evidence levels, verdicts) and Tavily
+deep research on the fake provider."""
 
+import asyncio
 import json
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -59,6 +62,29 @@ def _trace_ids(frames: list[Frame]) -> list[int]:
     return [frame.id for frame in frames if frame.event == "trace" and frame.id is not None]
 
 
+async def _assert_research_quality(
+    client: httpx.AsyncClient, base: str, state: WorkspaceState
+) -> None:
+    """Round 2: search intents, evidence level and stance, and one verdict per decision."""
+
+    searched = [source for source in state.sources if source.status != "SEED"]
+    assert searched and all(source.search_intent for source in searched)
+    queried = {query.applied_filters.split()[0] for query in state.queries}
+    assert {"intent:CORE", "intent:NEGATIVE", "intent:ALTERNATIVE", "intent:SAFETY"} <= queried
+    screened = [source for source in searched if source.status != "RAW"]
+    assert all(source.evidence_level and source.stance for source in screened)
+
+    page = (await client.get(f"{base}/trajectory", params={"kind": "VERDICT", "limit": 500})).json()
+    verdicts: dict[str, set[str]] = {}
+    for step in page["steps"]:
+        for source_id in step["source_ids"]:
+            verdicts.setdefault(step["name"], set()).add(f"{source_id}:{step['outcome']}")
+    discounted = {s.id for s in screened if s.status == "SCREEN_DISCOUNTED"}
+    assert {f"{source_id}:REMOVED" for source_id in discounted} <= verdicts["screen.verdict"]
+    appraised = {s.id for s in screened if s.status.startswith("APPRAISE_")}
+    assert appraised <= {item.split(":")[0] for item in verdicts["appraise.verdict"]}
+
+
 @pytest.mark.e2e
 async def test_offline_run_pauses_for_review_and_completes(
     app: FastAPI, client: httpx.AsyncClient
@@ -107,8 +133,10 @@ async def test_offline_run_pauses_for_review_and_completes(
     assert state.funnel.screen_promoted > 0
     assert state.claims
     assert state.synthesis is not None
+    assert state.synthesis.pairwise_summaries
     assert "evidence_profile_table" in state.ui_components
     assert "claim_matrix" not in state.ui_components
+    await _assert_research_quality(client, base, state)
 
     rerun = await client.post(f"{base}/run")
     assert rerun.status_code == 409
@@ -120,3 +148,31 @@ async def test_offline_run_pauses_for_review_and_completes(
 
     health = (await client.get("/api/health/providers")).json()
     assert {port["implementation"] for port in health["ports"].values()} == {"fake"}
+
+
+@pytest.mark.e2e
+async def test_offline_deep_research_adds_cited_web_sources(client: httpx.AsyncClient) -> None:
+    created = await client.post(
+        "/api/workspaces", json={"research_question": "Do SGLT2 inhibitors reduce mortality?"}
+    )
+    base = f"/api/workspaces/{created.json()['id']}"
+    assert (await client.get(f"{base}/deep-research")).status_code == 404
+
+    started = await client.post(f"{base}/deep-research")
+    assert started.status_code == 202, started.text
+    record = started.json()
+    for _ in range(100):
+        if record["status"] not in {"pending", "running"}:
+            break
+        await asyncio.sleep(0.05)
+        record = (await client.get(f"{base}/deep-research")).json()
+
+    assert record["status"] == "completed", record
+    cited = {source["source_id"] for source in record["sources"]}
+    web = {
+        source["id"]: source
+        for source in (await client.get(base)).json()["sources"]
+        if source["origin"] == "WEB"
+    }
+    assert cited and cited <= set(web)
+    assert {web[source_id]["search_intent"] for source_id in cited} == {"DEEP_RESEARCH"}

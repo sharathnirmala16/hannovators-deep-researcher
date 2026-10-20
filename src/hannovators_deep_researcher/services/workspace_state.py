@@ -205,6 +205,16 @@ def _found_by(extra: dict[str, object]) -> str | None:
     return value if isinstance(value, str) else json.dumps(value)
 
 
+def _search_intent(row: SourceRow) -> SearchIntent | None:
+    """The stored intent. Rows from runs before intents existed (no `search_intent`, but a
+    `found_by_query_id`) were found by the only queries the pipeline had then: CORE."""
+
+    intent = _safe_enum(SearchIntent, row.search_intent)
+    if intent is None and row.found_by_query_id and row.status != SourceStatus.SEED:
+        return SearchIntent.CORE
+    return intent
+
+
 def source_view(row: SourceRow) -> SourceView:
     level = _safe_enum(EvidenceLevel, row.evidence_level)
     return SourceView(
@@ -231,7 +241,7 @@ def source_view(row: SourceRow) -> SourceView:
         evidence_level=level,
         evidence_rank=None if level is None else EVIDENCE_RANK.get(level),
         stance=_safe_enum(EvidenceStance, row.stance),
-        search_intent=_safe_enum(SearchIntent, row.search_intent),
+        search_intent=_search_intent(row),
         found_by=_found_by(_json_object(row.extra_json)),
     )
 

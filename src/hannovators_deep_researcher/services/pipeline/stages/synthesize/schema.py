@@ -1,11 +1,18 @@
 """LLM response schema for synthesis. Sources are referred to by short labels S1, S2, ..."""
 
+from collections.abc import Iterable
+from enum import StrEnum
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, JsonValue
 
 from hannovators_deep_researcher.models.base import ContractModel
 from hannovators_deep_researcher.models.contracts import GradeAssessment, Recommendation
+from hannovators_deep_researcher.models.enums import (
+    GradeCertainty,
+    RecommendationDirection,
+    RecommendationStrength,
+)
 
 SYSTEM = (
     "You synthesize appraised evidence in three steps, as a skeptical reviewer. Sources are "
@@ -28,13 +35,72 @@ SYSTEM = (
 )
 
 
+def _enum_text(values: Iterable[StrEnum]) -> Any:
+    """A free-text field whose JSON schema still lists the expected values. At temperature 1.0
+    the model sometimes writes "Moderate" or "MODERATE (downgraded)"; parsing normalizes it."""
+
+    enum: list[JsonValue] = [str(value) for value in values]
+    return Field(json_schema_extra={"enum": enum})
+
+
+def _pick[E: (GradeCertainty, RecommendationDirection, RecommendationStrength)](
+    text: str, enum: type[E], default: E, aliases: dict[str, E] | None = None
+) -> E:
+    upper = text.strip().upper().replace("-", "_").replace(" ", "_")
+    for value in sorted(enum, key=lambda item: -len(item.value)):
+        if upper.startswith(value.value):
+            return value
+    for alias, value in (aliases or {}).items():
+        if upper.startswith(alias):
+            return value
+    return default
+
+
+class GradeDraft(ContractModel):
+    certainty: str = _enum_text(GradeCertainty)
+    risk_of_bias: str
+    inconsistency: str
+    indirectness: str
+    imprecision: str
+    publication_bias: str
+
+    def to_contract(self) -> GradeAssessment:
+        return GradeAssessment(
+            certainty=_pick(self.certainty, GradeCertainty, GradeCertainty.LOW),
+            **self.model_dump(exclude={"certainty"}),
+        )
+
+
+class RecommendationDraft(ContractModel):
+    direction: str = _enum_text(RecommendationDirection)
+    strength: str = _enum_text(RecommendationStrength)
+    text: str
+
+    def to_contract(self) -> Recommendation:
+        return Recommendation(
+            direction=_pick(
+                self.direction,
+                RecommendationDirection,
+                RecommendationDirection.NONE,
+                {"AGAINST": RecommendationDirection.AGAINST},
+            ),
+            strength=_pick(
+                self.strength,
+                RecommendationStrength,
+                RecommendationStrength.CONDITIONAL,
+                {"WEAK": RecommendationStrength.CONDITIONAL},
+            ),
+            text=self.text,
+        )
+
+
 class PairwiseDraft(ContractModel):
     intervention: str
     comparison: str
     outcome: str
     summary: str
     source_labels: list[str] = Field(default_factory=list)
-    grade: GradeAssessment
+    grade: GradeDraft
 
 
 class SynthesisDraft(ContractModel):
@@ -44,7 +110,7 @@ class SynthesisDraft(ContractModel):
     opposing_source_labels: list[str] = Field(default_factory=list)
     alternatives: str = ""
     alternative_source_labels: list[str] = Field(default_factory=list)
-    recommendation: Recommendation
+    recommendation: RecommendationDraft
     cost_and_preference_considerations: list[str] = Field(default_factory=list)
 
     @classmethod

@@ -1,7 +1,5 @@
 import { useCallback, useMemo, useRef } from 'react';
 
-import { useEvidenceSelection } from '@/domains/evidence';
-import { useWorkspace, type TrajectoryStepSummary } from '@/domains/workspace';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -10,10 +8,10 @@ import {
 
 import type { TrajectorySource } from '../api/trajectorySource';
 import { NO_FILTERS } from '../model/filters';
+import { useStepContext } from '../model/useStepContext';
 import { useTrajectoryController } from '../model/useTrajectoryController';
 import { StageStrip } from './StageStrip';
 import { StepDetail } from './StepDetail';
-import type { StepContext } from './stepContext';
 import { StepTable } from './StepTable';
 import { TrajectoryBodyState } from './TrajectoryBodyState';
 import { TrajectoryEmptyRow } from './TrajectoryEmptyRow';
@@ -22,57 +20,32 @@ import { TrajectoryToolbar } from './TrajectoryToolbar';
 interface TrajectoryWorkspaceProps {
   source: TrajectorySource;
   onOpenSource?: ((sourceId: string) => void) | undefined;
+  step?: number | null | undefined;
 }
 
-function useSourceTitles(): (sourceId: string) => string | null {
-  const { load } = useWorkspace();
-  const titles = useMemo(() => {
-    const sources = load.status === 'ready' ? load.state.sources : [];
-    return new Map(sources.map((item) => [item.id, item.title]));
-  }, [load]);
-  return useCallback((sourceId) => titles.get(sourceId) ?? null, [titles]);
-}
-
+/** Toolbar, stage strip, the step table, and the detail panel. */
 export function TrajectoryWorkspace({
   source,
   onOpenSource,
+  step = null,
 }: TrajectoryWorkspaceProps) {
-  const view = useTrajectoryController(source);
-  const { selectSource } = useEvidenceSelection();
-  const sourceTitle = useSourceTitles();
+  const view = useTrajectoryController(source, step);
   const gridRef = useRef<HTMLTableElement>(null);
   const { data, filters, setFilters, close } = view;
-
-  const openSource = useCallback(
-    (sourceId: string, step: TrajectoryStepSummary) => {
-      selectSource(sourceId);
-      source.record({
-        name: 'user.source.open',
-        summary: `Opened ${sourceTitle(sourceId) ?? sourceId} from trajectory step #${step.id}.`,
-        source_ids: [sourceId],
-        details: { from: 'trajectory', step_id: step.id },
-      });
-      onOpenSource?.(sourceId);
-    },
-    [selectSource, source, sourceTitle, onOpenSource],
-  );
 
   const closeDetail = useCallback(() => {
     close();
     gridRef.current?.focus();
   }, [close]);
 
-  const context: StepContext = useMemo(
-    () => ({
-      steps: data.steps,
-      byId: view.byId,
-      origin: view.origin,
-      sourceTitle,
-      onOpenStep: view.open,
-      onOpenSource: openSource,
-    }),
-    [data.steps, view.byId, view.origin, sourceTitle, view.open, openSource],
-  );
+  const context = useStepContext({
+    source,
+    steps: data.steps,
+    byId: view.byId,
+    origin: view.origin,
+    onOpenStep: view.open,
+    onOpenSource,
+  });
 
   const paging = useMemo(
     () => ({
@@ -85,23 +58,25 @@ export function TrajectoryWorkspace({
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
-      <TrajectoryToolbar
-        filters={filters}
-        onChange={setFilters}
-        kindCounts={view.kindCounts}
-        live={view.live}
-        liveStatus={data.liveStatus}
-        onLiveChange={view.setLive}
-        shown={view.rows.length}
-        total={data.total}
-      />
-      <StageStrip
-        summary={view.stages}
-        active={filters.stage}
-        onSelect={(stage) => setFilters({ ...filters, stage })}
-      />
-      <div className="min-h-0 flex-1">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+      <div className="flex shrink-0 flex-col gap-3 border-b bg-background px-4 py-3">
+        <TrajectoryToolbar
+          filters={filters}
+          onChange={setFilters}
+          kindCounts={view.kindCounts}
+          live={view.live}
+          liveStatus={data.liveStatus}
+          onLiveChange={view.setLive}
+          shown={view.rows.length}
+          total={data.total}
+        />
+        <StageStrip
+          summary={view.stages}
+          active={filters.stage}
+          onSelect={(stage) => setFilters({ ...filters, stage })}
+        />
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden">
         {data.load.phase === 'ready' ? (
           <ResizablePanelGroup orientation="horizontal" className="h-full">
             <ResizablePanel id="trajectory-table" minSize="30%">

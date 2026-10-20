@@ -1,23 +1,33 @@
 import type { EvidenceSelection } from '@/domains/evidence';
 import type {
   ClaimView,
-  HighlightView,
   SourceView,
   WorkspaceState,
 } from '@/domains/workspace';
 
 export interface ResolvedSource {
   source: SourceView;
-  page: number;
+  /** 1-based page to open, or null when the selection names none. */
+  page: number | null;
   claim: ClaimView | undefined;
-  highlight: HighlightView | undefined;
 }
 
 function selectedSourceId(selection: EvidenceSelection): string | null {
   return selection.kind === 'none' ? null : selection.sourceId;
 }
 
-/** Turns the evidence selection into a source, page, claim, and highlight. */
+function selectedPage(selection: EvidenceSelection): number | null {
+  switch (selection.kind) {
+    case 'highlight':
+    case 'source':
+    case 'citation':
+      return selection.page;
+    default:
+      return null;
+  }
+}
+
+/** Turns the evidence selection into a source, page, and claim. */
 export function resolveSource(
   selection: EvidenceSelection,
   state: WorkspaceState,
@@ -25,36 +35,25 @@ export function resolveSource(
   const sourceId = selectedSourceId(selection);
   const source = state.sources.find((item) => item.id === sourceId);
   if (!source) return null;
-  const highlight =
-    selection.kind === 'highlight'
-      ? state.highlights.find((item) => item.id === selection.highlightId)
-      : undefined;
   const claim =
     selection.kind === 'highlight' || selection.kind === 'claim'
       ? state.claims.find((item) => item.id === selection.claimId)
       : undefined;
-  const page =
-    selection.kind === 'highlight' || selection.kind === 'source'
-      ? (selection.page ?? 1)
-      : 1;
-  return { source, page, claim, highlight };
+  return { source, page: selectedPage(selection), claim };
 }
 
-const PDF_PATH = /\.pdf(#.*)?$/i;
+const PDF_PATH = /\.pdf$/i;
 
-/** PDF URL at the page, preferring the highlight's own URL. */
-export function pdfUrl({
-  source,
-  page,
-  highlight,
-}: ResolvedSource): string | null {
-  const base = (
-    highlight?.pdf_url ??
-    source.highlighted_url ??
-    source.raw_url
-  )?.split('#')[0];
-  if (!base || !PDF_PATH.test(base)) return null;
-  return `${base}#page=${page}`;
+/**
+ * The source PDF to render. The raw file comes first: the viewer draws the
+ * highlights itself, so the annotated copy would show them twice.
+ */
+export function sourcePdfUrl(source: SourceView): string | null {
+  for (const url of [source.raw_url, source.highlighted_url]) {
+    const base = url?.split('#')[0];
+    if (base && PDF_PATH.test(base)) return base;
+  }
+  return null;
 }
 
 export function isSnapshot(source: SourceView): boolean {

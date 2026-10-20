@@ -67,33 +67,6 @@ export function byEvidenceRank(a: SourceView, b: SourceView): number {
   );
 }
 
-export interface StudyClaims {
-  intervention: ClaimView | undefined;
-  comparison: ClaimView | undefined;
-  others: ClaimView[];
-}
-
-/** Splits a study's claims into the two event arms and the rest. */
-export function studyClaims(
-  claims: readonly ClaimView[],
-  sourceId: string,
-): StudyClaims {
-  const own = claims.filter(
-    (claim) => claim.source_id === sourceId && claim.kind !== 'RECOMMENDATION',
-  );
-  const arm = (value: 'INTERVENTION' | 'COMPARISON') =>
-    own.find((claim) => claim.kind === 'METRIC' && claim.arm === value);
-  const intervention = arm('INTERVENTION');
-  const comparison = arm('COMPARISON');
-  return {
-    intervention,
-    comparison,
-    others: own.filter(
-      (claim) => claim !== intervention && claim !== comparison,
-    ),
-  };
-}
-
 const OPPOSED: Partial<Record<ClaimVerdict, readonly ClaimVerdict[]>> = {
   SUPPORTED: ['CONTRADICTED', 'MIXED'],
   CONTRADICTED: ['SUPPORTED', 'MIXED'],

@@ -9,7 +9,7 @@ interface KindBadgeProps {
   className?: string;
 }
 
-/** Kind as an icon and a word; kinds stay neutral so status color stands out. */
+/** Kind as an icon and a word; kinds stay quiet so status color stands out. */
 export function KindBadge({ kind, className }: KindBadgeProps) {
   const Icon = KIND_ICON[kind];
   return (

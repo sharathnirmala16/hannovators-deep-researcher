@@ -1,116 +1,154 @@
-import { useEvidenceSelection } from '@/domains/evidence';
+import { useMemo } from 'react';
+
+import {
+  useEvidenceSelection,
+  type EvidenceSelection,
+} from '@/domains/evidence';
 import { useWorkspace, type WorkspaceState } from '@/domains/workspace';
+import { EmptyState } from '@/shared/ui/states';
 
 import {
   isSnapshot,
-  pdfUrl,
-  promotedSources,
   resolveSource,
+  sourcePdfUrl,
+  type ResolvedSource,
 } from '../model/resolveSource';
+import { viewerTarget } from '../model/targets';
+import { PdfDocumentView } from './PdfDocumentView';
 import { SnapshotView } from './SnapshotView';
+import { SourceSwitcher } from './SourceSwitcher';
 
-function SourceSwitcher({
-  state,
-  value,
-  onChange,
-}: {
-  state: WorkspaceState;
-  value: string;
-  onChange: (sourceId: string) => void;
-}) {
-  const options = promotedSources(state);
-  const known = options.some((source) => source.id === value);
-  return (
-    <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-      Source
-      <select
-        value={known ? value : ''}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-      >
-        <option value="" disabled>
-          Choose a promoted source
-        </option>
-        {options.map((source) => (
-          <option key={source.id} value={source.id}>
-            {source.title}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+function selectionQuote(
+  selection: EvidenceSelection,
+  resolved: ResolvedSource,
+): string | null {
+  if (selection.kind === 'citation') return selection.quote || null;
+  return resolved.claim?.quote ?? null;
 }
 
-function SourceBody({ state }: { state: WorkspaceState }) {
-  const { selection } = useEvidenceSelection();
-  const resolved = resolveSource(selection, state);
-  if (!resolved) {
-    return (
-      <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-        Click a number or claim in the evidence table, a node in the graph, or
-        choose a source above. The source opens here at the highlighted page.
-      </div>
-    );
-  }
+function SourceHeading({
+  resolved,
+  selection,
+}: {
+  resolved: ResolvedSource;
+  selection: EvidenceSelection;
+}) {
   const { source, claim, page } = resolved;
-  const url = pdfUrl(resolved);
+  const meta = [source.venue, source.year, page ? `page ${page}` : null]
+    .filter(Boolean)
+    .join(', ');
   return (
-    <div className="flex flex-col gap-2">
-      <div>
-        <p className="text-sm leading-snug font-medium">{source.title}</p>
-        <p className="text-xs text-muted-foreground">
-          {[source.venue, source.year].filter(Boolean).join(', ')}
-          {url ? `, page ${page}` : ''}
-        </p>
-      </div>
+    <div className="flex flex-col gap-1">
+      <p className="text-sm leading-snug font-medium">{source.title}</p>
+      {meta ? <p className="text-xs text-muted-foreground">{meta}</p> : null}
       {claim ? (
         <p className="border-l-2 border-marker-ink pl-2 text-xs">
           <span className="font-medium">{claim.label}:</span> {claim.text}
         </p>
       ) : null}
-      {url && !isSnapshot(source) ? (
-        <iframe
-          key={url}
-          src={url}
-          title={`${source.title}, page ${page}`}
-          className="h-[36rem] w-full rounded-md bg-muted"
-        />
-      ) : (
-        <SnapshotView
-          url={isSnapshot(source) ? source.raw_url : null}
-          quote={claim?.quote ?? null}
-        />
-      )}
-      {source.url ? (
-        <a
-          href={source.url}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
-        >
-          Open the original
-        </a>
+      {selection.kind === 'citation' ? (
+        <p className="line-clamp-3 border-l-2 border-marker-ink pl-2 text-xs">
+          <span className="font-medium">Citation [{selection.n}]:</span>{' '}
+          {selection.quote}
+        </p>
       ) : null}
     </div>
   );
 }
 
-/** The selected source: highlighted PDF at the page, or the web snapshot. */
+function OriginalLink({ href }: { href: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="underline underline-offset-4 hover:text-foreground"
+    >
+      Open the original
+    </a>
+  );
+}
+
+function SourceBody({ state }: { state: WorkspaceState }) {
+  const { selection } = useEvidenceSelection();
+  const resolved = useMemo(
+    () => resolveSource(selection, state),
+    [selection, state],
+  );
+  const target = useMemo(
+    () =>
+      resolved ? viewerTarget(selection, state, resolved.source.id) : null,
+    [selection, state, resolved],
+  );
+  if (!resolved || !target) {
+    return (
+      <div className="scroll-y min-h-0 flex-1 p-4">
+        <EmptyState title="No source selected">
+          Click a citation number in the chat, a claim in the evidence table, a
+          node in the graph, or choose a source above. It opens here with the
+          supporting passage highlighted.
+        </EmptyState>
+      </div>
+    );
+  }
+  const { source } = resolved;
+  const url = sourcePdfUrl(source);
+  if (url && !isSnapshot(source)) {
+    return (
+      <PdfDocumentView
+        key={url}
+        url={url}
+        target={target}
+        trigger={selection}
+      />
+    );
+  }
+  const quote = selectionQuote(selection, resolved);
+  if (isSnapshot(source)) {
+    return (
+      <div className="scroll-y min-h-0 flex-1 p-4">
+        <SnapshotView url={source.raw_url} quote={quote} />
+      </div>
+    );
+  }
+  return (
+    <div className="scroll-y min-h-0 flex-1 p-4">
+      <EmptyState title="This source has no PDF">
+        <p>The full text was not downloaded, so there is nothing to show.</p>
+        {quote ? (
+          <blockquote className="mt-2 font-serif">{quote}</blockquote>
+        ) : null}
+        {source.url ? <OriginalLink href={source.url} /> : null}
+      </EmptyState>
+    </div>
+  );
+}
+
+/** The selected source: the PDF with highlights, or the web snapshot. */
 export function PdfViewer() {
   const { load } = useWorkspace();
   const { selection, selectSource } = useEvidenceSelection();
   if (load.status !== 'ready') return null;
-  const value = selection.kind === 'none' ? '' : (selection.sourceId ?? '');
+  const value = selection.kind === 'none' ? '' : selection.sourceId;
+  const resolved = resolveSource(selection, load.state);
   return (
-    <section aria-labelledby="pdf-viewer-title" className="flex flex-col gap-3">
-      <h2 id="pdf-viewer-title" className="text-base font-semibold">
+    <section
+      aria-labelledby="pdf-viewer-title"
+      className="flex min-h-0 flex-1 flex-col"
+    >
+      <h2 id="pdf-viewer-title" className="sr-only">
         Source viewer
       </h2>
-      <SourceSwitcher
-        state={load.state}
-        value={value}
-        onChange={(sourceId) => selectSource(sourceId)}
-      />
+      <div className="flex flex-col gap-3 border-b border-border px-4 py-3">
+        <SourceSwitcher
+          state={load.state}
+          value={value ?? ''}
+          onChange={(sourceId) => selectSource(sourceId)}
+        />
+        {resolved ? (
+          <SourceHeading resolved={resolved} selection={selection} />
+        ) : null}
+      </div>
       <SourceBody state={load.state} />
     </section>
   );

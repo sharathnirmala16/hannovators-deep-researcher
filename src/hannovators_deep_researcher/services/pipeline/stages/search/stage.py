@@ -58,6 +58,7 @@ INTENT_ORDER = (
     SearchIntent.SAFETY,
 )
 Tagged = tuple[CandidateRecord, tuple[str, Group]]
+PUBMED_CONCURRENCY = 3
 
 
 async def run(ctx: StageContext) -> None:
@@ -75,8 +76,13 @@ async def run(ctx: StageContext) -> None:
 
     is_medical = isinstance(decomposition, PicotsDecomposition)
     specs = medical_specs(plan) if is_medical else general_specs(plan)
-    seeds_task = asyncio.create_task(seed_citation_groups(ctx) if is_medical else _no_seeds())
-    spec_groups = await asyncio.gather(*(run_spec(ctx, spec) for spec in specs))
+    # PubMed specs share NCBI's rate limit (the adapter's token bucket); a few at a time keeps
+    # each spec's count -> search -> fetch chain short instead of queueing every request.
+    pubmed_slots = asyncio.Semaphore(PUBMED_CONCURRENCY)
+    seeds_task = asyncio.create_task(
+        seed_citation_groups(ctx, pubmed_slots) if is_medical else _no_seeds()
+    )
+    spec_groups = await asyncio.gather(*(run_spec(ctx, spec, pubmed_slots) for spec in specs))
     seed_groups, pmid_to_seed = await seeds_task
     groups: list[Group] = [*seed_groups, *spec_groups]
     added = await _store(ctx, groups)
@@ -133,7 +139,12 @@ async def _store(ctx: StageContext, groups: list[Group]) -> Counter[SearchIntent
     known: set[str] = set()
     for source in existing:
         known |= dedupe_keys(external_id=source.external_id, url=source.url)
-    already = sum(source.status != SourceStatus.SEED for source in existing)
+    # Deep research reports are a separate, user-started pool: their cited URLs do not use up
+    # the search budget, so every intent still gets a share of it.
+    already = sum(
+        source.status != SourceStatus.SEED and source.search_intent != SearchIntent.DEEP_RESEARCH
+        for source in existing
+    )
     cap = max(ctx.app_settings.run_budget_max_candidates - already, 0)
     tagged: list[list[Tagged]] = [
         [(record, (query_id, group)) for record, query_id in group.hits]

@@ -28,13 +28,16 @@ export function SectionHeader({
     <header
       className={cn(
         'flex min-w-0 items-center gap-2',
-        pane ? 'h-10 shrink-0 border-b px-4' : 'min-h-8',
+        pane ? 'h-11 shrink-0 border-b bg-background px-4' : 'min-h-8',
         className,
       )}
     >
       <Heading
         id={id}
-        className="shrink-0 truncate text-sm font-semibold text-foreground"
+        className={cn(
+          'shrink-0 truncate font-semibold text-foreground',
+          pane ? 'text-sm' : 'reading text-base',
+        )}
       >
         {title}
       </Heading>

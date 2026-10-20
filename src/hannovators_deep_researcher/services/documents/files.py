@@ -52,10 +52,24 @@ class DownloadResult:
     size_bytes: int
 
 
-def data_root() -> Path:
-    """Return the root `data/` directory of the repository."""
+_configured_root: Path | None = None
 
-    return project_root() / "data"
+
+def configure_data_root(root: Path | None) -> None:
+    """Point `data_root()` at another folder that holds `workspaces/` (None: the default).
+
+    The composition root calls this once per app, so the API, the pipeline stages, and chat
+    read and write the same files (tests use a temporary folder).
+    """
+
+    global _configured_root
+    _configured_root = root
+
+
+def data_root() -> Path:
+    """Return the root `data/` directory (the repository's, unless configured otherwise)."""
+
+    return _configured_root or project_root() / "data"
 
 
 def validate_relative_path(relative_path: str) -> PurePosixPath:

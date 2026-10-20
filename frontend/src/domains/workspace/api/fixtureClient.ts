@@ -1,3 +1,4 @@
+import { chatMessageViewSchema, type ChatMessageView } from './auditSchema';
 import { WorkspaceApiError, type WorkspaceClient } from './contract';
 import {
   graphViewSchema,
@@ -19,6 +20,7 @@ const loaders = import.meta.glob<unknown>('/src/test/fixtures/*.json', {
 const FIXTURE_NAMES = ['medical', 'general'] as const;
 
 interface FixtureWorkspace {
+  name: string;
   state: WorkspaceState;
   graph: GraphView;
 }
@@ -35,6 +37,7 @@ async function loadFixture(name: string): Promise<FixtureWorkspace> {
     loadJson(`graph.${name}`),
   ]);
   return {
+    name,
     state: workspaceStateSchema.parse(state),
     graph: graphViewSchema.parse(graph),
   };
@@ -59,6 +62,40 @@ async function findFixture(id: string): Promise<FixtureWorkspace> {
     );
   }
   return found;
+}
+
+/** Chat turns asked in this session, per workspace (fixtures are read-only). */
+const chatHistory = new Map<string, ChatMessageView[]>();
+const FIXTURE_ANSWER_MS = 1500;
+let chatSequence = 0;
+
+function chatMessage(
+  workspaceId: string,
+  role: ChatMessageView['role'],
+  body: unknown,
+): ChatMessageView {
+  chatSequence += 1;
+  return chatMessageViewSchema.parse({
+    ...(body as object),
+    id: `fixture-chat-${chatSequence}`,
+    workspace_id: workspaceId,
+    role,
+    created_at: new Date().toISOString(),
+  });
+}
+
+/** The canned cited answer in `chat.<name>.json`, after a short delay. */
+async function fixtureAnswer(
+  id: string,
+  question: string,
+): Promise<ChatMessageView> {
+  const { name } = await findFixture(id);
+  const asked = chatMessage(id, 'USER', { content: question });
+  const canned = await loadJson(`chat.${name}`);
+  await new Promise((resolve) => setTimeout(resolve, FIXTURE_ANSWER_MS));
+  const answer = chatMessage(id, 'ASSISTANT', canned);
+  chatHistory.set(id, [...(chatHistory.get(id) ?? []), asked, answer]);
+  return answer;
 }
 
 const notInFixtures = (what: string) =>
@@ -98,8 +135,8 @@ export const fixtureClient: WorkspaceClient = {
   getTrajectoryStep: () => notInFixtures('Trajectory detail'),
   subscribeTrajectory: () => () => undefined,
   recordAction: () => Promise.resolve(),
-  listChat: () => Promise.resolve([]),
-  ask: () => notInFixtures('Chat'),
+  listChat: (id) => Promise.resolve([...(chatHistory.get(id) ?? [])]),
+  ask: fixtureAnswer,
   startDeepResearch: () => notInFixtures('Deep research'),
   getDeepResearch: () => Promise.resolve(null),
   createWorkspace: async (body) => {

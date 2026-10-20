@@ -22,6 +22,9 @@
     "check": "pnpm format:check && pnpm depcruise && pnpm knip && pnpm lint && pnpm typecheck"
   },
   "dependencies": {
+    "@fontsource-variable/atkinson-hyperlegible-mono": "5.3.0",
+    "@fontsource-variable/atkinson-hyperlegible-next": "5.3.0",
+    "@fontsource-variable/literata": "5.3.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cn": "0.5.0",

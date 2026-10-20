@@ -1,81 +1,72 @@
+import type { ReactNode } from 'react';
+
 import { withEntry, withoutEntry, type ScopeField } from '../model/scopeFields';
 import { ScopeChips } from './ScopeChips';
+import { ScopeTextValue } from './ScopeTextValue';
 
 interface ScopeFieldsProps<D> {
   fields: readonly ScopeField<D>[];
   value: D;
+  /** The research question, shown read-only as the first row. */
+  question: string | null;
   editable: boolean;
   onChange: (next: D) => void;
 }
 
-function TextValue<D>({
-  field,
-  value,
-  editable,
-  onChange,
-}: {
-  field: Extract<ScopeField<D>, { kind: 'text' }>;
-  value: D;
-  editable: boolean;
-  onChange: (next: D) => void;
-}) {
-  const text = field.get(value);
-  if (!editable) {
-    return text ? (
-      <span className="text-sm leading-5">{text}</span>
-    ) : (
-      <span className="text-xs text-muted-foreground">Not set</span>
-    );
-  }
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <input
-      value={text}
-      aria-label={field.label}
-      onChange={(event) => onChange(field.set(value, event.target.value))}
-      className="h-7 w-full rounded-sm bg-background px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-    />
+    <div className="col-span-2 grid grid-cols-subgrid items-baseline border-b py-2 first:pt-0 last:border-0 last:pb-0">
+      <dt className="text-xs break-words text-muted-foreground">{label}</dt>
+      <dd className="min-w-0">{children}</dd>
+    </div>
   );
 }
 
-/** Label and value rows for PICOTS or the research scope. */
+/** The protocol box: a label column and the values in the reading face. */
 export function ScopeFields<D>({
   fields,
   value,
+  question,
   editable,
   onChange,
 }: ScopeFieldsProps<D>) {
   return (
-    <dl className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-x-4 gap-y-2">
+    <dl className="grid min-w-0 grid-cols-[minmax(0,6rem)_minmax(0,1fr)] gap-x-3">
+      {question ? (
+        <Row label="Question">
+          <p
+            className="reading line-clamp-4 text-sm leading-5 break-words text-foreground"
+            title={question}
+          >
+            {question}
+          </p>
+        </Row>
+      ) : null}
       {fields.map((field) => (
-        <div key={field.id} className="contents">
-          <dt className="pt-0.5 text-xs text-muted-foreground">
-            {field.label}
-          </dt>
-          <dd className="min-w-0">
-            {field.kind === 'text' ? (
-              <TextValue
-                field={field}
-                value={value}
-                editable={editable}
-                onChange={onChange}
-              />
-            ) : (
-              <ScopeChips
-                label={field.label}
-                values={field.get(value)}
-                editable={editable}
-                onAdd={(entry) =>
-                  onChange(field.set(value, withEntry(field.get(value), entry)))
-                }
-                onRemove={(index) =>
-                  onChange(
-                    field.set(value, withoutEntry(field.get(value), index)),
-                  )
-                }
-              />
-            )}
-          </dd>
-        </div>
+        <Row key={field.id} label={field.label}>
+          {field.kind === 'text' ? (
+            <ScopeTextValue
+              field={field}
+              value={value}
+              editable={editable}
+              onChange={onChange}
+            />
+          ) : (
+            <ScopeChips
+              label={field.label}
+              values={field.get(value)}
+              editable={editable}
+              onAdd={(entry) =>
+                onChange(field.set(value, withEntry(field.get(value), entry)))
+              }
+              onRemove={(index) =>
+                onChange(
+                  field.set(value, withoutEntry(field.get(value), index)),
+                )
+              }
+            />
+          )}
+        </Row>
       ))}
     </dl>
   );

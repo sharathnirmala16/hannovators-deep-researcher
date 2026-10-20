@@ -1,34 +1,50 @@
-"""PubMed E-utilities `LiteratureSearch`: esearch for counts and IDs, efetch XML for records."""
+"""PubMed E-utilities `LiteratureSearch`: esearch for counts and IDs, efetch XML for records,
+elink for similar and referenced articles.
 
-import asyncio
+Every E-utilities request goes through one process-wide token bucket (NCBI allows 3 requests/s
+without `NCBI_API_KEY` and 10 with it; the bucket stays below both) and retries HTTP 429, 5xx,
+timeouts, and transport errors with backoff, honoring `Retry-After`. A 429 pauses the shared
+bucket, so all concurrent queries back off together.
+"""
+
 import logging
 import re
-import time
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from itertools import chain, zip_longest
 from typing import Any
 from xml.etree.ElementTree import Element, ParseError
 
 import httpx
 from defusedxml import ElementTree  # type: ignore[import-untyped]
 
+from hannovators_deep_researcher.adapters.europepmc import OpenAccessPdfFinder
 from hannovators_deep_researcher.configuration.settings import Settings
-from hannovators_deep_researcher.models.enums import SourceOrigin
+from hannovators_deep_researcher.infrastructure.rate_limit import TokenBucket, shared_bucket
+from hannovators_deep_researcher.infrastructure.resilience import (
+    RateLimited,
+    ResilientRunner,
+    parse_retry_after,
+)
+from hannovators_deep_researcher.models.enums import SourceLinkKind, SourceOrigin
 from hannovators_deep_researcher.models.literature import CandidateRecord, SourceLinkRecord
 from hannovators_deep_researcher.models.web import ProviderError, ProviderFailure
 
 _NAME = "pubmed"
 EUTILS_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
-RATE_WITHOUT_KEY = 3.0
-RATE_WITH_KEY = 10.0
+# Slightly under NCBI's 3 and 10 requests/s, so clock jitter never crosses the limit.
+RATE_WITHOUT_KEY = 2.5
+RATE_WITH_KEY = 8.0
+BUCKET_NAME = "ncbi-eutils"
+MAX_ATTEMPTS = 5
+RETRY_BASE_SECONDS = 1.0
+RETRY_MAX_SECONDS = 30.0
+RATE_LIMIT_PAUSE_SECONDS = 1.5
+RETRYABLE_STATUS = frozenset({500, 502, 503, 504})
 EFETCH_BATCH = 200
+SIMILAR_LINK = "pubmed_pubmed"
+REFERENCES_LINK = "pubmed_pubmed_refs"
 _TOOL = "hannovators-deep-researcher"
 _YEAR = re.compile(r"\d{4}")
-EUROPEPMC_SEARCH_URL = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
-EUROPEPMC_RENDER_URL = "https://europepmc.org/articles/{pmcid}?pdf=render"
-_OPEN_AVAILABILITY = frozenset({"OA", "F"})
-# PMC Article Datasets on AWS (open data, no bot challenge): `<PMCID>.<v>/<PMCID>.<v>.pdf`.
-PMC_OPENDATA_URL = "https://pmc-oa-opendata.s3.amazonaws.com/"
-_PMC_PDF_KEY = re.compile(r"<Key>((PMC\d+)\.(\d+)/\2\.\3\.pdf)</Key>")
 
 logger = logging.getLogger(__name__)
 
@@ -43,20 +59,46 @@ def _failure(
     )
 
 
-class _Throttle:
-    """Space request starts at least `1 / rate` seconds apart."""
+def _retryable(status: int, retry_after: float | None) -> RateLimited:
+    return RateLimited(
+        ProviderError(
+            provider=_NAME,
+            code="rate_limited" if status == 429 else "http_error",
+            message=f"HTTP {status}",
+            retryable=True,
+            status_code=status,
+        ),
+        retry_after=retry_after,
+    )
 
-    def __init__(self, rate: float) -> None:
-        self._interval = 1.0 / rate
-        self._lock = asyncio.Lock()
-        self._next = 0.0
 
-    async def wait(self) -> None:
-        async with self._lock:
-            now = time.monotonic()
-            if self._next > now:
-                await asyncio.sleep(self._next - now)
-            self._next = max(now, self._next) + self._interval
+def _is_rate_limit_body(response: httpx.Response) -> bool:
+    """NCBI sometimes answers HTTP 200 with `{"error": "API rate limit exceeded"}`."""
+
+    return b"rate limit exceeded" in response.content[:300].lower()
+
+
+def _link(source: str, target: str, kind: SourceLinkKind) -> SourceLinkRecord:
+    return SourceLinkRecord(from_external_id=source, to_external_id=target, kind=kind)
+
+
+def elink_ids(payload: object, linkname: str) -> dict[str, list[str]]:
+    """Map each source PMID to its linked PMIDs (NCBI order) from an elink JSON reply.
+
+    Malformed replies give an empty map.
+    """
+
+    linksets = payload.get("linksets") if isinstance(payload, dict) else None
+    linked: dict[str, list[str]] = {}
+    for linkset in linksets if isinstance(linksets, list) else []:
+        ids = linkset.get("ids") if isinstance(linkset, dict) else None
+        if not isinstance(ids, list) or not ids:
+            continue
+        for group in linkset.get("linksetdbs") or []:
+            if isinstance(group, dict) and group.get("linkname") == linkname:
+                links = group.get("links")
+                linked[str(ids[0])] = [str(item) for item in links or []]
+    return linked
 
 
 def _text(element: Element | None) -> str:
@@ -120,75 +162,6 @@ def _record(node: Element) -> CandidateRecord | None:
     )
 
 
-def europepmc_query(record: CandidateRecord) -> str | None:
-    """The Europe PMC search query that finds this record: PMID, else PMCID, else DOI."""
-
-    if record.pmid:
-        return f"EXT_ID:{record.pmid} AND SRC:MED"
-    if record.pmcid:
-        return f"PMCID:{record.pmcid}"
-    if record.doi:
-        return f'DOI:"{record.doi}"'
-    return None
-
-
-def _open_pdf_links(result: dict[str, Any]) -> list[str]:
-    url_list = result.get("fullTextUrlList")
-    entries = url_list.get("fullTextUrl") if isinstance(url_list, dict) else None
-    links: list[tuple[int, str]] = []
-    for entry in entries if isinstance(entries, list) else []:
-        if not isinstance(entry, dict):
-            continue
-        url = entry.get("url")
-        if (
-            isinstance(url, str)
-            and entry.get("documentStyle") == "pdf"
-            and entry.get("availabilityCode") in _OPEN_AVAILABILITY
-        ):
-            links.append((0 if entry.get("site") == "Europe_PMC" else 1, url))
-    return [url for _, url in sorted(links)]
-
-
-def europepmc_open_pmcid(payload: object) -> tuple[str | None, list[str]]:
-    """Read a Europe PMC `resultType=core` search reply.
-
-    Returns the PMCID when its full text is open in Europe PMC (else None), and the open-access
-    or free `fullTextUrlList` PDF links (Europe PMC first). Malformed replies give `(None, [])`.
-    """
-
-    result_list = payload.get("resultList") if isinstance(payload, dict) else None
-    results = result_list.get("result") if isinstance(result_list, dict) else None
-    if not isinstance(results, list) or not results or not isinstance(results[0], dict):
-        return None, []
-    result: dict[str, Any] = results[0]
-    pmcid = result.get("pmcid")
-    open_in_epmc = result.get("isOpenAccess") == "Y" or (
-        result.get("inEPMC") == "Y" and result.get("hasPDF") == "Y"
-    )
-    is_pmcid = isinstance(pmcid, str) and pmcid.startswith("PMC")
-    return (pmcid if is_pmcid and open_in_epmc else None), _open_pdf_links(result)
-
-
-def europepmc_pdf_url(payload: object) -> str | None:
-    """The best PDF URL in a Europe PMC reply: `?pdf=render` for an open PMCID, else a link."""
-
-    pmcid, links = europepmc_open_pmcid(payload)
-    if pmcid:
-        return EUROPEPMC_RENDER_URL.format(pmcid=pmcid)
-    return links[0] if links else None
-
-
-def pmc_opendata_pdf_url(listing: str, pmcid: str) -> str | None:
-    """The newest `<PMCID>.<v>/<PMCID>.<v>.pdf` key in a PMC open-data S3 listing, as a URL."""
-
-    versions = [
-        (int(match.group(3)), match.group(1))
-        for match in _PMC_PDF_KEY.finditer(listing)
-        if match.group(2) == pmcid
-    ]
-    return f"{PMC_OPENDATA_URL}{max(versions)[1]}" if versions else None
-
-
 def parse_efetch_xml(xml: str | bytes) -> list[CandidateRecord]:
     """Turn an efetch `PubmedArticleSet` into records. Malformed XML raises `ProviderFailure`."""
 
@@ -207,7 +180,16 @@ class PubMedSearch:
         self, http: httpx.AsyncClient, *, api_key: str | None = None, email: str | None = None
     ) -> None:
         self._http = http
-        self._throttle = _Throttle(RATE_WITH_KEY if api_key else RATE_WITHOUT_KEY)
+        self._bucket: TokenBucket = shared_bucket(
+            BUCKET_NAME, RATE_WITH_KEY if api_key else RATE_WITHOUT_KEY
+        )
+        # The circuit stays effectively closed: the bucket and retries handle throttling.
+        self._runner = ResilientRunner(
+            max_attempts=MAX_ATTEMPTS,
+            base_delay=RETRY_BASE_SECONDS,
+            max_delay=RETRY_MAX_SECONDS,
+            circuit_failure_threshold=1_000,
+        )
         self._common: dict[str, str] = {"tool": _TOOL}
         if api_key:
             self._common["api_key"] = api_key
@@ -233,50 +215,60 @@ class PubMedSearch:
         return records
 
     async def related(self, external_ids: Sequence[str], *, limit: int) -> list[SourceLinkRecord]:
-        return []
+        """Similar articles (RELATED) and references (seed CITES reference) of PubMed IDs.
+
+        Links alternate between the seeds, most similar first, so `limit` keeps a share of
+        each seed. Non-numeric IDs are ignored.
+        """
+
+        pmids = list(dict.fromkeys(item for item in external_ids if item.isdigit()))
+        if not pmids or limit <= 0:
+            return []
+        per_seed = max(1, limit // len(pmids))
+        similar = await self._elink(pmids, SIMILAR_LINK)
+        references = await self._elink(pmids, REFERENCES_LINK)
+        rows: list[list[SourceLinkRecord]] = []
+        for pmid in pmids:
+            near = [item for item in similar.get(pmid, []) if item != pmid][:per_seed]
+            refs = references.get(pmid, [])[: max(1, per_seed // 2)]
+            rows.append(
+                [_link(pmid, item, SourceLinkKind.RELATED) for item in near]
+                + [_link(pmid, item, SourceLinkKind.CITES) for item in refs]
+            )
+        merged = chain.from_iterable(zip_longest(*rows))
+        return [link for link in merged if link is not None][:limit]
+
+    async def _elink(self, pmids: Sequence[str], linkname: str) -> dict[str, list[str]]:
+        # One `id` parameter per PMID makes NCBI return one linkset per seed.
+        params: dict[str, str | list[str]] = {
+            "dbfrom": "pubmed",
+            "db": "pubmed",
+            "id": list(pmids),
+            "linkname": linkname,
+            "retmode": "json",
+        }
+        response = await self._get("elink.fcgi", params)
+        try:
+            return elink_ids(response.json(), linkname)
+        except ValueError as exc:
+            raise _failure("invalid_response", "malformed elink response") from exc
 
     async def open_access_pdf_url(self, record: CandidateRecord) -> str | None:
-        """An open-access PDF URL from Europe PMC, or None (also on any lookup error)."""
+        """A downloadable open-access PDF URL (`adapters/europepmc.py`), or None."""
 
-        if record.pdf_url:
-            return record.pdf_url
-        query = europepmc_query(record)
-        if query is None:
-            return None
-        params = {"query": query, "resultType": "core", "format": "json", "pageSize": "1"}
-        try:
-            response = await self._http.get(EUROPEPMC_SEARCH_URL, params=params)
-        except httpx.HTTPError as exc:
-            logger.warning("Europe PMC lookup failed for %s: %s", query, type(exc).__name__)
-            return None
-        if response.status_code >= 400:
-            logger.warning("Europe PMC lookup for %s returned HTTP %s", query, response.status_code)
-            return None
-        try:
-            payload = response.json()
-        except ValueError:
-            return None
-        pmcid, links = europepmc_open_pmcid(payload)
-        if pmcid is None:
-            opendata = await self._pmc_opendata_pdf(record.pmcid) if record.pmcid else None
-            return opendata or (links[0] if links else None)
-        # Europe PMC's `?pdf=render` sits behind a bot challenge for non-browser clients, so the
-        # PMC open-data copy comes first when it has the PDF.
-        return await self._pmc_opendata_pdf(pmcid) or EUROPEPMC_RENDER_URL.format(pmcid=pmcid)
-
-    async def _pmc_opendata_pdf(self, pmcid: str) -> str | None:
-        params = {"list-type": "2", "prefix": f"{pmcid}."}
-        try:
-            response = await self._http.get(PMC_OPENDATA_URL, params=params)
-        except httpx.HTTPError as exc:
-            logger.warning("PMC open-data listing failed for %s: %s", pmcid, type(exc).__name__)
-            return None
-        if response.status_code >= 400:
-            return None
-        return pmc_opendata_pdf_url(response.text, pmcid)
+        finder = OpenAccessPdfFinder(self._http, email=self._common.get("email"))
+        return await finder.pdf_url(record)
 
     async def _esearch(self, query: str, *, retmax: int) -> dict[str, Any]:
-        params = {"db": "pubmed", "term": query, "retmax": str(retmax), "retmode": "json"}
+        # "Best match" order: the default (most recent first) fills a small budget with the
+        # newest records instead of the landmark trials and reviews.
+        params = {
+            "db": "pubmed",
+            "term": query,
+            "retmax": str(retmax),
+            "retmode": "json",
+            "sort": "relevance",
+        }
         response = await self._get("esearch.fcgi", params)
         try:
             result = response.json()["esearchresult"]
@@ -286,8 +278,15 @@ class PubMedSearch:
             raise _failure("invalid_response", "esearch returned an error")
         return result
 
-    async def _get(self, endpoint: str, params: dict[str, str]) -> httpx.Response:
-        await self._throttle.wait()
+    async def _get(self, endpoint: str, params: Mapping[str, str | list[str]]) -> httpx.Response:
+        """One E-utilities GET through the shared bucket, retried on throttling and 5xx."""
+
+        return await self._runner.run(_NAME, lambda: self._get_once(endpoint, params))
+
+    async def _get_once(
+        self, endpoint: str, params: Mapping[str, str | list[str]]
+    ) -> httpx.Response:
+        await self._bucket.acquire()
         try:
             response = await self._http.get(
                 f"{EUTILS_URL}/{endpoint}", params={**params, **self._common}
@@ -296,14 +295,17 @@ class PubMedSearch:
             raise _failure("timeout", "request timed out", retryable=True) from exc
         except httpx.TransportError as exc:
             raise _failure("transport_error", type(exc).__name__, retryable=True) from exc
-        if response.status_code >= 400:
-            status = response.status_code
-            raise _failure(
-                "http_error",
-                f"HTTP {status}",
-                retryable=status in {429, 500, 502, 503, 504},
-                status=status,
-            )
+        status = response.status_code
+        if status == 429 or (status < 400 and _is_rate_limit_body(response)):
+            retry_after = parse_retry_after(response.headers.get("retry-after"))
+            pause = RATE_LIMIT_PAUSE_SECONDS if retry_after is None else retry_after
+            self._bucket.pause(pause)
+            logger.info("NCBI rate limit hit on %s; pausing %.1f s", endpoint, pause)
+            raise _retryable(429, pause)
+        if status in RETRYABLE_STATUS:
+            raise _retryable(status, parse_retry_after(response.headers.get("retry-after")))
+        if status >= 400:
+            raise _failure("http_error", f"HTTP {status}", status=status)
         return response
 
 

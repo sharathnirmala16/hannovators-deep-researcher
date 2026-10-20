@@ -1,108 +1,87 @@
-import { Loader2Icon, PlayIcon } from 'lucide-react';
-
-import { useWorkspace, type Decomposition } from '@/domains/workspace';
-import { Button } from '@/shared/ui/button';
+import { useWorkspace, type WorkspaceState } from '@/domains/workspace';
+import { plainMath } from '@/shared/lib/plainMath';
 import { SectionHeader } from '@/shared/ui/section-header';
 import { EmptyState, SkeletonBlock } from '@/shared/ui/states';
+import { Tag } from '@/shared/ui/tag';
 
-import { PICOTS_FIELDS, SCOPE_FIELDS, SCOPE_TITLE } from '../model/scopeFields';
+import { SCOPE_TITLE } from '../model/scopeFields';
 import { useScopeBuilder } from '../model/useScopeBuilder';
-import { ScopeFields } from './ScopeFields';
+import { ScopeActions } from './ScopeActions';
+import { ScopeFieldList } from './ScopeFieldList';
 
-function Fields({
-  value,
-  editable,
-  onChange,
-}: {
-  value: Decomposition;
-  editable: boolean;
-  onChange: (next: Decomposition) => void;
-}) {
-  if (value.mode === 'MEDICAL') {
+type Scope = ReturnType<typeof useScopeBuilder>;
+
+function ScopeBody({ state, scope }: { state: WorkspaceState; scope: Scope }) {
+  const question = plainMath(state.workspace.research_question);
+  if (!scope.value) {
+    if (state.workspace.status === 'RUNNING') {
+      return <SkeletonBlock lines={5} label="Decomposing the question" />;
+    }
     return (
-      <ScopeFields
-        fields={PICOTS_FIELDS}
-        value={value}
-        editable={editable}
-        onChange={onChange}
+      <EmptyState title="No scope yet">
+        Start the run to split the question into its parts. You can review and
+        edit them before the search begins.
+      </EmptyState>
+    );
+  }
+  if (!scope.editable) {
+    return (
+      <ScopeFieldList
+        value={scope.value}
+        question={question}
+        editable={false}
+        onChange={scope.change}
       />
     );
   }
   return (
-    <ScopeFields
-      fields={SCOPE_FIELDS}
-      value={value}
-      editable={editable}
-      onChange={onChange}
-    />
+    <div className="flex flex-col gap-3 rounded-md bg-desk p-3">
+      <p className="rounded-[3px] bg-tone-caution-tint px-2 py-1.5 text-xs text-tone-caution">
+        The run is waiting for your review. Edit the scope, then continue.
+      </p>
+      <ScopeFieldList
+        value={scope.value}
+        question={question}
+        editable={scope.busy === null}
+        onChange={scope.change}
+      />
+      <ScopeActions
+        dirty={scope.dirty}
+        busy={scope.busy}
+        onSave={() => void scope.onSave()}
+        onContinue={() => void scope.onContinue()}
+      />
+    </div>
   );
 }
 
-/** PICOTS or scope chips; editable at the review checkpoint (Save, Continue). */
+/** PICOTS or scope as a protocol box; editable at the review checkpoint. */
 export function ScopeBuilder() {
   const { load } = useWorkspace();
   const scope = useScopeBuilder();
-  const status = load.status === 'ready' ? load.state.workspace.status : null;
-
-  if (!scope.value) {
-    return (
-      <section aria-labelledby="scope-title" className="flex flex-col gap-2">
-        <SectionHeader id="scope-title" title="Scope" />
-        {status === 'RUNNING' ? (
-          <SkeletonBlock lines={4} label="Decomposing the question" />
-        ) : (
-          <EmptyState title="No scope yet">
-            The question is split into its parts when the run starts.
-          </EmptyState>
-        )}
-      </section>
-    );
-  }
-
-  const busy = scope.busy !== null;
+  if (load.status === 'error') return null;
   return (
-    <section aria-labelledby="scope-title" className="flex flex-col gap-2">
+    <section
+      aria-labelledby="scope-title"
+      className="flex min-w-0 flex-col gap-2"
+    >
       <SectionHeader
         id="scope-title"
         title="Scope"
-        meta={<span>{SCOPE_TITLE[scope.value.mode]}</span>}
-        actions={
-          scope.editable ? (
-            <>
-              <Button
-                size="xs"
-                variant="ghost"
-                onClick={() => void scope.onSave()}
-                disabled={!scope.dirty || busy}
-              >
-                {scope.busy === 'saving' ? 'Saving' : 'Save'}
-              </Button>
-              <Button
-                size="xs"
-                onClick={() => void scope.onContinue()}
-                disabled={busy}
-              >
-                {scope.busy === 'continuing' ? (
-                  <Loader2Icon className="animate-spin" />
-                ) : (
-                  <PlayIcon />
-                )}
-                Continue
-              </Button>
-            </>
-          ) : null
+        meta={
+          <>
+            {scope.value ? <span>{SCOPE_TITLE[scope.value.mode]}</span> : null}
+            {scope.editable && scope.value ? (
+              <Tag tone="caution">Awaiting review</Tag>
+            ) : null}
+          </>
         }
       />
-      {scope.editable ? (
-        <p className="rounded-sm bg-shade-2 px-2 py-1 text-xs text-foreground">
-          The run is waiting for your review. Edit the scope, then continue.
-        </p>
-      ) : null}
-      <Fields
-        value={scope.value}
-        editable={scope.editable && !busy}
-        onChange={scope.change}
-      />
+      {load.status === 'ready' ? (
+        <ScopeBody state={load.state} scope={scope} />
+      ) : (
+        <SkeletonBlock lines={5} label="Loading the scope" />
+      )}
     </section>
   );
 }

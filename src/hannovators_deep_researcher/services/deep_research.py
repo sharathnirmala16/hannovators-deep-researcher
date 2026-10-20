@@ -43,7 +43,7 @@ from hannovators_deep_researcher.services.documents.files import (
     resolve_data_path,
     write_bytes,
 )
-from hannovators_deep_researcher.services.evidence import heuristic_level
+from hannovators_deep_researcher.services.evidence import heuristic_level, keyword_stance
 from hannovators_deep_researcher.services.trajectory import TrajectoryRecorder, bind
 from hannovators_deep_researcher.services.urls import canonicalize_url
 
@@ -292,6 +292,8 @@ class DeepResearchService:
                 url=url,
                 search_intent=SearchIntent.DEEP_RESEARCH,
                 evidence_level=level.level,
+                # Screening replaces this with Jev's reading when the source is screened.
+                stance=keyword_stance(source.title),
                 extra_json=json.dumps({"found_by": FOUND_BY}),
             )
         except IntegrityError:

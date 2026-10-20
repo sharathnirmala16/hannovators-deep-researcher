@@ -4,6 +4,7 @@ title: I4 Design pass
 status: To Do
 assignee: []
 created_date: '2026-10-18 12:22'
+updated_date: '2026-10-20 17:39'
 labels:
   - phase-3
   - frontend
@@ -40,3 +41,9 @@ Worktree: lane/i4-design
 - [ ] #2 Rebased on main; `pnpm check` and `pnpm build` pass; `pnpm test` passes when tests exist
 - [ ] #3 Feature renders both fixtures (medical and general) without console errors
 <!-- DOD:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Round 2 delivered this behavior; see TASK-000047..TASK-000050. Unit-test ACs stay open because the round-2 test policy allows only live e2e tests.
+<!-- SECTION:NOTES:END -->

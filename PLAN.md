@@ -884,6 +884,14 @@ at the end (AGENTS.md "Tests").
 | `research-quality` | `hdr_wt_4` / `feat/research-quality` | stages `decompose`, `search`, `screen`, `appraise`, `synthesize`; `services/evidence.py` (new); `adapters/tavily_research.py`, `services/deep_research.py`, `routers/deep_research.py`; `persistence/queries/{search,screen,appraise,synthesize}.py` |
 | `platform` | `hdr_wt_5` / `feat/platform` | `services/trajectory_wrappers.py` (new), `main.py` (wrap ports + startup recovery), `routers/{workspaces,seeds,sources,trajectory,events,health}.py`, `services/workspace_state.py`, `routers/dependencies.py`, `tests/e2e/**` (live e2e, written last) |
 
+**Round 2 status (completed after the hackathon, backlog TASK-000047 to TASK-000050).** All five lanes are merged
+and verified with real runs: grounding (seed ingest, open-access full text via `adapters/europepmc.py`, DOWNLOAD
+trajectory steps, quote highlights, cited chat with page and rects), research quality (four search intents, evidence
+level and stance, opposing-evidence quota, VERDICT steps, rate-limited PubMed in `infrastructure/rate_limit.py`, robust
+synthesis, Tavily deep research), the cited chat and pdf.js viewer, and the UI redesign (section 10.3). Live e2e tests:
+`tests/e2e/test_live_platform.py`, `test_live_grounding.py`, `test_live_research_quality.py`. Known gaps: deep-research
+URLs cited after screening stay RAW; Exa has no adapter yet (X4); `NCBI_API_KEY` raises the PubMed rate.
+
 Shared contract files (`models/**`, `persistence/tables.py`, migrations, `services/trajectory.py`,
 `domains/workspace/api/**`, `pyproject.toml`, `uv.lock`, `frontend/package.json`, the pnpm lockfile)
 change only through the integrator. A lane that needs a contract change writes it in its PR summary.
@@ -974,3 +982,67 @@ No router dependency: a small hash router in `app/` (`#/` and `#/w/<workspace_id
 - Keyboard: table rows and chips are focusable with visible focus rings; Escape closes the detail panel.
 - Every citation `[n]` is a button: it selects the citation (evidence selection store), switches the
   right pane to Document, opens the page, draws the rectangles, and posts `user.citation.open`.
+
+### 10.3 Visual system: "annotated paper"
+
+The audience is clinicians and researchers who must check every claim against its source. The
+interface reads like a printed paper that someone has worked through with a highlighter. The
+tokens live in `frontend/src/index.css`; the primitives in `frontend/src/shared/ui/` already use them.
+
+**Color.** Only solid hex values. Never use Tailwind opacity modifiers (`bg-x/10`, `ring-x/50`),
+`color-mix()`, 8-digit hex, or the default Tailwind palette (`gray-*`, `red-*`: oklch). The IDE
+preview browser renders them wrongly. Shadows may use `rgba(24,34,58,a)` (ink) in legacy syntax.
+
+| Token | Hex | Use |
+| :--- | :--- | :--- |
+| `paper` / `background` | `#ffffff` | Reading surfaces: panes, tables |
+| `desk` / `muted` / `shade-1` | `#f1f4f8` | Chrome, quiet grouping tint (`shade-0` `#f8fafc` is lighter) |
+| `ink` / `foreground` / `primary` | `#18223a` | Text, primary buttons |
+| `graphite` / `muted-foreground` | `#586378` | Secondary text, labels |
+| `rule` / `border` | `#dde3eb` | The one hairline: between regions and table rows only |
+| `link` / `ring` | `#2a4fa8` | Links, focus rings |
+| `marker` | `#ffe15a` | The highlighter. Only for provenance (see below) |
+| `marker-soft` / `marker-ink` | `#fff4b8` / `#7a5f00` | Hover and underline of traceable values |
+| `tone-{positive,negative,caution,info,null,neutral}` | strong | Text, dots, bars |
+| `tone-*-tint` | solid tint | Tag and row backgrounds |
+| `rob-{low,some,high}` | traffic light | RoB 2 dots |
+
+Semantic mapping (use `Tag tone=` or `ToneDot` from `shared/ui/tag.tsx`):
+
+- Source status: kept (`SCREEN_PROMOTED`, `APPRAISE_PROMOTED`) positive; removed (`*_DISCOUNTED`)
+  negative; seed info; `ACQUIRE_FAILED` and flagged caution; `RAW` neutral.
+- Trajectory outcome: KEPT positive, REMOVED negative, FLAGGED caution. Step status: RUNNING info
+  (live dot), OK neutral, ERROR negative.
+- Stance: supports positive, opposes negative, null (no effect) `null`, mixed caution.
+- GRADE certainty: HIGH positive, MODERATE info, LOW caution, VERY_LOW negative. Draw the
+  `⊕⊕⊕◯` symbols in the strong tone.
+- Claim verdict: SUPPORTED positive, CONTRADICTED negative, MIXED caution, UNVERIFIED neutral.
+
+**The highlighter (the one bold element).** Provenance has one visual language everywhere:
+a value that can be traced to a source passage has a 2 px `marker` underline
+(`underline decoration-marker decoration-2 underline-offset-[3px]`), turns `marked-soft` on hover,
+and becomes `marked` (the tilted highlighter stroke utility) when it is the active selection. This
+covers evidence-table numbers, claim quotes, synthesis citations, chat `[n]` citations, and the PDF
+highlight rectangles (`marker` fill with `mix-blend-mode: multiply`). Nothing else uses yellow.
+
+**Type.** Atkinson Hyperlegible Next (`font-sans`, the UI). Literata (`reading` utility, optical
+sizing) for reading text: the research question, claim and finding text, quotes, synthesis prose,
+chat answers, and in-pane section titles (`SectionHeader` does this). Atkinson Hyperlegible Mono
+(`font-mono`) only for URLs, IDs, model names, and JSON. Scale 12/13/14/16/20 px (`text-xs` to
+`text-xl`); `text-2xl`/`text-3xl` only on the workspaces page. `tabular-nums` for every metric.
+The slashed zero of Atkinson is intended. Sentence case everywhere: no all-caps labels, no eyebrow
+labels above headings, no `A · B · C` meta strings (use separate spans with a gap, or commas), no
+`→` in button text.
+
+**Structure.** 8 px grid. Pane bodies `p-4`; sections inside a pane `gap-6`; items `gap-2`/`gap-3`.
+No cards inside cards and no ad-hoc borders: group with spacing and `bg-shade-0` or `bg-desk`
+tints. Radius: 6 px controls, 3 px tags, 8 px floating layers. No shadows except floating layers
+and the active segment. Selected table row: `bg-accent` plus `shadow-[inset_2px_0_0_#18223a]`.
+Clickable rows and chips are focusable (`tabIndex=0`, Enter/Space) and show the global focus ring.
+Sticky table headers use `bg-background`. Icons are `lucide-react` at `size-3.5` or `size-4`.
+
+**States.** Every panel uses `EmptyState`, `SkeletonBlock`, and `ErrorState` from
+`shared/ui/states.tsx`. Empty states say what to do next.
+
+**Motion.** Color transitions only. No entrance animations. Smooth scroll to a highlight respects
+`prefers-reduced-motion`.

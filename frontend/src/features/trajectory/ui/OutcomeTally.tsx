@@ -3,14 +3,9 @@ import { cn } from '@/shared/lib/cn';
 import type { OutcomeCounts } from '../model/stageSummary';
 import { formatCount } from '../model/timing';
 import { OUTCOMES } from '../model/vocabulary';
-import { OUTCOME_TEXT } from './statusStyles';
+import { OUTCOME_FILL, OUTCOME_TEXT } from './tones';
 
 const WORD = { KEPT: 'kept', REMOVED: 'removed', FLAGGED: 'flagged' } as const;
-const SEGMENT = {
-  KEPT: 'bg-tone-positive',
-  REMOVED: 'bg-tone-negative',
-  FLAGGED: 'bg-tone-caution',
-} as const;
 
 interface OutcomeTallyProps {
   outcomes: OutcomeCounts;
@@ -46,7 +41,7 @@ export function OutcomeTally({ outcomes, errors = 0 }: OutcomeTallyProps) {
           ? present.map((outcome) => (
               <span
                 key={outcome}
-                className={cn('h-full', SEGMENT[outcome])}
+                className={cn('h-full', OUTCOME_FILL[outcome])}
                 style={{ width: `${(outcomes[outcome] / verdicts) * 100}%` }}
               />
             ))

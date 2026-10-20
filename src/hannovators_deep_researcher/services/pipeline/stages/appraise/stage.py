@@ -2,9 +2,10 @@
 
 Eligible sources (M >= threshold, or credible enough in GENERAL) rank by evidence level first,
 then by the M-score / RoB 2 (or credibility) rank. A share of K is reserved for opposing, null,
-mixed, or alternative evidence, and eligible OPPOSES / NULL_RESULT sources beyond K are kept
-too (up to `MAX_EXTRA_OPPOSING`), so disconfirming evidence that meets M is never discarded
-for ranking alone. Every decision records one `appraise.verdict` trajectory step.
+mixed, or alternative evidence (opposing and null first); when no reserved slot holds an
+eligible OPPOSES / NULL_RESULT source, the strongest one is kept beyond K, so disconfirming
+evidence that meets M always reaches synthesis. Every decision records one `appraise.verdict`
+trajectory step.
 """
 
 import asyncio
@@ -44,7 +45,7 @@ from hannovators_deep_researcher.services.pipeline.stages.appraise.common import
 CONCURRENCY = 4
 _MAX_TEXT_CHARS = 12_000
 RESERVE_SHARE = 0.3
-MAX_EXTRA_OPPOSING = 3
+MAX_EXTRA_OPPOSING = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -146,12 +147,11 @@ def select(items: list[Ranked], top_k: int) -> tuple[list[Ranked], set[str]]:
             break
         chosen_ids.add(item.result.source_id)
     plain_top = {item.result.source_id for item in eligible[:top_k]}
-    extra = [
-        item
-        for item in eligible
-        if is_opposing(item.stance) and item.result.source_id not in chosen_ids
-    ][:MAX_EXTRA_OPPOSING]
-    chosen_ids |= {item.result.source_id for item in extra}
+    opposing = [item for item in eligible if is_opposing(item.stance)]
+    if opposing and not any(item.result.source_id in chosen_ids for item in opposing):
+        # The strongest eligible opposing or null source survives even beyond K (K < 2 has
+        # no reserved slot), so synthesis can always cite it.
+        chosen_ids |= {item.result.source_id for item in opposing[:MAX_EXTRA_OPPOSING]}
     promoted = [item for item in eligible if item.result.source_id in chosen_ids]
     return promoted, chosen_ids - plain_top
 

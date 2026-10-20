@@ -1,7 +1,6 @@
 import { Search, X } from 'lucide-react';
 
 import type { TrajectoryKind } from '@/domains/workspace';
-import { cn } from '@/shared/lib/cn';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 
@@ -23,10 +22,10 @@ import {
   isOutcome,
   isStage,
 } from '../model/vocabulary';
+import { ErrorsToggle } from './ErrorsToggle';
 import { FilterSelect } from './FilterSelect';
 import { KindChips } from './KindChips';
 import { LiveToggle } from './LiveToggle';
-import { FOCUS_RING } from './statusStyles';
 
 interface TrajectoryToolbarProps {
   filters: TrajectoryFilters;
@@ -39,6 +38,7 @@ interface TrajectoryToolbarProps {
   total: number;
 }
 
+/** Filters, the live toggle, and the row count; wraps on narrow widths. */
 export function TrajectoryToolbar({
   filters,
   onChange,
@@ -52,7 +52,7 @@ export function TrajectoryToolbar({
   const set = (patch: Partial<TrajectoryFilters>) =>
     onChange({ ...filters, ...patch });
   return (
-    <div className="flex flex-col gap-2 border-b px-3 py-2">
+    <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <label className="relative">
           <span className="sr-only">Filter steps</span>
@@ -94,45 +94,30 @@ export function TrajectoryToolbar({
           parse={isOutcome}
           onChange={(outcome) => set({ outcome })}
         />
-        <button
-          type="button"
-          aria-pressed={filters.errorsOnly}
-          onClick={() => set({ errorsOnly: !filters.errorsOnly })}
-          className={cn(
-            'inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs transition-colors',
-            filters.errorsOnly
-              ? 'bg-shade-2 font-medium text-tone-negative'
-              : 'text-foreground hover:bg-muted',
-            FOCUS_RING,
-          )}
-        >
-          <span
-            aria-hidden
-            className={cn(
-              'size-1.5 rounded-full',
-              filters.errorsOnly ? 'bg-tone-negative' : 'bg-shade-4',
-            )}
-          />
-          Errors only
-        </button>
+        <ErrorsToggle
+          pressed={filters.errorsOnly}
+          onChange={(errorsOnly) => set({ errorsOnly })}
+        />
         {hasFilters(filters) ? (
           <Button
             variant="ghost"
             size="xs"
+            className="h-7"
             onClick={() => onChange(NO_FILTERS)}
-            className="text-muted-foreground"
           >
             <X aria-hidden />
             Clear filters
           </Button>
         ) : null}
-        <p
-          aria-live="polite"
-          className="ml-auto text-xs text-muted-foreground tabular-nums"
-        >
-          {formatCount(shown)} shown of {formatCount(total)}
-        </p>
-        <LiveToggle live={live} status={liveStatus} onChange={onLiveChange} />
+        <div className="ml-auto flex items-center gap-3">
+          <p
+            aria-live="polite"
+            className="text-xs whitespace-nowrap text-muted-foreground tabular-nums"
+          >
+            {formatCount(shown)} shown of {formatCount(total)}
+          </p>
+          <LiveToggle live={live} status={liveStatus} onChange={onLiveChange} />
+        </div>
       </div>
       <KindChips
         selected={filters.kinds}

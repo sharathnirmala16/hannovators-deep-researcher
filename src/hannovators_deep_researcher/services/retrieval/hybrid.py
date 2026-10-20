@@ -3,13 +3,13 @@
 `hierarchical_retrieve` ranks the ABSTRACT tier first to pick the most relevant sources, then
 ranks every chunk of those sources (plus sources that have no abstract chunk). When the best
 dense score is weak, it rewrites the query once through the chat model and keeps the better
-result. Each call records one RETRIEVE trajectory step.
+result. Each call is one RETRIEVE trajectory step that parents its EMBED and rewrite LLM steps.
 """
 
 import json
 import logging
 from collections.abc import Collection, Sequence
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from typing import Any
 
 from hannovators_deep_researcher.models.base import ContractModel
@@ -21,6 +21,7 @@ from hannovators_deep_researcher.services.pipeline.context import PipelineServic
 from hannovators_deep_researcher.services.ranking import reciprocal_rank_fusion
 from hannovators_deep_researcher.services.retrieval.lexical import bm25_scores
 from hannovators_deep_researcher.services.retrieval.vectors import query_vector, stack_vectors
+from hannovators_deep_researcher.services.trajectory import StepHandle
 
 logger = logging.getLogger(__name__)
 
@@ -229,65 +230,62 @@ async def hierarchical_retrieve(
 
     dimensions = await workspace_dimensions(services, workspace_id)
     rows = await list_retrieval_chunks(services.repositories, workspace_id, source_ids=source_ids)
-    first = await _two_tier_pass(services, question, rows, dimensions, k, instruction)
-    best, used_query = first, question
-    rewritten_query: str | None = None
-    if rewrite and rows and _is_weak(first.chunks):
-        rewritten_query = await _rewrite(services, question)
-        if rewritten_query:
-            second = await _two_tier_pass(
-                services, rewritten_query, rows, dimensions, k, instruction
-            )
-            if (_best_dense(second.chunks) or -1.0) > (_best_dense(first.chunks) or -1.0):
-                best, used_query = second, rewritten_query
-    result = RetrievalResult(
-        query=question,
-        used_query=used_query,
-        chunks=best.chunks,
-        best_dense=_best_dense(best.chunks),
-        refused_vectors=best.refused,
-    )
-    step_id = await _record(services, workspace_id, result, rewritten_query, len(rows), step_name)
-    return replace(result, step_id=step_id)
-
-
-async def _record(
-    services: PipelineServices,
-    workspace_id: str,
-    result: RetrievalResult,
-    rewritten_query: str | None,
-    pool_size: int,
-    step_name: str,
-) -> int | None:
-    best = result.best_dense
-    return await services.trajectory.record(
+    async with services.trajectory.step(
         kind=TrajectoryKind.RETRIEVE,
         name=step_name,
         workspace_id=workspace_id,
         target="bm25+dense+rrf",
-        summary=(
-            f"{len(result.chunks)} of {pool_size} chunks"
-            + (f", best dense {best:.2f}" if best is not None else ", BM25 only")
-            + (" (rewritten query)" if result.rewritten else "")
-        ),
-        request={"query": result.query, "pool_size": pool_size},
-        response={
-            "used_query": result.used_query,
-            "rewrite_tried": rewritten_query,
-            "refused_vectors": result.refused_vectors,
-            "best_dense": best,
-            "results": [
-                {
-                    "chunk_id": chunk.chunk_id,
-                    "source_id": chunk.source_id,
-                    "tier": chunk.tier,
-                    "page": chunk.page,
-                    "score": chunk.score,
-                    "dense": chunk.dense,
-                    "bm25": chunk.lexical,
-                }
-                for chunk in result.chunks
-            ],
-        },
-        source_ids=list(dict.fromkeys(chunk.source_id for chunk in result.chunks)),
+        summary=f"retrieve from {len(rows)} chunks",
+        request={"query": question, "pool_size": len(rows), "k": k},
+    ) as step:
+        first = await _two_tier_pass(services, question, rows, dimensions, k, instruction)
+        best, used_query = first, question
+        rewritten_query: str | None = None
+        if rewrite and rows and _is_weak(first.chunks):
+            rewritten_query = await _rewrite(services, question)
+            if rewritten_query:
+                second = await _two_tier_pass(
+                    services, rewritten_query, rows, dimensions, k, instruction
+                )
+                if (_best_dense(second.chunks) or -1.0) > (_best_dense(first.chunks) or -1.0):
+                    best, used_query = second, rewritten_query
+        result = RetrievalResult(
+            query=question,
+            used_query=used_query,
+            chunks=best.chunks,
+            best_dense=_best_dense(best.chunks),
+            refused_vectors=best.refused,
+            step_id=step.id,
+        )
+        _describe(step, result, rewritten_query, len(rows))
+    return result
+
+
+def _describe(
+    step: StepHandle, result: RetrievalResult, rewritten_query: str | None, pool_size: int
+) -> None:
+    best = result.best_dense
+    step.summary = (
+        f"{len(result.chunks)} of {pool_size} chunks"
+        + (f", best dense {best:.2f}" if best is not None else ", BM25 only")
+        + (" (rewritten query)" if result.rewritten else "")
     )
+    step.response = {
+        "used_query": result.used_query,
+        "rewrite_tried": rewritten_query,
+        "refused_vectors": result.refused_vectors,
+        "best_dense": best,
+        "results": [
+            {
+                "chunk_id": chunk.chunk_id,
+                "source_id": chunk.source_id,
+                "tier": chunk.tier,
+                "page": chunk.page,
+                "score": chunk.score,
+                "dense": chunk.dense,
+                "bm25": chunk.lexical,
+            }
+            for chunk in result.chunks
+        ],
+    }
+    step.source_ids = list(dict.fromkeys(chunk.source_id for chunk in result.chunks))

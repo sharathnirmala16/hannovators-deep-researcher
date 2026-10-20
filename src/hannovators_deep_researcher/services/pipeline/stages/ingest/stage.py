@@ -5,25 +5,32 @@
 - PMID / DOI: PubMed record, then the open-access PDF when there is one (else the abstract).
 - URL: web fetch -> `snapshot.md` -> markdown chunks (a `.pdf` URL is downloaded instead).
 
-Every seed gets one VERDICT step (KEPT, or FLAGGED with a WARNING event on failure) and a
-compact `extra_json.seed_summary` that decompose can read. Failures never stop the run.
+A seed PDF's key findings become CLAIM rows (label "Seed finding") whose quotes are checked
+against the PDF text, so the highlight stage marks them in the seed PDF. Every seed gets one
+VERDICT step (KEPT, or FLAGGED with a WARNING event on failure), a plain-text
+`extra_json.seed_summary` that decompose and screen read, and `extra_json.seed_ingest` details.
+PDF downloads and web snapshots record DOWNLOAD steps. Failures never stop the run.
 """
 
 import asyncio
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 import httpx
 
 from hannovators_deep_researcher.models.enums import (
     ChunkTier,
+    ClaimKind,
+    ClaimVerdict,
     ModelRole,
     SourceStatus,
     TraceEventKind,
     VerdictOutcome,
 )
 from hannovators_deep_researcher.models.literature import CandidateRecord
-from hannovators_deep_researcher.persistence.tables import SourceRow
+from hannovators_deep_researcher.persistence.queries.ingest import replace_labelled_claims
+from hannovators_deep_researcher.persistence.tables import ClaimRow, SourceRow
 from hannovators_deep_researcher.services.documents.files import resolve_data_path
 from hannovators_deep_researcher.services.documents.pdf_chunker import PdfChunkResult, chunk_pdf
 from hannovators_deep_researcher.services.pipeline.context import StageContext
@@ -40,7 +47,9 @@ from hannovators_deep_researcher.services.pipeline.stages.acquire.fulltext impor
 )
 from hannovators_deep_researcher.services.pipeline.stages.ingest.metadata import (
     EXTRACT_SYSTEM,
+    MAX_FINDINGS,
     PdfFacts,
+    SeedFinding,
     SeedMetadata,
     find_doi,
     plausible_title,
@@ -51,8 +60,10 @@ from hannovators_deep_researcher.services.retrieval.indexing import (
     pdf_drafts,
     store_chunks,
 )
+from hannovators_deep_researcher.services.retrieval.quotes import verified_quote
 
 CONCURRENCY = 3
+SEED_FINDING_LABEL = "Seed finding"
 SUMMARY_ABSTRACT_CHARS = 1_500
 SUMMARY_KEY_TEXT_CHARS = 1_500
 _DOI_PREFIXES = ("https://doi.org/", "http://doi.org/", "https://dx.doi.org/", "doi:")
@@ -66,6 +77,7 @@ class SeedOutcome:
     full_text: bool = False
     problems: list[str] = field(default_factory=list)
     key_findings: list[str] = field(default_factory=list)
+    claims: int = 0
 
 
 def _seed_kind(source: SourceRow) -> str:
@@ -183,12 +195,48 @@ def _abstract_text(result: PdfChunkResult) -> str:
     return " ".join(chunk.text for chunk in result.chunks if chunk.tier == ChunkTier.ABSTRACT)
 
 
+def _finding_rows(
+    ctx: StageContext, source: SourceRow, findings: Sequence[SeedFinding], text: str
+) -> list[ClaimRow]:
+    """One CLAIM per seed finding; the quote is kept only when it maps to the PDF text."""
+
+    rows = []
+    for finding in findings[:MAX_FINDINGS]:
+        statement = " ".join(finding.statement.split())
+        if not statement:
+            continue
+        quote = verified_quote(finding.quote, text) if finding.quote.strip() else None
+        rows.append(
+            ClaimRow(
+                workspace_id=ctx.workspace_id,
+                source_id=source.id,
+                kind=ClaimKind.CLAIM,
+                label=SEED_FINDING_LABEL,
+                text=statement,
+                quote=quote,
+                verdict=ClaimVerdict.SUPPORTED if quote else ClaimVerdict.UNVERIFIED,
+                confidence=1.0 if quote else 0.5,
+                payload_json=json.dumps({"outcome": None, "arm": None, "origin": "seed"}),
+            )
+        )
+    return rows
+
+
+async def _store_findings(
+    ctx: StageContext, source: SourceRow, meta: SeedMetadata | None, facts: PdfFacts
+) -> int:
+    rows = _finding_rows(ctx, source, meta.findings if meta else [], facts.first_text)
+    await replace_labelled_claims(ctx.repositories, source.id, SEED_FINDING_LABEL, rows)
+    return len(rows)
+
+
 async def _ingest_pdf(ctx: StageContext, source: SourceRow) -> SeedOutcome:
     outcome = SeedOutcome(kind="pdf")
     path = resolve_data_path(source.raw_path or "")
     facts = await asyncio.to_thread(read_pdf_facts, path)
     meta = await _extract(ctx, facts)
-    outcome.key_findings = list(meta.key_findings[:5]) if meta else []
+    outcome.key_findings = [item.statement for item in meta.findings[:MAX_FINDINGS]] if meta else []
+    outcome.claims = await _store_findings(ctx, source, meta, facts)
     result = await asyncio.to_thread(chunk_pdf, path)
     pdf_abstract = _abstract_text(result)
     doi = facts.doi or (meta.doi if meta else None) or find_doi(pdf_abstract)
@@ -326,18 +374,27 @@ async def _summarize(ctx: StageContext, source_id: str, outcome: SeedOutcome) ->
     source = await ctx.repositories.get_source(source_id)
     if source is None:
         raise LookupError(f"source {source_id} disappeared")
-    summary = {
-        "title": source.title,
-        "year": source.year,
+    key_text = await _key_text(ctx, source)
+    abstract = " ".join((source.abstract or "").split())[:SUMMARY_ABSTRACT_CHARS]
+    parts = []
+    if outcome.key_findings:
+        parts.append("Key findings: " + " ".join(f"- {item}" for item in outcome.key_findings))
+    if abstract:
+        parts.append(f"Abstract: {abstract}")
+    if key_text and not outcome.key_findings:
+        parts.append(f"Results text: {key_text}")
+    details = {
         "kind": outcome.kind,
         "full_text": outcome.full_text,
-        "abstract": (source.abstract or "")[:SUMMARY_ABSTRACT_CHARS],
-        "key_findings": outcome.key_findings,
-        "key_text": await _key_text(ctx, source),
         "chunks": outcome.chunks,
+        "claims": outcome.claims,
+        "key_findings": outcome.key_findings,
+        "problems": outcome.problems,
     }
+    # `seed_summary` is the plain-text digest that decompose and screen read.
     return await ctx.repositories.update_source_fields(
-        source.id, extra_json=merged_extra(source, {"seed_summary": summary})
+        source.id,
+        extra_json=merged_extra(source, {"seed_summary": "\n".join(parts), "seed_ingest": details}),
     )
 
 
@@ -375,12 +432,13 @@ async def _verdict(ctx: StageContext, source: SourceRow, outcome: SeedOutcome) -
         source,
         outcome=VerdictOutcome.FLAGGED if flagged else VerdictOutcome.KEPT,
         confidence=1.0 if outcome.full_text and not outcome.problems else 0.5,
-        summary=f"Seed {outcome.kind}: {outcome.chunks} chunks"
+        summary=f"Seed {outcome.kind}: {outcome.chunks} chunks, {outcome.claims} findings"
         + (f" ({'; '.join(outcome.problems)})" if outcome.problems else ""),
         response={
             "reason": "SEED_INGESTED" if not flagged else "SEED_PARTIAL",
             "kind": outcome.kind,
             "chunks": outcome.chunks,
+            "claims": outcome.claims,
             "full_text": outcome.full_text,
             "problems": outcome.problems,
         },

@@ -1,7 +1,7 @@
-import { cn } from '@/shared/lib/cn';
+import { Button } from '@/shared/ui/button';
+import { ToneDot, type Tone } from '@/shared/ui/tag';
 
 import type { LiveStatus } from '../model/useTrajectory';
-import { FOCUS_RING } from './statusStyles';
 
 const LABEL: Record<LiveStatus, string> = {
   off: 'Paused',
@@ -10,11 +10,11 @@ const LABEL: Record<LiveStatus, string> = {
   interrupted: 'Stream interrupted',
 };
 
-const DOT: Record<LiveStatus, string> = {
-  off: 'bg-shade-4',
-  connecting: 'bg-shade-2',
-  live: 'bg-tone-info motion-safe:animate-pulse',
-  interrupted: 'bg-tone-caution',
+const TONE: Record<LiveStatus, Tone> = {
+  off: 'neutral',
+  connecting: 'neutral',
+  live: 'info',
+  interrupted: 'caution',
 };
 
 interface LiveToggleProps {
@@ -23,21 +23,22 @@ interface LiveToggleProps {
   onChange: (live: boolean) => void;
 }
 
-/** Pauses or resumes the live step stream. */
+/** Pauses or resumes the live step stream; the dot pulses while connected. */
 export function LiveToggle({ live, status, onChange }: LiveToggleProps) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="outline"
+      size="xs"
       aria-pressed={live}
       title={live ? 'Pause live updates' : 'Resume live updates'}
       onClick={() => onChange(!live)}
-      className={cn(
-        'inline-flex h-7 items-center gap-1.5 rounded-md border border-input px-2 text-xs transition-colors hover:bg-muted',
-        FOCUS_RING,
-      )}
+      className="h-7 px-2"
     >
-      <span aria-hidden className={cn('size-2 rounded-full', DOT[status])} />
+      <ToneDot
+        tone={TONE[status]}
+        live={status === 'live' || status === 'connecting'}
+      />
       {LABEL[status]}
-    </button>
+    </Button>
   );
 }

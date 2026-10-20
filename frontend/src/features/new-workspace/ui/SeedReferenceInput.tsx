@@ -44,8 +44,8 @@ export function SeedReferenceInput({
 
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={inputId} className="text-sm font-medium">
-        Seed references
+      <label htmlFor={inputId} className="text-sm font-semibold">
+        Or add a PubMed ID, DOI, or web address
       </label>
       <div className="flex items-center gap-2">
         <Input
@@ -91,7 +91,7 @@ export function SeedReferenceInput({
           {references.map((reference) => (
             <li
               key={`${reference.kind}:${reference.value}`}
-              className="inline-flex h-7 max-w-full items-center gap-2 rounded-sm bg-muted pr-1 pl-2 text-xs"
+              className="inline-flex h-7 max-w-full items-center gap-2 rounded-[3px] bg-desk pr-1 pl-2 text-xs"
             >
               <span className="text-muted-foreground">
                 {SEED_KIND_LABEL[reference.kind]}

@@ -45,11 +45,23 @@ function openAction(id: number, step: TrajectoryStepSummary | undefined) {
 }
 
 /** State and derived data of the trajectory view for one workspace. */
-export function useTrajectoryController(source: TrajectorySource | null) {
+export function useTrajectoryController(
+  source: TrajectorySource | null,
+  step: number | null = null,
+) {
   const [filters, setFilters] = useState<TrajectoryFilters>(NO_FILTERS);
   const [live, setLive] = useState(true);
   const [cursorId, setCursorId] = useState<number | null>(null);
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [openId, setOpenId] = useState<number | null>(step);
+  const [seenStep, setSeenStep] = useState(step);
+  // A deep link (`?step=<id>` from the Research tab) opens that step.
+  if (seenStep !== step) {
+    setSeenStep(step);
+    if (step !== null) {
+      setOpenId(step);
+      setCursorId(step);
+    }
+  }
   const q = useDebouncedValue(filters.q, QUERY_DEBOUNCE_MS);
   const queryFilters = useMemo(() => ({ ...filters, q }), [filters, q]);
   const data = useTrajectory({ source, filters: queryFilters, live });

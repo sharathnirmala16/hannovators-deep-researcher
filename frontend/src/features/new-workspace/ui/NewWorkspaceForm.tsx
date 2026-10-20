@@ -1,43 +1,29 @@
 import { Loader2Icon } from 'lucide-react';
 import { useId, type FormEvent } from 'react';
 
-import type { RequestedDomainMode } from '@/domains/workspace';
 import { Button } from '@/shared/ui/button';
-import { Segmented, type SegmentOption } from '@/shared/ui/segmented';
-import { Switch } from '@/shared/ui/switch';
 
 import type { CreatePhase } from '../model/createWorkspace';
 import { useNewWorkspaceForm } from '../model/useNewWorkspaceForm';
 import { SeedDropZone } from './SeedDropZone';
+import { RunOptions } from './RunOptions';
 import { SeedReferenceInput } from './SeedReferenceInput';
-
-const MODES: readonly SegmentOption<RequestedDomainMode>[] = [
-  { value: 'AUTO', label: 'Auto' },
-  { value: 'MEDICAL', label: 'Medical' },
-  { value: 'GENERAL', label: 'General' },
-];
-
-const MODE_HINT: Record<RequestedDomainMode, string> = {
-  AUTO: 'Picks medical or general from the question.',
-  MEDICAL: 'PICOTS scope, RoB 2 appraisal, and a GRADE evidence profile.',
-  GENERAL: 'Entities and claims, credibility checks, and a claim matrix.',
-};
+import { TraceSpecimen } from './TraceSpecimen';
 
 const PHASE_LABEL: Record<CreatePhase, string> = {
   creating: 'Creating the workspace',
-  seeding: 'Adding seeds',
-  starting: 'Starting the run',
+  seeding: 'Adding seed papers',
+  starting: 'Starting the research',
 };
 
 interface NewWorkspaceFormProps {
   onCreated: (workspaceId: string) => void;
 }
 
-/** Question, mode, auto-continue, and seeds; Create starts the run. */
+/** Question, mode, auto-continue, and seeds; submitting starts the run. */
 export function NewWorkspaceForm({ onCreated }: NewWorkspaceFormProps) {
   const form = useNewWorkspaceForm(onCreated);
   const questionId = useId();
-  const switchId = useId();
   const busy = form.phase !== null;
 
   const onSubmit = (event: FormEvent) => {
@@ -46,14 +32,15 @@ export function NewWorkspaceForm({ onCreated }: NewWorkspaceFormProps) {
   };
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-8">
-      <div className="flex flex-col gap-2">
+    <form onSubmit={onSubmit} className="flex flex-col gap-9">
+      <div className="flex flex-col gap-5">
         <label
           htmlFor={questionId}
-          className="font-serif text-xl text-foreground"
+          className="reading text-3xl font-medium tracking-[-0.01em] text-balance text-foreground"
         >
           What do you want to find out?
         </label>
+        <TraceSpecimen />
         <textarea
           id={questionId}
           value={form.question}
@@ -67,45 +54,26 @@ export function NewWorkspaceForm({ onCreated }: NewWorkspaceFormProps) {
               onSubmit(event);
             }
           }}
-          className="field-sizing-content min-h-32 w-full resize-none rounded-md bg-muted px-4 py-3 font-serif text-lg leading-relaxed text-foreground placeholder:text-muted-foreground/70 focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          className="reading field-sizing-content mt-1 min-h-36 w-full resize-none rounded-lg border border-input bg-background px-5 py-4 text-xl leading-8 text-foreground transition-[border-color,box-shadow] placeholder:text-shade-4 focus-visible:border-ring focus-visible:shadow-[0_0_0_4px_#e4eaf8] focus-visible:outline-none disabled:opacity-60"
         />
       </div>
 
-      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-4">
-        <span className="text-sm font-medium" id={`${questionId}-mode`}>
-          Mode
-        </span>
-        <div className="flex flex-wrap items-center gap-4">
-          <Segmented
-            label="Research mode"
-            size="md"
-            value={form.mode}
-            options={MODES}
-            onChange={form.setMode}
-          />
-          <span className="text-xs text-muted-foreground">
-            {MODE_HINT[form.mode]}
-          </span>
-        </div>
-        <label htmlFor={switchId} className="text-sm font-medium">
-          Auto-continue
-        </label>
-        <div className="flex items-center gap-4">
-          <Switch
-            id={switchId}
-            checked={form.autoContinue}
-            onCheckedChange={form.setAutoContinue}
-            disabled={busy}
-          />
-          <span className="text-xs text-muted-foreground">
-            {form.autoContinue
-              ? 'Runs straight through to the synthesis.'
-              : 'Pauses after the scope so you can edit it.'}
-          </span>
-        </div>
-      </div>
+      <RunOptions
+        mode={form.mode}
+        onModeChange={form.setMode}
+        autoContinue={form.autoContinue}
+        onAutoContinueChange={form.setAutoContinue}
+        disabled={busy}
+      />
 
-      <div className="flex flex-col gap-4">
+      <fieldset className="flex flex-col gap-4">
+        <legend className="mb-1 flex flex-col gap-0.5">
+          <span className="reading text-lg font-medium">Seed papers</span>
+          <span className="text-xs text-muted-foreground">
+            Optional. Papers you already trust: the search starts from them and
+            they are read in full.
+          </span>
+        </legend>
         <SeedDropZone
           files={form.files}
           onAdd={form.addFiles}
@@ -118,12 +86,17 @@ export function NewWorkspaceForm({ onCreated }: NewWorkspaceFormProps) {
           onRemove={form.removeReference}
           disabled={busy}
         />
-      </div>
+      </fieldset>
 
-      <div className="flex items-center gap-4">
-        <Button type="submit" size="lg" disabled={!form.canSubmit}>
+      <div className="flex flex-wrap items-center gap-4 border-t pt-6">
+        <Button
+          type="submit"
+          size="lg"
+          disabled={!form.canSubmit}
+          className="px-7"
+        >
           {busy ? <Loader2Icon className="animate-spin" /> : null}
-          {form.phase ? PHASE_LABEL[form.phase] : 'Create and start'}
+          {form.phase ? PHASE_LABEL[form.phase] : 'Start research'}
         </Button>
         {form.error ? (
           <p role="alert" className="text-sm text-tone-negative">
@@ -131,7 +104,8 @@ export function NewWorkspaceForm({ onCreated }: NewWorkspaceFormProps) {
           </p>
         ) : (
           <span className="text-xs text-muted-foreground">
-            Ctrl+Enter also creates it.
+            <kbd className="font-sans font-semibold">Ctrl</kbd>+
+            <kbd className="font-sans font-semibold">Enter</kbd> also starts it.
           </span>
         )}
       </div>

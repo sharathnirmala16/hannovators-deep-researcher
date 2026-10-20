@@ -92,14 +92,11 @@ export const STATUS_LABEL: Record<TrajectoryStatus, string> = {
 };
 
 const STAGE_SET: ReadonlySet<string> = new Set(STAGES);
-const KIND_SET: ReadonlySet<string> = new Set(KINDS);
 const ACTOR_SET: ReadonlySet<string> = new Set(ACTORS);
 const OUTCOME_SET: ReadonlySet<string> = new Set(OUTCOMES);
 
 export const isStage = (value: string): value is StageId =>
   STAGE_SET.has(value);
-export const isKind = (value: string): value is TrajectoryKind =>
-  KIND_SET.has(value);
 export const isActor = (value: string): value is TrajectoryActor =>
   ACTOR_SET.has(value);
 export const isOutcome = (value: string): value is VerdictOutcome =>

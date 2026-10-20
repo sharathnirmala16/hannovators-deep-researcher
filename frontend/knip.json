@@ -4,10 +4,7 @@
   "project": ["src/**/*.{ts,tsx,css}"],
   "ignoreDependencies": [
     "@testing-library/react",
-    "@testing-library/user-event",
-    "cytoscape",
-    "pdfjs-dist",
-    "zod"
+    "@testing-library/user-event"
   ],
   "ignoreExportsUsedInFile": true,
   "rules": {

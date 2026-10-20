@@ -2,7 +2,7 @@ import type { TrajectoryStepSummary } from '@/domains/workspace';
 import { cn } from '@/shared/lib/cn';
 
 import { barFor, type TimeRange } from '../model/timing';
-import { BAR_COLOR } from './statusStyles';
+import { barFill } from './tones';
 
 interface WaterfallBarProps {
   step: TrajectoryStepSummary;
@@ -13,12 +13,14 @@ interface WaterfallBarProps {
 export function WaterfallBar({ step, range }: WaterfallBarProps) {
   const bar = barFor(step, range);
   return (
-    <span aria-hidden className="relative block h-2.5 w-full">
+    <span
+      aria-hidden
+      className="relative block h-1.5 w-full rounded-full bg-shade-1"
+    >
       <span
         className={cn(
-          'absolute inset-y-0 min-w-0.5 rounded-[2px]',
-          BAR_COLOR[step.status],
-          bar.open && 'opacity-70',
+          'absolute inset-y-0 min-w-1.5 rounded-full',
+          barFill(step),
         )}
         style={{ left: `${bar.left}%`, width: `${bar.width}%` }}
       />

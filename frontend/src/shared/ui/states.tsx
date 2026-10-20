@@ -8,7 +8,7 @@ function Skeleton({ className }: { className?: string }) {
   return (
     <div
       aria-hidden
-      className={cn('animate-pulse rounded-sm bg-muted', className)}
+      className={cn('animate-pulse rounded-sm bg-shade-2', className)}
     />
   );
 }
@@ -49,13 +49,15 @@ function EmptyState({ title, children, action, className }: StateProps) {
   return (
     <div
       className={cn(
-        'flex flex-col items-start gap-1 rounded-md bg-muted px-4 py-4',
+        'flex flex-col items-start gap-1 rounded-md bg-shade-0 px-4 py-4 ring-1 ring-shade-2 ring-inset',
         className,
       )}
     >
       <p className="text-sm font-medium text-foreground">{title}</p>
       {children ? (
-        <div className="text-xs text-muted-foreground">{children}</div>
+        <div className="max-w-prose text-xs leading-5 text-muted-foreground">
+          {children}
+        </div>
       ) : null}
       {action ? <div className="mt-2">{action}</div> : null}
     </div>
@@ -79,13 +81,15 @@ function ErrorState({
     <div
       role="alert"
       className={cn(
-        'flex flex-col items-start gap-1 rounded-md bg-shade-2 px-4 py-4',
+        'flex flex-col items-start gap-1 rounded-md bg-tone-negative-tint px-4 py-4',
         className,
       )}
     >
       <p className="text-sm font-medium text-tone-negative">{title}</p>
       {message ? (
-        <p className="text-xs break-words text-foreground">{message}</p>
+        <p className="font-mono text-xs break-words text-foreground">
+          {message}
+        </p>
       ) : null}
       {children ? (
         <div className="text-xs text-muted-foreground">{children}</div>

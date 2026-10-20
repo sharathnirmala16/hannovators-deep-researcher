@@ -36,9 +36,13 @@ SYSTEM = (
     "2) Judge Cochrane RoB 2 for all five domains (randomization, deviations, missing_data, "
     "measurement, selective_reporting) as LOW, SOME_CONCERNS, or HIGH; the abstract gives limited "
     "detail, so prefer SOME_CONCERNS when it is silent. 3) Extract key numeric results as metrics "
-    "(events/total per arm, effect estimates, confidence intervals). Each metric `quote` MUST be "
-    "copied verbatim from the abstract. Never paraphrase a quote. Extract harm and safety "
-    "results (adverse events, serious adverse events, discontinuations) as metrics too. "
+    "(events/total per arm, effect estimates, confidence intervals). Set `outcome` to the review "
+    "outcome the metric measures, using the PICOTS outcome wording. When the abstract gives "
+    "events or rates per arm, emit one metric with arm INTERVENTION and one with arm COMPARISON "
+    "for the same outcome; effect estimates (RR, HR, OR, mean difference) have arm null. Each "
+    "metric `quote` MUST be copied verbatim from the abstract. Never paraphrase a quote. Extract "
+    "harm and safety results (adverse events, serious adverse events, discontinuations) as "
+    "metrics too. "
     f"{EVIDENCE_PROMPT} Reply with JSON only."
 )
 

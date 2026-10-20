@@ -11,7 +11,7 @@ interface ScopeChipsProps {
   onRemove: (index: number) => void;
 }
 
-/** One list field as chips; at the checkpoint chips can be removed or added. */
+/** One list field as quiet chips; at the checkpoint chips can be removed or added. */
 export function ScopeChips({
   label,
   values,
@@ -21,33 +21,41 @@ export function ScopeChips({
 }: ScopeChipsProps) {
   const [text, setText] = useState('');
   if (!editable && values.length === 0) {
-    return <span className="text-xs text-muted-foreground">None</span>;
+    return <span className="text-xs text-muted-foreground">Not set</span>;
   }
+  const commit = () => {
+    if (!text.trim()) return;
+    onAdd(text);
+    setText('');
+  };
   return (
-    <ul className="flex flex-wrap gap-1">
+    <ul className="flex min-w-0 flex-wrap gap-1">
       {values.map((value, index) => (
         <li
           key={`${value}-${index}`}
           className={cn(
-            'inline-flex min-h-6 max-w-full items-center gap-1 rounded-sm bg-background px-2 py-0.5 text-xs leading-4 text-foreground',
-            editable && 'pr-0.5',
+            'reading inline-flex max-w-full min-w-0 items-center gap-0.5 rounded-[3px] px-1.5 py-px text-sm leading-5 text-foreground',
+            editable
+              ? 'bg-background pr-0.5 ring-1 ring-shade-2 ring-inset'
+              : 'bg-desk',
           )}
         >
-          <span className="break-words">{value}</span>
+          <span className="min-w-0 break-words">{value}</span>
           {editable ? (
             <button
               type="button"
               onClick={() => onRemove(index)}
               aria-label={`Remove ${value} from ${label}`}
-              className="inline-flex size-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              title="Remove"
+              className="inline-flex size-5 shrink-0 items-center justify-center rounded-[3px] text-muted-foreground transition-colors hover:bg-tone-negative-tint hover:text-tone-negative"
             >
-              <XIcon className="size-3" />
+              <XIcon className="size-3.5" />
             </button>
           ) : null}
         </li>
       ))}
       {editable ? (
-        <li>
+        <li className="max-w-full min-w-0">
           <input
             value={text}
             aria-label={`Add to ${label}`}
@@ -56,15 +64,10 @@ export function ScopeChips({
             onKeyDown={(event) => {
               if (event.key !== 'Enter' || !text.trim()) return;
               event.preventDefault();
-              onAdd(text);
-              setText('');
+              commit();
             }}
-            onBlur={() => {
-              if (!text.trim()) return;
-              onAdd(text);
-              setText('');
-            }}
-            className="h-6 w-24 rounded-sm bg-transparent px-2 text-xs placeholder:text-muted-foreground focus:w-40 focus:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            onBlur={commit}
+            className="h-6 w-20 max-w-full min-w-0 rounded-[3px] bg-transparent px-1.5 text-xs text-foreground ring-1 ring-shade-3 transition-colors ring-inset placeholder:text-muted-foreground hover:bg-background focus:w-40 focus:bg-background focus-visible:ring-ring"
           />
         </li>
       ) : null}

@@ -1,0 +1,58 @@
+{
+  "content": "SGLT2 inhibitors reduced the composite of cardiovascular death or hospitalization for heart failure in adults with reduced ejection fraction.\n\n- **Dapagliflozin**: the primary outcome occurred in 16.3% of patients versus 21.2% with placebo, *hazard ratio 0.74* [1].\n- **Empagliflozin**: 19.4% versus 24.7%, hazard ratio 0.75 [2].\n- **Sotagliflozin** lowered the event rate after worsening heart failure (51.0 versus 76.3 events per 100 patient-years) [3].\n\nCardiovascular death alone was not clearly reduced in the trial of mildly reduced or preserved ejection fraction (`HR 0.88`, 95% CI 0.74 to 1.05) [4], so most of the benefit comes from fewer hospitalizations for heart failure [1][2].",
+  "citations": [
+    {
+      "n": 1,
+      "source_id": "6cb79004-0e63-5a5c-9e51-62000841d57f",
+      "source_title": "Dapagliflozin in Patients with Heart Failure and Reduced Ejection Fraction",
+      "chunk_id": null,
+      "page": 1,
+      "rects": [
+        [72.0, 402.4, 540.0, 414.2],
+        [72.0, 415.6, 318.6, 427.4]
+      ],
+      "quote": "the primary outcome occurred in 386 patients (16.3%) in the dapagliflozin group and in 502 patients (21.2%) in the placebo group (hazard ratio, 0.74; 95% confidence interval [CI], 0.65 to 0.85; P<0.001)",
+      "pdf_url": "/files/workspaces/3b7e9a4c-1d2f-4e6a-8b5c-0f9d2a7c6e11/sources/6cb79004-0e63-5a5c-9e51-62000841d57f/raw.pdf",
+      "url": "https://doi.org/10.1056/NEJMoa1911303"
+    },
+    {
+      "n": 2,
+      "source_id": "87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d",
+      "source_title": "Cardiovascular and Renal Outcomes with Empagliflozin in Heart Failure",
+      "chunk_id": null,
+      "page": 1,
+      "rects": [
+        [72.0, 388.0, 540.0, 399.8],
+        [72.0, 401.2, 318.6, 413.0]
+      ],
+      "quote": "a primary outcome event occurred in 361 of 1863 patients (19.4%) in the empagliflozin group and in 462 of 1867 patients (24.7%) in the placebo group",
+      "pdf_url": "/files/workspaces/3b7e9a4c-1d2f-4e6a-8b5c-0f9d2a7c6e11/sources/87fdbe3a-a3d5-5ca7-ba33-75653fba7e2d/raw.pdf",
+      "url": "https://doi.org/10.1056/NEJMoa2022190"
+    },
+    {
+      "n": 3,
+      "source_id": "47e7dedc-6219-5e49-ae20-c9e74added1c",
+      "source_title": "Sotagliflozin in Patients with Diabetes and Recent Worsening Heart Failure",
+      "chunk_id": null,
+      "page": 1,
+      "rects": [],
+      "quote": "the rate of primary end-point events was lower in the sotagliflozin group than in the placebo group (51.0 vs. 76.3; hazard ratio, 0.67;",
+      "pdf_url": "/files/workspaces/3b7e9a4c-1d2f-4e6a-8b5c-0f9d2a7c6e11/sources/47e7dedc-6219-5e49-ae20-c9e74added1c/raw.pdf",
+      "url": "https://doi.org/10.1056/NEJMoa2030183"
+    },
+    {
+      "n": 4,
+      "source_id": "a1304ff3-2646-5dad-ae68-14aa119efc38",
+      "source_title": "Dapagliflozin in Heart Failure with Mildly Reduced or Preserved Ejection Fraction",
+      "chunk_id": null,
+      "page": 7,
+      "rects": [
+        [72.0, 244.6, 540.0, 256.4],
+        [72.0, 257.8, 318.6, 269.6]
+      ],
+      "quote": "Cardiovascular death occurred in 231 patients (7.4%) and 261 patients (8.3%), respectively (hazard ratio, 0.88; 95% CI, 0.74 to 1.05)",
+      "pdf_url": "/files/workspaces/3b7e9a4c-1d2f-4e6a-8b5c-0f9d2a7c6e11/sources/a1304ff3-2646-5dad-ae68-14aa119efc38/raw.pdf",
+      "url": "https://doi.org/10.1056/NEJMoa2206286"
+    }
+  ]
+}

@@ -33,6 +33,11 @@ _REPAIR_PROMPT = (
     "Your last reply was not valid JSON for the required schema. Error: {error}\n"
     "Reply again with only the corrected JSON object. No prose, no code fences."
 )
+# Nemotron reasons by default, and long reasoning can use the whole completion budget and leave
+# an empty reply (finish_reason "length"). Roles with long JSON answers skip reasoning
+# (PLAN.md section 1.2: QUERY effort none), and the repair retry never reasons.
+_NO_REASONING = "none"
+_NO_REASONING_ROLES = frozenset({ModelRole.QUERY, ModelRole.SYNTHESIZE})
 
 
 def _failure(
@@ -135,7 +140,8 @@ class NebiusChatModel:
         }
         temperature = _VISION_TEMPERATURE if images else _TEXT_TEMPERATURE
         model = self._settings.model_for(role)
-        reply = await self._create(model, messages, response_format, temperature)
+        effort = _NO_REASONING if role in _NO_REASONING_ROLES else None
+        reply = await self._create(model, messages, response_format, temperature, effort)
         try:
             return parse_json_reply(schema, reply)
         except ValidationError as exc:
@@ -143,11 +149,19 @@ class NebiusChatModel:
                 {"role": "assistant", "content": reply},
                 {"role": "user", "content": _REPAIR_PROMPT.format(error=str(exc)[:800])},
             ]
-        reply = await self._create(model, messages, response_format, temperature)
+        reply = await self._create(model, messages, response_format, temperature, _NO_REASONING)
         try:
             return parse_json_reply(schema, reply)
         except ValidationError as exc:
-            raise _failure("invalid_json", f"{schema.__name__} reply invalid after repair") from exc
+            # The first validation error (field path and reason) makes the failure auditable.
+            errors = exc.errors()
+            where = ".".join(str(part) for part in errors[0]["loc"]) if errors else ""
+            reason = errors[0]["msg"][:120] if errors else ""
+            raise _failure(
+                "invalid_json",
+                f"{schema.__name__} reply invalid after repair "
+                f"({where or 'reply'}: {reason}; {len(reply)} chars)",
+            ) from exc
 
     async def _create(
         self,
@@ -155,7 +169,11 @@ class NebiusChatModel:
         messages: list[dict[str, Any]],
         response_format: dict[str, Any],
         temperature: float,
+        reasoning_effort: str | None = None,
     ) -> str:
+        extra: dict[str, Any] = (
+            {"reasoning_effort": reasoning_effort} if reasoning_effort is not None else {}
+        )
         try:
             completion = await self._client.chat.completions.create(
                 model=model,
@@ -163,6 +181,7 @@ class NebiusChatModel:
                 response_format=cast(Any, response_format),
                 temperature=temperature,
                 top_p=_TOP_P,
+                **extra,
             )
         except openai.OpenAIError as exc:
             raise _map_api_error(exc) from exc

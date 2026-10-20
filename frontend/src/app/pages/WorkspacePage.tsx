@@ -26,7 +26,7 @@ interface WorkspacePageProps {
   step: number | null;
 }
 
-function WorkspaceBody({ workspaceId, tab }: WorkspacePageProps) {
+function WorkspaceBody({ workspaceId, tab, step }: WorkspacePageProps) {
   const { load, reload, recordAction } = useWorkspace();
   const visited = useVisited(tab);
 
@@ -43,6 +43,11 @@ function WorkspaceBody({ workspaceId, tab }: WorkspacePageProps) {
   const openStep = useCallback(
     (stepId: number) =>
       navigate(workspaceHref(workspaceId, 'trajectory', stepId)),
+    [workspaceId],
+  );
+
+  const openSource = useCallback(
+    () => navigate(workspaceHref(workspaceId, 'research')),
     [workspaceId],
   );
 
@@ -88,7 +93,7 @@ function WorkspaceBody({ workspaceId, tab }: WorkspacePageProps) {
               hidden={tab !== 'trajectory'}
               className="absolute inset-0 flex flex-col overflow-hidden"
             >
-              <TrajectoryView />
+              <TrajectoryView onOpenSource={openSource} step={step} />
             </div>
           ) : null}
         </main>

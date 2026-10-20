@@ -9,6 +9,8 @@ characters are found later on the same page. Preferred pages are searched first.
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from difflib import SequenceMatcher
+from itertools import pairwise
 from pathlib import Path
 
 import pymupdf
@@ -17,6 +19,10 @@ from hannovators_deep_researcher.models.contracts import Rect
 
 PREFIX_CHARS = 60
 MIN_NEEDLE_CHARS = 12
+"""Shortest prefix or tail needle; shorter fragments match too many places."""
+MIN_FULL_NEEDLE_CHARS = 6
+"""Shortest whole quote that is still searched (a short verbatim quote is a weak location)."""
+SHORT_QUOTE_CHARS = 20
 MAX_RECTS = 40
 MAX_SPAN_WORDS = 600
 SEARCH_FLAGS = pymupdf.TEXT_DEHYPHENATE | pymupdf.TEXT_MEDIABOX_CLIP
@@ -39,6 +45,12 @@ _ASCII = str.maketrans(
 )
 _LINE_HYPHEN = re.compile(r"([a-z])-\s+([a-z])")
 _EDGE = " \t\n\"'\u201c\u201d\u2018\u2019.,;:\u2026"
+_SENTENCES = re.compile(r"(?<=[.!?])\s+")
+_FOLD = str.maketrans(
+    {"\u2013": "-", "\u2014": "-", "\u2212": "-", "\u2019": "'", "\u201c": '"', "\u201d": '"'}
+)
+FUZZY_MIN_RATIO = 0.75
+MIN_VERIFIED_CHARS = 8
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +67,35 @@ def normalize_quote(text: str) -> str:
     cleaned = " ".join(cleaned.split())
     cleaned = _LINE_HYPHEN.sub(r"\1\2", cleaned)
     return cleaned.strip(_EDGE).replace("...", " ").replace("\u2026", " ").strip()
+
+
+def _fold(text: str) -> str:
+    return " ".join(normalize_quote(text).translate(_FOLD).casefold().split())
+
+
+def verified_quote(quote: str, passage: str) -> str | None:
+    """The quote when it is in the passage; else the passage's closest sentence(s), or None.
+
+    Matching ignores case, whitespace, ligatures, and dash and quote-mark variants. The fuzzy
+    fallback keeps one sentence or two adjacent sentences with a similarity of at least
+    `FUZZY_MIN_RATIO`, so a slightly misquoted span still maps to real text.
+    """
+
+    wanted = _fold(quote)
+    if len(wanted) < MIN_VERIFIED_CHARS:
+        return None
+    if wanted in _fold(passage):
+        return " ".join(normalize_quote(quote).split())
+    sentences = [part.strip() for part in _SENTENCES.split(passage) if part.strip()]
+    spans = sentences + [f"{a} {b}" for a, b in pairwise(sentences)]
+    best, best_ratio = None, 0.0
+    for span in spans:
+        ratio = SequenceMatcher(None, wanted, _fold(span), autojunk=False).ratio()
+        if ratio > best_ratio:
+            best, best_ratio = span, ratio
+    if best is None or best_ratio < FUZZY_MIN_RATIO:
+        return None
+    return " ".join(best.split())
 
 
 def _cut(text: str, size: int, *, from_end: bool = False) -> str:
@@ -81,7 +122,8 @@ def needles(quote: str) -> list[tuple[str, bool]]:
     seen: set[str] = set()
     result: list[tuple[str, bool]] = []
     for needle, full in candidates:
-        if len(needle) >= MIN_NEEDLE_CHARS and needle not in seen:
+        shortest = MIN_FULL_NEEDLE_CHARS if full else MIN_NEEDLE_CHARS
+        if len(needle) >= shortest and needle not in seen:
             seen.add(needle)
             result.append((needle, full or needle == normalized))
     return result

@@ -3,7 +3,6 @@ import { memo } from 'react';
 import type { TrajectoryStepSummary } from '@/domains/workspace';
 import { cn } from '@/shared/lib/cn';
 import { TableCell, TableRow } from '@/shared/ui/table';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
 
 import {
   formatDuration,
@@ -13,10 +12,10 @@ import {
   type TimeRange,
 } from '../model/timing';
 import { ACTOR_LABEL } from '../model/vocabulary';
-import { COLUMN, stepRowId } from './columns';
+import { COLUMN, HAIRLINE, stepRowId } from './columns';
 import { KindBadge } from './KindBadge';
-import { OutcomeBadge } from './OutcomeBadge';
-import { StatusLabel } from './StatusLabel';
+import { OutcomeTag } from './OutcomeTag';
+import { StatusTag } from './StatusTag';
 import { WaterfallBar } from './WaterfallBar';
 
 interface StepRowProps {
@@ -28,7 +27,19 @@ interface StepRowProps {
   onSelect: (id: number) => void;
 }
 
-const CELL = 'h-7 overflow-hidden px-2 py-0 text-xs';
+const CELL = cn('h-8 overflow-hidden px-2 py-0 text-xs', HAIRLINE);
+const NUMBER = 'tabular-nums';
+
+/** Row wash: the open row is selected, error rows carry the negative tint. */
+function rowClass(step: TrajectoryStepSummary, active: boolean, open: boolean) {
+  if (open) {
+    return 'bg-accent hover:bg-accent [&>td:first-child]:shadow-[inset_2px_0_0_#18223a,inset_0_-1px_0_var(--color-border)]';
+  }
+  if (step.status === 'ERROR') {
+    return 'bg-tone-negative-tint hover:bg-tone-negative-tint';
+  }
+  return active ? 'bg-shade-0 hover:bg-shade-0' : 'hover:bg-shade-0';
+}
 
 /** One trajectory row. Memoized: stream updates re-render changed rows only. */
 export const StepRow = memo(function StepRow({
@@ -43,21 +54,21 @@ export const StepRow = memo(function StepRow({
     <TableRow
       id={stepRowId(step.id)}
       aria-selected={open}
-      data-state={open ? 'selected' : undefined}
       data-active={active || undefined}
       onClick={() => onSelect(step.id)}
       className={cn(
-        'cursor-default border-b-0 hover:bg-muted',
-        'data-[active]:bg-muted group-focus-visible/grid:data-[active]:outline-2 group-focus-visible/grid:data-[active]:-outline-offset-2 group-focus-visible/grid:data-[active]:outline-ring',
+        'cursor-default border-b-0',
+        rowClass(step, active, open),
+        'group-focus-visible/grid:data-[active]:outline-2 group-focus-visible/grid:data-[active]:-outline-offset-2 group-focus-visible/grid:data-[active]:outline-ring',
       )}
     >
       <TableCell
-        className={cn(CELL, COLUMN.index, 'text-muted-foreground tabular-nums')}
+        className={cn(CELL, COLUMN.index, NUMBER, 'text-muted-foreground')}
       >
         {step.id}
       </TableCell>
       <TableCell
-        className={cn(CELL, COLUMN.time, 'text-muted-foreground tabular-nums')}
+        className={cn(CELL, COLUMN.time, NUMBER, 'text-muted-foreground')}
       >
         {formatOffset(offsetMs(step, origin))}
       </TableCell>
@@ -67,22 +78,32 @@ export const StepRow = memo(function StepRow({
       <TableCell className={cn(CELL, COLUMN.kind)}>
         <KindBadge kind={step.kind} />
       </TableCell>
-      <TableCell className={cn(CELL, COLUMN.name, 'truncate font-medium')}>
+      <TableCell
+        title={step.name}
+        className={cn(CELL, COLUMN.name, 'truncate text-sm text-foreground')}
+      >
         {step.name}
       </TableCell>
-      <TableCell className={cn(CELL, COLUMN.target)}>
-        <TargetText target={step.target} />
+      <TableCell
+        title={step.target ?? undefined}
+        className={cn(
+          CELL,
+          COLUMN.target,
+          'truncate font-mono text-muted-foreground',
+        )}
+      >
+        {step.target}
       </TableCell>
       <TableCell className={cn(CELL, COLUMN.status)}>
-        <StatusLabel status={step.status} />
+        <StatusTag status={step.status} quiet />
       </TableCell>
       <TableCell className={cn(CELL, COLUMN.outcome)}>
-        {step.outcome ? <OutcomeBadge outcome={step.outcome} /> : null}
+        {step.outcome ? <OutcomeTag outcome={step.outcome} /> : null}
       </TableCell>
-      <TableCell className={cn(CELL, COLUMN.confidence, 'tabular-nums')}>
+      <TableCell className={cn(CELL, COLUMN.confidence, NUMBER)}>
         {formatPercent(step.confidence)}
       </TableCell>
-      <TableCell className={cn(CELL, COLUMN.duration, 'tabular-nums')}>
+      <TableCell className={cn(CELL, COLUMN.duration, NUMBER)}>
         {formatDuration(step.duration_ms)}
       </TableCell>
       <TableCell className={cn(CELL, COLUMN.waterfall)}>
@@ -91,23 +112,3 @@ export const StepRow = memo(function StepRow({
     </TableRow>
   );
 });
-
-function TargetText({ target }: { target: string | null }) {
-  if (!target) return null;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="block truncate font-mono text-[12px] text-muted-foreground">
-          {target}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent
-        side="bottom"
-        align="start"
-        className="max-w-xl font-mono break-all"
-      >
-        {target}
-      </TooltipContent>
-    </Tooltip>
-  );
-}

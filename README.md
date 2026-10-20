@@ -1,6 +1,9 @@
 # Hannovators Deep Researcher
 
-This repository contains Python, SQLite, and React boilerplate. It has no product features or backend server.
+An adaptive deep-research and evidence-synthesis workbench. Ask a research question, optionally add seed papers
+(PDF, PMID, DOI, or URL), and the pipeline searches PubMed and the web, screens and appraises the sources, and writes a
+GRADE-style synthesis. Every finding, synthesis citation, and chat answer links to the exact highlighted passage in its
+source PDF. The Trajectory tab records every model call, search, download, decision, and user action of a run.
 
 ## Setup
 
@@ -20,7 +23,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-The frontend displays a blank application shell with Tailwind and shadcn support.
+Open `http://localhost:<VITE_PORT>` (with the API running, see Run). The workspaces page starts a new run or reopens one.
 
 `pnpm dev` reads `VITE_PORT` and `API_PORT` from the root `.env`. A shell variable overrides the `.env` value.
 The dev server uses `VITE_PORT` and stops if that port is not available.
@@ -78,11 +81,12 @@ pnpm build
 
 These commands check format, lint rules, strict types, dependencies, and package builds.
 
-Python tests check the database infrastructure and migrations. Plain `uv run pytest` deselects tests marked `live`.
-Run `uv run pytest -m live` for the provider live checks (each one skips when its API key is missing) and
-`uv run pytest -m e2e` for the offline end-to-end tests. Use `pnpm test` from `frontend/` for Vitest tests.
-The frontend has no tests. Vitest reports an empty suite and returns a nonzero exit code until real tests exist.
-Do not add artificial tests or suppress empty suites. This project has no GitHub CI.
+Plain `uv run pytest` deselects tests marked `live`. Run `uv run pytest -m "e2e and not live"` for the offline
+end-to-end tests (fake providers). Run `uv run pytest -m live` for the provider checks and the live end-to-end tests
+in `tests/e2e/test_live_*.py` (platform, grounding, research quality). Each one skips when its API key is missing; the
+grounding test also needs the seed PDFs in `../data/seed_1` (or `SEED_PDF_DIR`). Live runs take minutes and cost a
+little provider credit. Use `pnpm test` from `frontend/` for Vitest tests. Do not add artificial tests or suppress
+empty suites. This project has no GitHub CI.
 BDD directories reserve space for future scenarios. Add the browser test tools with the first browser workflow.
 
 ## Worktrees
@@ -111,13 +115,17 @@ uv run alembic current
 
 Create each schema change with `uv run alembic revision --autogenerate -m "describe change"`.
 Review the revision before you run `uv run alembic upgrade head`.
-The initial revision contains no product tables.
+Revisions `0002` and `0003` hold the product schema.
 
-Reserve `data/seeds/<UUID>/` for each seed material. Use a new UUID as the material's unique directory identifier.
-This scaffold defines the directory convention only. It contains no seed ingestion or product schema.
-See [PLAN.md](PLAN.md) for the planned schema and the `data/workspaces/` layout that replaces `data/seeds/`.
+Source files live in `data/workspaces/<workspace_id>/sources/<source_id>/` (`raw.pdf`, `snapshot.md`,
+`highlighted.pdf`). See [PLAN.md](PLAN.md) section 4 for the schema.
 
 ## UI components
+
+The visual system ("annotated paper") is specified in PLAN.md section 10.3: solid hex color tokens only (the IDE preview
+browser renders opacity modifiers, `color-mix()`, and 8-digit hex wrongly), Atkinson Hyperlegible Next and Mono, and
+Literata for reading text. The fonts come from `@fontsource-variable` packages, so the app works offline. The PDF viewer
+uses `pdfjs-dist`.
 
 Tailwind uses the Vite plugin and `frontend/src/index.css`. The CSS file defines shadcn theme tokens.
 The `@/` alias points to `frontend/src/`. The shadcn configuration places UI components in `src/shared/ui/`.
