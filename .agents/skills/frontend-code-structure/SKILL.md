@@ -26,7 +26,7 @@ src/
     screening-funnel/    # PRISMA-style funnel + rejection audit
     evidence-table/      # GRADE evidence profile table + due-diligence claim matrix
     pdf-viewer/          # Highlighted PDF iframe at `#page=N`
-    citation-graph/      # Cytoscape citation graph
+    citation-graph/      # react-force-graph citation graph
   shared/                # Business-agnostic, reusable primitives and infrastructure
     ui/                  # shadcn primitives and dumb UI components (Button, Dialog, Tabs)
     api/                 # HTTP/SSE client abstraction, fetch error normalization

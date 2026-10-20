@@ -40,7 +40,7 @@ export function SourcePane({ onOpenStep }: SourcePaneProps) {
       <PaneBody scroll={false} hidden={tab !== 'document'}>
         <PdfViewer />
       </PaneBody>
-      {/* The graph mounts only while visible: cytoscape needs a sized box. */}
+      {/* The graph mounts only while visible: the canvas needs a sized box. */}
       {tab === 'graph' ? (
         <PaneBody scroll={false}>
           <CitationGraph />

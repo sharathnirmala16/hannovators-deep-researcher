@@ -1,15 +1,15 @@
 import { useState } from 'react';
 
 import type { GraphView } from '@/domains/workspace';
-import { errorMessage } from '@/shared/lib/format';
 import { EmptyState, ErrorState } from '@/shared/ui/states';
 
+import { canDrawCanvas } from '../model/environment';
 import { GraphCanvas } from './GraphCanvas';
 import { GraphLegend } from './GraphLegend';
 
 /** The canvas and legend, or why there is nothing to draw. */
 export function GraphBody({ graph }: { graph: GraphView }) {
-  const [failure, setFailure] = useState<{ error: unknown } | null>(null);
+  const [drawable, setDrawable] = useState(canDrawCanvas);
   if (graph.nodes.length === 0) {
     return (
       <EmptyState title="No sources to draw yet">
@@ -18,22 +18,22 @@ export function GraphBody({ graph }: { graph: GraphView }) {
       </EmptyState>
     );
   }
-  if (failure) {
+  if (!drawable) {
     return (
       <ErrorState
         title="The graph could not be drawn"
-        message={errorMessage(failure.error)}
-        onRetry={() => setFailure(null)}
+        message="This browser could not start a 2D canvas."
+        onRetry={() => setDrawable(canDrawCanvas())}
       />
     );
   }
   return (
     <>
       <p className="text-xs text-muted-foreground">
-        Select a node to open the source. Seeds sit at the center, included
-        studies next, excluded sources on the outer ring.
+        Each ring holds one evidence tier around the seeds. Point at a source to
+        trace its links, and select it to open the document.
       </p>
-      <GraphCanvas graph={graph} onError={(error) => setFailure({ error })} />
+      <GraphCanvas graph={graph} />
       <GraphLegend />
     </>
   );

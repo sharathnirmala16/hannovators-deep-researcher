@@ -2,11 +2,11 @@ import { useWorkspace } from '@/domains/workspace';
 import { plural } from '@/shared/lib/format';
 import { ErrorState, SkeletonBlock } from '@/shared/ui/states';
 
-import { linkCount } from '../model/toElements';
+import { linkCount } from '../model/toGraphData';
 import { GraphBody } from './GraphBody';
 import { GraphFrame } from './GraphFrame';
 
-/** Cytoscape graph of how seeds connect to included, excluded, and web sources. */
+/** Force graph of how seeds connect to included, excluded, and web sources. */
 export function CitationGraph() {
   const { load, reload } = useWorkspace();
   if (load.status === 'idle' || load.status === 'loading') {

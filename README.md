@@ -132,7 +132,7 @@ The `@/` alias points to `frontend/src/`. The shadcn configuration places UI com
 
 `src/shared/ui/` contains these shadcn primitives: badge, button, card, dialog, input, progress, resizable, scroll-area, separator, sonner, table, tabs, textarea, and tooltip.
 The primitives use the `cn` package for class names. Dialog and tooltip animations use `tw-animate-css`.
-The frontend also includes `zod` for wire decoders and `cytoscape` for the citation graph.
+The frontend also includes `zod` for wire decoders and `react-force-graph-2d` with `d3-force` for the citation graph.
 
 Feature lanes must not change `frontend/package.json` or `frontend/pnpm-lock.yaml`.
 To add a primitive, use the shadcn CLI version that made the current primitives:

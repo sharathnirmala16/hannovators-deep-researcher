@@ -1,8 +1,8 @@
-import type { StylesheetJson } from 'cytoscape';
-
-import type { GraphNode } from '@/domains/workspace';
+import type { GraphEdge, GraphNode } from '@/domains/workspace';
+import type { Tone } from '@/shared/ui/tag';
 
 export type NodeCategory = 'seed' | 'promoted' | 'discounted' | 'web' | 'other';
+export type LinkKind = GraphEdge['kind'];
 
 /** Web origin wins over status, so every web page reads as web. */
 export function nodeCategory(node: GraphNode): NodeCategory {
@@ -19,36 +19,79 @@ export function nodeCategory(node: GraphNode): NodeCategory {
 }
 
 /**
- * Cytoscape draws on a canvas and needs literal colors. These are the token
- * values from `index.css`; keep them in sync.
+ * The canvas needs literal colors. These are the token values from
+ * `index.css`; keep them in sync.
  */
 export const GRAPH_COLOR = {
   ink: '#18223a',
   graphite: '#586378',
   paper: '#ffffff',
-  edge: '#cdd5df', // shade-3
-  edgeSeed: '#9aa5b5', // shade-4
+  canvas: '#f8fafc', // shade-0, the graph's background
   marker: '#ffe15a',
+  markerEdge: '#e6c63a',
+  orbit: '#e3e8ef', // shade-2
+  orbitLabel: '#9aa5b5', // shade-4
+  dimFill: '#e3e8ef', // shade-2
+  dimStroke: '#cdd5df', // shade-3
+  dimLabel: '#9aa5b5', // shade-4
 } as const;
 
-export const CATEGORY_STYLE: Record<
-  NodeCategory,
-  { label: string; color: string; ring: number; size: number }
-> = {
-  seed: { label: 'Seed', color: '#2a4fa8', ring: 4, size: 28 }, // tone-info
-  promoted: { label: 'Included', color: '#2e7552', ring: 3, size: 22 }, // tone-positive
-  web: { label: 'Web', color: '#5e5a8c', ring: 2, size: 16 }, // tone-null
+export const FONT_FAMILY =
+  "'Atkinson Hyperlegible Next Variable', 'Segoe UI', Arial, sans-serif";
+
+export type NodeShape = 'stamp' | 'disc' | 'diamond' | 'ring' | 'dashed-ring';
+
+interface CategoryStyle {
+  label: string;
+  /** Fill for solid shapes, stroke for hollow ones. */
+  color: string;
+  shape: NodeShape;
+  radius: number;
+  tone: Tone;
+  /** Labels always show for the categories a reader scans for. */
+  alwaysLabel: boolean;
+}
+
+export const CATEGORY_STYLE: Record<NodeCategory, CategoryStyle> = {
+  seed: {
+    label: 'Seed',
+    color: '#2a4fa8', // tone-info
+    shape: 'stamp',
+    radius: 8,
+    tone: 'info',
+    alwaysLabel: true,
+  },
+  promoted: {
+    label: 'Included',
+    color: '#2e7552', // tone-positive
+    shape: 'disc',
+    radius: 6,
+    tone: 'positive',
+    alwaysLabel: true,
+  },
+  web: {
+    label: 'Web',
+    color: '#5e5a8c', // tone-null
+    shape: 'diamond',
+    radius: 5,
+    tone: 'null',
+    alwaysLabel: false,
+  },
   discounted: {
     label: 'Screened out or excluded',
-    color: '#9aa5b5',
-    ring: 1,
-    size: 13,
-  }, // shade-4
+    color: '#9aa5b5', // shade-4
+    shape: 'ring',
+    radius: 4.5,
+    tone: 'negative',
+    alwaysLabel: false,
+  },
   other: {
     label: 'Not yet appraised',
-    color: '#cdd5df', // shade-3
-    ring: 1,
-    size: 11,
+    color: '#9aa5b5', // shade-4
+    shape: 'dashed-ring',
+    radius: 4,
+    tone: 'neutral',
+    alwaysLabel: false,
   },
 };
 
@@ -60,62 +103,67 @@ export const LEGEND: readonly NodeCategory[] = [
   'other',
 ];
 
-const FONT =
-  "'Atkinson Hyperlegible Next Variable', 'Segoe UI', Arial, sans-serif";
+/** Evidence tiers: seeds hold the core, every other tier one orbit. */
+export type Tier = 'core' | 'included' | 'web' | 'outer';
+export type OrbitTier = Exclude<Tier, 'core'>;
 
-export const STYLESHEET: StylesheetJson = [
+export const TIER_OF: Record<NodeCategory, Tier> = {
+  seed: 'core',
+  promoted: 'included',
+  web: 'web',
+  discounted: 'outer',
+  other: 'outer',
+};
+
+/** Inner to outer. `spacing` is the arc length each node needs. */
+export const ORBIT_TIERS: readonly {
+  tier: OrbitTier;
+  label: string;
+  minRadius: number;
+  spacing: number;
+  dashed: boolean;
+}[] = [
   {
-    selector: 'node',
-    style: {
-      'background-color': 'data(color)',
-      width: 'data(size)',
-      height: 'data(size)',
-      label: 'data(label)',
-      'font-family': FONT,
-      'font-size': 9,
-      color: GRAPH_COLOR.ink,
-      'text-valign': 'bottom',
-      'text-margin-y': 3,
-      'text-max-width': '96px',
-      'text-wrap': 'ellipsis',
-      'text-background-color': GRAPH_COLOR.paper,
-      'text-background-opacity': 0.85,
-      'text-background-padding': '1px',
-      'border-width': 1,
-      'border-color': GRAPH_COLOR.paper,
-    },
+    tier: 'included',
+    label: 'Included',
+    minRadius: 90,
+    spacing: 44,
+    dashed: false,
   },
+  { tier: 'web', label: 'Web', minRadius: 150, spacing: 30, dashed: false },
   {
-    selector: 'node:selected',
-    style: {
-      'border-width': 2,
-      'border-color': GRAPH_COLOR.ink,
-      'underlay-color': GRAPH_COLOR.marker,
-      'underlay-padding': 5,
-      'underlay-opacity': 1,
-      'underlay-shape': 'ellipse',
-      'font-weight': 'bold',
-      'z-index': 10,
-    },
+    tier: 'outer',
+    label: 'Not included',
+    minRadius: 200,
+    spacing: 24,
+    dashed: true,
   },
-  {
-    selector: 'edge',
-    style: {
-      width: 1,
-      'line-color': GRAPH_COLOR.edge,
-      'curve-style': 'bezier',
-      'target-arrow-shape': 'triangle',
-      'target-arrow-color': GRAPH_COLOR.edge,
-      'arrow-scale': 0.6,
-    },
+];
+
+/** The least gap between two neighbouring orbits. */
+export const ORBIT_GAP = 64;
+
+export const LINK_STYLE: Record<
+  LinkKind,
+  { label: string; color: string; dash: number[] | null; arrow: boolean }
+> = {
+  CITES: { label: 'Cites', color: '#cdd5df', dash: null, arrow: true },
+  SEED_MATCH: {
+    label: 'Seed match',
+    color: '#9aa5b5',
+    dash: [4, 3],
+    arrow: false,
   },
-  { selector: 'edge.related', style: { 'line-style': 'dotted' } },
-  {
-    selector: 'edge.seed_match',
-    style: {
-      'line-style': 'dashed',
-      'line-color': GRAPH_COLOR.edgeSeed,
-      'target-arrow-color': GRAPH_COLOR.edgeSeed,
-    },
+  RELATED: {
+    label: 'Related article',
+    color: '#cdd5df',
+    dash: [1, 2.5],
+    arrow: false,
   },
+};
+
+export const LINK_LEGEND: readonly LinkKind[] = [
+  'CITES',
+  'SEED_MATCH',
+  'RELATED',
 ];
