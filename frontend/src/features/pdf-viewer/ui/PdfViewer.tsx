@@ -93,7 +93,7 @@ function SourceBody({ state }: { state: WorkspaceState }) {
   }
   const { source } = resolved;
   const url = sourcePdfUrl(source);
-  if (url && !isSnapshot(source)) {
+  if (url) {
     return (
       <PdfDocumentView
         key={url}

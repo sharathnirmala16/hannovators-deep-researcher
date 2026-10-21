@@ -8,5 +8,14 @@ export async function fetchSnapshot(
   if (!response.ok || type.includes('text/html')) {
     throw new Error(`Snapshot is not available (HTTP ${response.status}).`);
   }
-  return response.text();
+  const text = await response.text();
+  if (
+    type.includes('application/pdf') ||
+    text.trimStart().startsWith('%PDF-')
+  ) {
+    throw new Error(
+      'This snapshot holds PDF data, not text. Acquire the source again to view it as a PDF.',
+    );
+  }
+  return text;
 }

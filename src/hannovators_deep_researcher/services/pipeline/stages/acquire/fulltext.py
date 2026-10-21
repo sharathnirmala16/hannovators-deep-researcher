@@ -57,6 +57,15 @@ class NoTextLayerError(Exception):
     """The PDF has no text layer (a scan), so it cannot be chunked or highlighted."""
 
 
+class PdfContentError(DownloadError):
+    """The web fetch returned a PDF. Use the PDF path; never store it as `snapshot.md`."""
+
+
+def _looks_like_pdf(content: str, content_type: str) -> bool:
+    media = content_type.split(";", 1)[0].strip().lower()
+    return media in PDF_CONTENT_TYPES or content.lstrip().startswith("%PDF-")
+
+
 @asynccontextmanager
 async def http_client(services: PipelineServices) -> AsyncIterator[httpx.AsyncClient]:
     """A download client. Fake mode serves the bundled PDF and never touches the network."""
@@ -143,7 +152,10 @@ async def download_pdf(
 async def fetch_snapshot(
     services: PipelineServices, *, workspace_id: str, source_id: str, url: str
 ) -> tuple[str, str, str | None]:
-    """Fetch a web page as markdown into `snapshot.md`. Returns (path, markdown, title)."""
+    """Fetch a web page as markdown into `snapshot.md`. Returns (path, markdown, title).
+
+    Raises `PdfContentError` when the page is a PDF, so the caller can download it as one.
+    """
 
     relative = source_path(workspace_id, source_id, SNAPSHOT_MD)
     async with services.trajectory.step(
@@ -158,6 +170,8 @@ async def fetch_snapshot(
         document = await services.web.fetch(url, max_chars=SNAPSHOT_MAX_CHARS)
         if not document.content.strip():
             raise DownloadError(f"{url} returned an empty page")
+        if _looks_like_pdf(document.content, document.content_type):
+            raise PdfContentError(f"{url} returned a PDF, not a web page")
         data = document.content.encode("utf-8")
         write_bytes(relative, data)
         step.response = {

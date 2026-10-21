@@ -35,6 +35,7 @@ from hannovators_deep_researcher.services.documents.files import resolve_data_pa
 from hannovators_deep_researcher.services.documents.pdf_chunker import PdfChunkResult, chunk_pdf
 from hannovators_deep_researcher.services.pipeline.context import StageContext
 from hannovators_deep_researcher.services.pipeline.stages.acquire.fulltext import (
+    PdfContentError,
     describe_error,
     download_pdf,
     fetch_snapshot,
@@ -340,6 +341,9 @@ async def _ingest_url(
         relative, markdown, title = await fetch_snapshot(
             ctx, workspace_id=ctx.workspace_id, source_id=source.id, url=url
         )
+    except PdfContentError:
+        with_pdf = await _attach_pdf(ctx, http, source, url, outcome)
+        return outcome if with_pdf is None else await _finish_pdf(ctx, with_pdf, outcome)
     except Exception as error:
         outcome.problems.append(f"fetch failed: {describe_error(error)}")
         return outcome

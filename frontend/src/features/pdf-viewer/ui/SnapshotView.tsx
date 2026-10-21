@@ -50,6 +50,10 @@ export function SnapshotView({ url, quote }: SnapshotViewProps) {
   }, [url]);
 
   const current = load && load.url === url ? load : null;
+  const problem =
+    current?.status === 'error'
+      ? current.message
+      : 'The snapshot file is not available.';
   if (current?.status === 'ready') {
     return (
       <div className="rounded-md bg-muted p-4 font-serif text-sm leading-relaxed whitespace-pre-wrap">
@@ -62,7 +66,7 @@ export function SnapshotView({ url, quote }: SnapshotViewProps) {
       <p className="text-xs text-muted-foreground">
         {url && !current
           ? 'Loading the snapshot.'
-          : 'The snapshot file is not available, so only the extracted quote is shown.'}
+          : `${problem} Only the extracted quote is shown.`}
       </p>
       {quote ? (
         <blockquote className="border-l-2 border-marker-ink pl-3 font-serif leading-relaxed">

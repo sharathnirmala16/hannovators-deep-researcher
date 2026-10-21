@@ -25,6 +25,7 @@ from hannovators_deep_researcher.persistence.queries.ingest import chunk_counts
 from hannovators_deep_researcher.persistence.tables import SourceRow
 from hannovators_deep_researcher.services.pipeline.context import StageContext
 from hannovators_deep_researcher.services.pipeline.stages.acquire.fulltext import (
+    PdfContentError,
     candidate_record,
     describe_error,
     download_pdf,
@@ -92,7 +93,9 @@ async def _try_pdf(
     return None, errors
 
 
-async def _try_web(ctx: StageContext, source: SourceRow) -> tuple[Acquired | None, list[str]]:
+async def _try_web(
+    ctx: StageContext, http: httpx.AsyncClient, source: SourceRow
+) -> tuple[Acquired | None, list[str]]:
     url = source.url or (source.external_id if source.external_id.startswith("http") else None)
     if url is None:
         return None, []
@@ -101,6 +104,8 @@ async def _try_web(ctx: StageContext, source: SourceRow) -> tuple[Acquired | Non
             ctx, workspace_id=ctx.workspace_id, source_id=source.id, url=url
         )
         index = await index_markdown(ctx, source, markdown, ctx.settings.embedding_dimensions)
+    except PdfContentError:
+        return await _try_pdf(ctx, http, source, [url])
     except Exception as error:
         return None, [f"{url}: {describe_error(error)}"]
     await ctx.repositories.update_source_fields(
@@ -144,7 +149,7 @@ async def acquire_source(ctx: StageContext, http: httpx.AsyncClient, source: Sou
         else:
             result, errors = await _try_pdf(ctx, http, source, _pdf_urls(source, None))
             if result is None:
-                result, web_errors = await _try_web(ctx, source)
+                result, web_errors = await _try_web(ctx, http, source)
                 errors += web_errors
         if result is None:
             result = await _fallback(ctx, source, errors)

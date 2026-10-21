@@ -56,7 +56,9 @@ export function sourcePdfUrl(source: SourceView): string | null {
   return null;
 }
 
+/** A web snapshot to show as text. A stored PDF always wins, even for web sources. */
 export function isSnapshot(source: SourceView): boolean {
+  if (sourcePdfUrl(source)) return false;
   return source.origin === 'WEB' || (source.raw_url?.endsWith('.md') ?? false);
 }
 

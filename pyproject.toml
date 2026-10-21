@@ -2,6 +2,8 @@
 name = "hannovators-deep-researcher"
 version = "0.1.0"
 description = "Python backend for Hannovators Deep Researcher."
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.12,<3.14"
 dependencies = [
     "aiosqlite>=0.20,<1.0",
