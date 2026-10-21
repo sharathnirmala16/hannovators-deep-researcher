@@ -42,7 +42,7 @@ or links) that the search starts from and reads in full.
 
 ### A GRADE evidence profile where every number is traceable
 
-The agent decomposes the question into PICOTS, searches PubMed, Europe PMC, and the web, screens the hits, and
+The agent decomposes the question into PICOTS, searches PubMed and the web, screens the hits, and
 appraises the strongest studies with RoB 2. The evidence profile lists the studies per outcome. Click a marked value to
 open its sentence, highlighted, in the source PDF.
 
@@ -86,14 +86,94 @@ target, outcome, confidence, and duration. Open a step to see its request, respo
 
 ## How it works
 
+The pipeline runs nine stages in order. Dashed arrows show which external services each stage calls. After the run,
+the researcher can include or exclude sources, and **Re-synthesize** runs the last stages again.
+
+```mermaid
+flowchart TD
+    Q["Question and optional seeds"] --> ING[Ingest]
+    ING --> DEC[Decompose]
+    DEC -->|auto continue| SEA[Search]
+    DEC -->|review on| REV["Researcher reviews the scope"]
+    REV -->|continue| SEA
+    SEA --> SCR[Screen]
+    SCR --> ACQ[Acquire]
+    ACQ --> APP[Appraise]
+    APP --> SYN[Synthesize]
+    SYN --> HIG[Highlight]
+    HIG --> COM[Compose]
+    COM --> WS["Workspace views"]
+    WS --> CHOOSE["Researcher includes or excludes sources"]
+    CHOOSE -->|"Re-synthesize"| NEW["Acquire and appraise new includes"]
+    NEW --> SYN
+
+    subgraph EXT["External services"]
+        NEM["Nemotron chat (Nebius)"]
+        QWEN["Qwen3 embeddings (Nebius)"]
+        JEV["Jev System One"]
+        PUB[PubMed]
+        EPMC["Europe PMC (open-access PDFs)"]
+        TAV["Tavily (web search and extract)"]
+    end
+
+    DEC -.-> NEM
+    SEA -.-> NEM
+    APP -.-> NEM
+    SYN -.-> NEM
+    SCR -.-> QWEN
+    ACQ -.-> QWEN
+    SCR -.-> JEV
+    HIG -.-> JEV
+    SEA -.-> PUB
+    ACQ -.-> PUB
+    ACQ -.-> EPMC
+    SEA -.-> TAV
+    ACQ -.-> TAV
+```
+
+The React UI talks to FastAPI routers. Every stage and every adapter call becomes a trajectory step, and trace events
+stream to the UI over SSE. Chat answers come from retrieval over the indexed chunks and cite their passages.
+
+```mermaid
+flowchart LR
+    UI["React UI"] -->|REST| API["FastAPI routers"]
+    API -->|SSE| UI
+    API -->|"run, re-synthesize"| ORC[Orchestrator]
+    ORC --> STG["Pipeline stages"]
+    API -->|ask| CHAT["Chat"]
+    CHAT --> RET["Retrieval over indexed chunks"]
+    STG --> WRAP["Recording port wrappers"]
+    CHAT --> WRAP
+    RET --> WRAP
+    WRAP --> ADP["Adapters: Nebius, Jev, PubMed, Europe PMC, Tavily"]
+
+    subgraph SQL["SQLite"]
+        DATA["Workspaces, sources, chunks, claims"]
+        TRJ["Trajectory steps"]
+        EVT["Trace events"]
+    end
+
+    FS["data/workspaces files: PDFs, snapshots, highlights"]
+
+    WRAP -->|one step per call| TRJ
+    ORC -->|one step per stage| TRJ
+    API -->|user actions| TRJ
+    ORC -->|status and stage events| EVT
+    STG --> DATA
+    STG --> FS
+    RET -->|reads| DATA
+    EVT -.->|tail| API
+    TRJ -.->|tail| API
+```
+
 | Stage | What it does | Quicker phase |
 | :--- | :--- | :--- |
 | Ingest | Reads the seed PDFs and resolves seed references. | |
 | Decompose | Turns the question into a PICOTS scope (Medical) or entities and claims (General). You can review it before the search. | Question decomposition |
-| Search | Runs core, negative, alternative, and safety queries on PubMed, Europe PMC, and the web. | Literature search |
+| Search | Runs core, negative, alternative, and safety queries on PubMed and the web. | Literature search |
 | Screen | Scores each hit on population, intervention, and design, and keeps the top candidates. | Study selection |
-| Acquire | Downloads open-access full text, splits it into passages, and embeds them. | Study selection |
-| Appraise | Grades each study (M-score, RoB 2, evidence level, stance) and extracts its claims with quotes. | Evidence assessment |
+| Acquire | Finds open-access full text (Europe PMC, PubMed, the web), splits it into passages, and embeds them. | Study selection |
+| Appraise | Grades each study from its abstract (M-score, RoB 2, evidence level, stance) and extracts its claims with quotes. | Evidence assessment |
 | Synthesize | Writes the GRADE profile, the analysis, and the recommendation. | Recommendation formulation |
 | Highlight | Finds each quote in its PDF and draws the highlight. | |
 | Compose | Picks the views that suit the domain and the data. | |
@@ -102,7 +182,8 @@ target, outcome, confidence, and duration. Open a step to see its request, respo
 
 - **Models:** NVIDIA Nemotron 3.5 Super VL on [Nebius Token Factory](https://nebius.com) for the agent, Qwen3
   Embedding 8B for embeddings, and Jev System One (Command Code) for screening and highlight decisions.
-- **Search:** PubMed (NCBI E-utilities), Europe PMC, and Tavily for web search and deep research.
+- **Search:** PubMed (NCBI E-utilities) for literature, Europe PMC for open-access PDFs, and Tavily for web search and
+  deep research.
 - **Backend:** Python 3.12, FastAPI, SQLite with SQLAlchemy and Alembic, and PyMuPDF for PDF work.
 - **Frontend:** React 19, Vite, Tailwind CSS 4, shadcn/ui, pdf.js, and react-force-graph.
 
