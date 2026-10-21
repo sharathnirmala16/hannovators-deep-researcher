@@ -142,6 +142,8 @@ export const deepResearchRecordSchema = z.strictObject({
   started_at: dateTime.nullable().default(null),
   finished_at: dateTime.nullable().default(null),
   error: nullableString,
+  /** The source that holds the report (`snapshot.md`), once it exists. */
+  report_source_id: nullableString,
 });
 
 export type SourceDetail = z.infer<typeof sourceDetailSchema>;

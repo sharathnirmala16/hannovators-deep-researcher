@@ -1,5 +1,6 @@
 import { useWorkspaceClient } from '@/domains/workspace';
 import { NewWorkspaceForm } from '@/features/new-workspace';
+import { DeleteWorkspaceButton } from '@/features/workspace-delete';
 import { WorkspaceList } from '@/features/workspace-list';
 import { Pane, PaneBody } from '@/shared/ui/pane';
 import { Tag } from '@/shared/ui/tag';
@@ -32,6 +33,14 @@ export function WorkspacesPage() {
         </Pane>
         <WorkspaceList
           hrefFor={(id) => workspaceHref(id)}
+          rowAction={(item, reload) => (
+            <DeleteWorkspaceButton
+              workspaceId={item.id}
+              question={item.research_question}
+              status={item.status}
+              onDeleted={reload}
+            />
+          )}
           className="bg-desk"
         />
       </main>

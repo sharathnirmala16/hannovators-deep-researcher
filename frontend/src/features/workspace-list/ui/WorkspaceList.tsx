@@ -1,4 +1,5 @@
 import { RefreshCwIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import {
   DOMAIN_MODE,
@@ -19,23 +20,36 @@ import {
   type WorkspaceListLoad,
 } from '../model/useWorkspaceList';
 
+/** An action shown on a row (for example delete); `reload` refreshes the list. */
+export type WorkspaceRowAction = (
+  item: WorkspaceSummary,
+  reload: () => void,
+) => ReactNode;
+
 interface WorkspaceListProps {
   /** Link target of one workspace (the app owns the routes). */
   hrefFor: (id: string) => string;
+  rowAction?: WorkspaceRowAction | undefined;
   className?: string;
 }
 
-function Row({ item, href }: { item: WorkspaceSummary; href: string }) {
+interface RowProps {
+  item: WorkspaceSummary;
+  href: string;
+  action: ReactNode;
+}
+
+function Row({ item, href, action }: RowProps) {
   const status = WORKSPACE_STATUS[item.status];
   const stage =
     item.status === 'RUNNING' || item.status === 'AWAITING_REVIEW'
       ? item.current_stage
       : null;
   return (
-    <li>
+    <li className="group/row relative">
       <a
         href={href}
-        className="group flex flex-col gap-2 rounded-lg px-3 py-3 transition-colors hover:bg-background focus-visible:bg-background focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+        className="group flex flex-col gap-2 rounded-lg px-3 py-3 transition-colors group-hover/row:bg-background focus-visible:bg-background focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
       >
         <span
           className="reading line-clamp-2 text-[15px] leading-6 text-foreground"
@@ -62,19 +76,24 @@ function Row({ item, href }: { item: WorkspaceSummary; href: string }) {
           {item.seed_count > 0 ? `, ${plural(item.seed_count, 'seed')}` : ''}
         </span>
       </a>
+      {action ? (
+        // Beside the link, not inside it: shown on row hover or keyboard focus.
+        <div className="absolute right-2 bottom-2 opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100 pointer-coarse:opacity-100">
+          {action}
+        </div>
+      ) : null}
     </li>
   );
 }
 
-function ListBody({
-  load,
-  reload,
-  hrefFor,
-}: {
+interface ListBodyProps {
   load: WorkspaceListLoad;
   reload: () => void;
   hrefFor: (id: string) => string;
-}) {
+  rowAction: WorkspaceRowAction | undefined;
+}
+
+function ListBody({ load, reload, hrefFor, rowAction }: ListBodyProps) {
   switch (load.status) {
     case 'loading':
       return <SkeletonBlock lines={6} className="px-6 py-4" />;
@@ -107,7 +126,12 @@ function ListBody({
       return (
         <ol className="flex flex-col gap-0.5 px-3 py-2">
           {load.items.map((item) => (
-            <Row key={item.id} item={item} href={hrefFor(item.id)} />
+            <Row
+              key={item.id}
+              item={item}
+              href={hrefFor(item.id)}
+              action={rowAction?.(item, reload)}
+            />
           ))}
         </ol>
       );
@@ -115,7 +139,11 @@ function ListBody({
 }
 
 /** Recent workspaces: question, status and stage, mode, counts, updated. */
-export function WorkspaceList({ hrefFor, className }: WorkspaceListProps) {
+export function WorkspaceList({
+  hrefFor,
+  rowAction,
+  className,
+}: WorkspaceListProps) {
   const { load, reload } = useWorkspaceList();
   const count = load.status === 'ready' ? load.items.length : null;
   return (
@@ -138,7 +166,12 @@ export function WorkspaceList({ hrefFor, className }: WorkspaceListProps) {
         }
       />
       <PaneBody>
-        <ListBody load={load} reload={reload} hrefFor={hrefFor} />
+        <ListBody
+          load={load}
+          reload={reload}
+          hrefFor={hrefFor}
+          rowAction={rowAction}
+        />
       </PaneBody>
     </Pane>
   );

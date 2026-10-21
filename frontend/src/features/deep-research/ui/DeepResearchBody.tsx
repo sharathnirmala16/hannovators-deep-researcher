@@ -4,7 +4,7 @@ import type { DeepResearchRecord } from '@/domains/workspace';
 import { relativeTime } from '@/shared/lib/format';
 import { EmptyState, ErrorState, SkeletonBlock } from '@/shared/ui/states';
 
-import { DeepResearchReport } from './DeepResearchReport';
+import { DeepResearchSummary } from './DeepResearchSummary';
 
 interface DeepResearchBodyProps {
   record: DeepResearchRecord | null;
@@ -12,7 +12,7 @@ interface DeepResearchBodyProps {
   trigger: ReactNode;
 }
 
-/** Idle, running, failed, or the finished report. */
+/** Idle, running, failed, or the finished report's summary. */
 export function DeepResearchBody({ record, trigger }: DeepResearchBodyProps) {
   if (!record) {
     return (
@@ -30,7 +30,8 @@ export function DeepResearchBody({ record, trigger }: DeepResearchBodyProps) {
           <p className="text-xs text-muted-foreground">
             Started{' '}
             {record.started_at ? relativeTime(record.started_at) : 'just now'}.
-            This takes a few minutes; the report appears here when it is ready.
+            This takes a few minutes; the report is added to the sources when it
+            is ready.
           </p>
           <SkeletonBlock lines={4} label="Deep research is running" />
         </div>
@@ -45,6 +46,6 @@ export function DeepResearchBody({ record, trigger }: DeepResearchBodyProps) {
         </ErrorState>
       );
     case 'completed':
-      return <DeepResearchReport record={record} />;
+      return <DeepResearchSummary record={record} />;
   }
 }

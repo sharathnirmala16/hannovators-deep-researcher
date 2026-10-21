@@ -1,9 +1,11 @@
-"""Workspace lifecycle: list, create, run or continue, review the decomposition, read the state.
+"""Workspace lifecycle: list, create, run or continue, review the decomposition, read the state,
+delete.
 
-Server-visible user actions record USER_ACTION trajectory steps (PLAN.md section 5.3).
+Server-visible user actions record USER_ACTION trajectory steps (PLAN.md section 5.3); a deleted
+workspace has no trajectory left, so its deletion is logged instead.
 """
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Request, status
 
 from hannovators_deep_researcher.models.contracts import (
     CreateWorkspaceRequest,
@@ -14,9 +16,13 @@ from hannovators_deep_researcher.models.contracts import (
     WorkspaceView,
 )
 from hannovators_deep_researcher.models.enums import StageId, WorkspaceStatus
+from hannovators_deep_researcher.routers.deep_research import deep_research_running
 from hannovators_deep_researcher.routers.dependencies import Container
 from hannovators_deep_researcher.services.source_decisions import pending_decisions
 from hannovators_deep_researcher.services.trajectory_wrappers import record_user_action
+from hannovators_deep_researcher.services.workspace_deletion import (
+    delete_workspace as remove_workspace,
+)
 from hannovators_deep_researcher.services.workspace_state import (
     parse_decomposition,
     workspace_view,
@@ -127,3 +133,13 @@ async def replace_decomposition(
 @router.get("/{workspace_id}")
 async def get_workspace(workspace_id: str, container: Container) -> WorkspaceState:
     return await container.state.build_state(workspace_id)
+
+
+@router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_workspace(workspace_id: str, request: Request, container: Container) -> None:
+    """Delete the workspace, its rows, and its files. 409 while a run or deep research is active."""
+
+    busy = container.run_active(workspace_id) or deep_research_running(request.app, workspace_id)
+    await remove_workspace(
+        container.services.repositories, workspace_id, busy=busy, root=container.state.data_dir
+    )

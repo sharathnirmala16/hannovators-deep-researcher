@@ -28,7 +28,7 @@ function elapsed(record: DeepResearchRecord | null): string {
   );
 }
 
-/** Tavily deep research: trigger, status, and the cited report. */
+/** Tavily deep research: trigger, status, and a summary that opens the report source. */
 export function DeepResearch() {
   const { load, running, starting, start, refetch } = useDeepResearch();
   const record = load.status === 'ready' ? load.record : null;

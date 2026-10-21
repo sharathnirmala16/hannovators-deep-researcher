@@ -25,3 +25,5 @@ class DeepResearchRecord(ContractModel):
     started_at: datetime | None = None
     finished_at: datetime | None = None
     error: str | None = None
+    report_source_id: str | None = None
+    """The workspace source that holds this report (`snapshot.md`), once it exists."""

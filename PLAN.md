@@ -425,6 +425,7 @@ Tables (revision `0003_trajectory_chat`): `trajectory_steps`, `chat_messages`, a
 | Method + path | Body / response | Owner lane |
 | :--- | :--- | :--- |
 | `GET /workspaces` | `list[WorkspaceSummary]`, newest first | platform |
+| `DELETE /workspaces/{id}` | 204. Deletes the workspace and every child row in one transaction, then removes `data/workspaces/<id>/`. 404 when unknown; 409 `WORKSPACE_RUNNING` while RUNNING or a run, revision, or deep research task is active. Logged at INFO (no trajectory remains). | platform |
 | `POST /workspaces/{id}/seeds` | multipart `files` (PDFs) or JSON `SeedReferenceRequest` -> `list[SourceView]` (status `SEED`, file saved at `data/workspaces/<ws>/sources/<src>/raw.pdf`) | platform (storage) + grounding (S1 ingest processes it) |
 | `GET /workspaces/{id}/sources/{source_id}` | `SourceDetail` (abstract, screen/appraisal JSON, chunk count, claim ids, trajectory step ids) | platform |
 | `POST /workspaces/{id}/sources/{source_id}/decision` | `SourceDecisionRequest` `{decision: INCLUDE|EXCLUDE, reason?}` -> `WorkspaceState`. Researcher override: sets APPRAISE_PROMOTED or APPRAISE_DISCOUNTED and stores `SourceView.decision` (reason, agent status, `applied=false`). COMPLETED runs only; not seeds (422); 409 when unchanged. | platform |
@@ -436,7 +437,7 @@ Tables (revision `0003_trajectory_chat`): `trajectory_steps`, `chat_messages`, a
 | `GET /workspaces/{id}/chat` | `list[ChatMessageView]`, oldest first | grounding |
 | `POST /workspaces/{id}/chat` | `ChatRequest` -> `ChatMessageView` (assistant answer with `[n]` citations; the user turn is stored too; one CHAT trajectory step parents the retrieval and LLM steps) | grounding |
 | `POST /workspaces/{id}/deep-research` | 202 `DeepResearchRecord` (409 while running) | research-quality |
-| `GET /workspaces/{id}/deep-research` | `DeepResearchRecord` or 404 | research-quality |
+| `GET /workspaces/{id}/deep-research` | `DeepResearchRecord` (with `report_source_id`) or 404; a completed record without a report source gets one on read | research-quality |
 
 Router modules already exist as 501 stubs and are registered in `routers/__init__.py`; lanes replace
 the stub bodies and never edit `routers/__init__.py`.
@@ -669,8 +670,13 @@ Each card lists: owned files, work, required edge-case tests, live checks, done-
   `data/workspaces/<ws>/deep_research.json` through `services/documents/files.py`. It inserts each cited source
   as a `WEB` source with status `RAW` and `extra_json.found_by = "tavily_research"`, deduplicated by
   `canonicalize_url`. `GET /api/workspaces/{id}/deep-research` returns that record.
+- The report itself becomes one RAW `WEB` source (`services/deep_research_report.py`, external id
+  `deep-research:<ws>:<run start>`, intent DEEP_RESEARCH): the markdown is its `snapshot.md`, a plain-text
+  excerpt is its abstract, and it is chunked and embedded, so the researcher can include or exclude it like any
+  source. The GET backfills it idempotently for records that completed earlier.
 - The API lane includes `routers.deep_research` through a guarded import. The frontend shows a
-  "Tavily deep research" panel in the workbench shell.
+  "Tavily deep research" panel in the workbench shell with the status, a summary, and "Open report in
+  sources"; the Document view renders the report (and every web snapshot) with the shared markdown renderer.
 - Tests: a failed research task sets status `failed` and the run continues; a cited URL that duplicates an
   existing source is not inserted twice.
 - Live: one `model="mini"` research call on a short question.

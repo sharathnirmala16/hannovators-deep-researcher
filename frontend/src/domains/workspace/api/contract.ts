@@ -57,6 +57,8 @@ export interface WorkspaceClient {
   getWorkspace: (id: string, signal?: AbortSignal) => Promise<WorkspaceState>;
   getGraph: (id: string, signal?: AbortSignal) => Promise<GraphView>;
   createWorkspace: (body: CreateWorkspaceRequest) => Promise<WorkspaceView>;
+  /** Delete the workspace with its sources, files, chat, and audit trail. */
+  deleteWorkspace: (id: string) => Promise<void>;
   /** Upload seed PDFs (multipart field `files`). */
   uploadSeedFiles: (
     id: string,

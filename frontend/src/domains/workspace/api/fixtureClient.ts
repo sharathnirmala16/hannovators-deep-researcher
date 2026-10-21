@@ -126,6 +126,7 @@ export const fixtureClient: WorkspaceClient = {
     })),
   getWorkspace: async (id) => (await findFixture(id)).state,
   getGraph: async (id) => (await findFixture(id)).graph,
+  deleteWorkspace: () => notInFixtures('Deleting a workspace'),
   uploadSeedFiles: () => notInFixtures('Seed upload'),
   addSeedReference: () => notInFixtures('Seed references'),
   updateDecomposition: async (id) => (await findFixture(id)).state,

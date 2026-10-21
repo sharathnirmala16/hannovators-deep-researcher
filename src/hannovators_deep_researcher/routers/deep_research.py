@@ -2,7 +2,8 @@
 
 Contract (PLAN.md section 5.3):
 - POST /workspaces/{id}/deep-research -> 202 DeepResearchRecord (409 while one is running)
-- GET  /workspaces/{id}/deep-research -> DeepResearchRecord (404 when none was started)
+- GET  /workspaces/{id}/deep-research -> DeepResearchRecord (404 when none was started); a
+  completed record without a report source gets one here (idempotent backfill)
 """
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request, status
@@ -27,13 +28,17 @@ def _service(app: FastAPI, container: ApiContainer) -> DeepResearchService:
     if not isinstance(service, DeepResearchService):
         services = container.services
         service = DeepResearchService(
-            repositories=services.repositories,
-            trajectory=services.trajectory,
-            events=services.events,
-            provider=build_deep_research(services.app_settings),
+            services=services, provider=build_deep_research(services.app_settings)
         )
         app.state.deep_research = service
     return service
+
+
+def deep_research_running(app: FastAPI, workspace_id: str) -> bool:
+    """True while deep research runs for the workspace (False when none was ever started)."""
+
+    service = getattr(app.state, "deep_research", None)
+    return isinstance(service, DeepResearchService) and service.is_running(workspace_id)
 
 
 @router.post("/{workspace_id}/deep-research", status_code=status.HTTP_202_ACCEPTED)
@@ -71,12 +76,14 @@ def _running(workspace_id: str) -> HTTPException:
 async def get_deep_research(
     workspace_id: str, request: Request, container: Container
 ) -> DeepResearchRecord:
-    await container.state.require_workspace(workspace_id)
-    record = _service(request.app, container).read(workspace_id)
+    workspace = await container.state.require_workspace(workspace_id)
+    service = _service(request.app, container)
+    record = service.read(workspace_id)
     if record is None:
         raise api_error(
             status.HTTP_404_NOT_FOUND,
             "DEEP_RESEARCH_NOT_FOUND",
             f"No deep research was started for workspace {workspace_id}.",
         )
-    return record
+    # A report finished before report sources existed becomes a source on first read.
+    return await service.ensure_report(workspace, record)

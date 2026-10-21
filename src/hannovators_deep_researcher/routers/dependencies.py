@@ -50,6 +50,12 @@ class ApiContainer:
 
         self._track(workspace_id, self.orchestrator.run_revision(workspace_id))
 
+    def run_active(self, workspace_id: str) -> bool:
+        """True while a run or revision task for the workspace has not finished."""
+
+        task = self.runs.get(workspace_id)
+        return task is not None and not task.done()
+
     def _track(self, workspace_id: str, run: Coroutine[Any, Any, WorkspaceStatus]) -> None:
         task = asyncio.create_task(run)
         self.runs[workspace_id] = task

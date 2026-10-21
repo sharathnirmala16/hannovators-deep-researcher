@@ -4,7 +4,9 @@
 research in an asyncio task (one per workspace). The task records one SEARCH trajectory step
 (`tavily.research`) with the report and its sources, emits PROGRESS events on stage `search`
 ("Tavily deep research ..."), inserts each cited URL as a RAW `WEB` source with search intent
-DEEP_RESEARCH (deduplicated by canonical URL), and writes the final record.
+DEEP_RESEARCH (deduplicated by canonical URL), adds the report itself as one more source
+(`services/deep_research_report.py`), and writes the final record. Records that completed
+before report sources existed get theirs when they are read (`ensure_report`).
 """
 
 import asyncio
@@ -35,16 +37,16 @@ from hannovators_deep_researcher.models.enums import (
     TrajectoryKind,
     TrajectoryStatus,
 )
-from hannovators_deep_researcher.models.ports import EventSink
-from hannovators_deep_researcher.persistence.repositories import Repositories
 from hannovators_deep_researcher.persistence.tables import WorkspaceRow
+from hannovators_deep_researcher.services.deep_research_report import ensure_report_source
 from hannovators_deep_researcher.services.documents.files import (
     WORKSPACES_DIR,
     resolve_data_path,
     write_bytes,
 )
 from hannovators_deep_researcher.services.evidence import heuristic_level, keyword_stance
-from hannovators_deep_researcher.services.trajectory import TrajectoryRecorder, bind
+from hannovators_deep_researcher.services.pipeline.context import PipelineServices
+from hannovators_deep_researcher.services.trajectory import bind
 from hannovators_deep_researcher.services.urls import canonicalize_url
 
 logger = logging.getLogger(__name__)
@@ -128,15 +130,14 @@ class DeepResearchService:
     def __init__(
         self,
         *,
-        repositories: Repositories,
-        trajectory: TrajectoryRecorder,
-        events: EventSink,
+        services: PipelineServices,
         provider: DeepResearchProvider,
         root: Path | None = None,
     ) -> None:
-        self._repositories = repositories
-        self._trajectory = trajectory
-        self._events = events
+        self._services = services
+        self._repositories = services.repositories
+        self._trajectory = services.trajectory
+        self._events = services.events
         self._provider = provider
         self._root = root
         self._tasks: dict[str, asyncio.Task[DeepResearchRecord]] = {}
@@ -150,6 +151,18 @@ class DeepResearchService:
         if not path.is_file():
             return None
         return DeepResearchRecord.model_validate_json(path.read_text(encoding="utf-8"))
+
+    async def ensure_report(
+        self, workspace: WorkspaceRow, record: DeepResearchRecord
+    ) -> DeepResearchRecord:
+        """Give a completed record its report source (once) and store the source id."""
+
+        if record.status != "completed" or self.is_running(workspace.id):
+            return record
+        updated = await ensure_report_source(self._services, workspace, record, root=self._root)
+        if updated.report_source_id != record.report_source_id:
+            self._write(workspace.id, updated)
+        return updated
 
     def _write(self, workspace_id: str, record: DeepResearchRecord) -> None:
         write_bytes(
@@ -196,7 +209,7 @@ class DeepResearchService:
         inserted = 0
         try:
             with bind(workspace_id, StageId.SEARCH):
-                record, inserted = await self._research(workspace_id, input_text, progress)
+                record, inserted = await self._research(workspace, input_text, progress)
         except Exception as error:
             record = DeepResearchRecord(
                 status="failed",
@@ -208,7 +221,7 @@ class DeepResearchService:
         if record.status == "completed":
             await progress(
                 f"{PREFIX} completed: {len(record.sources)} cited sources, "
-                f"{inserted} added as WEB sources"
+                f"{inserted} added as WEB sources, and the report as one source"
             )
         else:
             await self._emit(
@@ -220,10 +233,11 @@ class DeepResearchService:
         return record
 
     async def _research(
-        self, workspace_id: str, input_text: str, progress: ProgressFn
+        self, workspace: WorkspaceRow, input_text: str, progress: ProgressFn
     ) -> tuple[DeepResearchRecord, int]:
         """Run the provider inside one SEARCH step; return the record and new source count."""
 
+        workspace_id = workspace.id
         inserted = 0
         async with self._trajectory.step(
             kind=TrajectoryKind.SEARCH,
@@ -236,9 +250,16 @@ class DeepResearchService:
             if record.status == "completed":
                 sources, inserted = await self._insert_sources(workspace_id, record.sources)
                 record = record.model_copy(update={"sources": sources})
+                record = await ensure_report_source(
+                    self._services, workspace, record, root=self._root
+                )
             else:
                 handle.status = TrajectoryStatus.ERROR
-            handle.source_ids = [s.source_id for s in record.sources if s.source_id]
+            handle.source_ids = [
+                source_id
+                for source_id in (*(s.source_id for s in record.sources), record.report_source_id)
+                if source_id
+            ]
             handle.summary = (
                 f"{PREFIX} {record.status}: {len(record.sources)} sources, {inserted} new"
                 + (f" ({record.error})" if record.error else "")
@@ -249,6 +270,7 @@ class DeepResearchService:
                 "content": record.content,
                 "sources": [source.model_dump() for source in record.sources],
                 "new_sources": inserted,
+                "report_source_id": record.report_source_id,
                 "error": record.error,
             }
         return record, inserted

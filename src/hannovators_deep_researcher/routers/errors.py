@@ -11,6 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from hannovators_deep_researcher.models.contracts import ApiError, ApiErrorDetail
 from hannovators_deep_researcher.services.pipeline.orchestrator import RunStateError
+from hannovators_deep_researcher.services.workspace_deletion import WorkspaceBusyError
 from hannovators_deep_researcher.services.workspace_state import (
     WorkspaceNotFoundError,
     WorkspaceStatusError,
@@ -59,6 +60,10 @@ async def _run_state(_: Request, exc: Exception) -> JSONResponse:
     return _response(409, code, str(exc))
 
 
+async def _busy(_: Request, exc: Exception) -> JSONResponse:
+    return _response(409, "WORKSPACE_RUNNING", str(exc))
+
+
 async def _status_error(_: Request, exc: Exception) -> JSONResponse:
     return _response(409, "WORKSPACE_NOT_AWAITING_REVIEW", str(exc))
 
@@ -75,3 +80,4 @@ def install_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(WorkspaceNotFoundError, _not_found)
     app.add_exception_handler(RunStateError, _run_state)
     app.add_exception_handler(WorkspaceStatusError, _status_error)
+    app.add_exception_handler(WorkspaceBusyError, _busy)

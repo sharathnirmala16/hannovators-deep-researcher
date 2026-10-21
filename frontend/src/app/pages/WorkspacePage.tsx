@@ -4,6 +4,7 @@ import { EvidenceSelectionProvider } from '@/domains/evidence';
 import { WorkspaceProvider, useWorkspace } from '@/domains/workspace';
 import { RunHeader } from '@/features/run-header';
 import { TrajectoryView } from '@/features/trajectory';
+import { DeleteWorkspaceButton } from '@/features/workspace-delete';
 import { Segmented, type SegmentOption } from '@/shared/ui/segmented';
 import { ErrorState, SkeletonBlock } from '@/shared/ui/states';
 
@@ -19,6 +20,8 @@ const TABS: readonly SegmentOption<WorkspaceTab>[] = [
   { value: 'research', label: 'Research' },
   { value: 'trajectory', label: 'Trajectory' },
 ];
+
+const goHome = () => navigate('#/');
 
 interface WorkspacePageProps {
   workspaceId: string;
@@ -55,6 +58,15 @@ function WorkspaceBody({ workspaceId, tab, step }: WorkspacePageProps) {
     <>
       <RunHeader
         backHref="#/"
+        renderActions={(workspace) => (
+          <DeleteWorkspaceButton
+            variant="header"
+            workspaceId={workspace.id}
+            question={workspace.research_question}
+            status={workspace.status}
+            onDeleted={goHome}
+          />
+        )}
         tabs={
           <Segmented
             label="Workspace view"

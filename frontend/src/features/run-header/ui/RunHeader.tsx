@@ -23,6 +23,8 @@ interface RunHeaderProps {
   backHref: string;
   /** The tab switch, rendered at the right. */
   tabs: ReactNode;
+  /** Workspace actions (for example delete), rendered beside the providers. */
+  renderActions?: ((workspace: WorkspaceView) => ReactNode) | undefined;
 }
 
 function StartButton() {
@@ -65,7 +67,7 @@ function RunStatus({ workspace }: { workspace: WorkspaceView }) {
 }
 
 /** Slim workspace header: back, question, status with stages, providers, tabs. */
-export function RunHeader({ backHref, tabs }: RunHeaderProps) {
+export function RunHeader({ backHref, tabs, renderActions }: RunHeaderProps) {
   const { load } = useWorkspace();
   const workspace = load.status === 'ready' ? load.state.workspace : null;
   const mode =
@@ -96,6 +98,7 @@ export function RunHeader({ backHref, tabs }: RunHeaderProps) {
       </div>
       {workspace ? <RunStatus workspace={workspace} /> : null}
       <ProviderBadge />
+      {workspace ? renderActions?.(workspace) : null}
       <div className="h-6 w-px bg-border" aria-hidden />
       {tabs}
     </header>

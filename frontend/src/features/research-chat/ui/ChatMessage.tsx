@@ -1,9 +1,9 @@
 import { useEvidenceSelection } from '@/domains/evidence';
 import type { ChatMessageView, Citation } from '@/domains/workspace';
 import { clockTime } from '@/shared/lib/format';
+import { Markdown } from '@/shared/ui/markdown';
 
 import { CitationButton, SourceList } from './Citations';
-import { Markdown } from './Markdown';
 
 /** The user's question, right-aligned in a tinted block. */
 export function UserTurn({ content }: { content: string }) {
@@ -29,7 +29,8 @@ function AssistantTurn({ message }: { message: ChatMessageView }) {
     <article aria-label="Answer" className="flex flex-col gap-3">
       <Markdown
         content={message.content}
-        renderCitation={(n) => (
+        className="gap-2 text-sm leading-relaxed"
+        citation={(n) => (
           <CitationButton
             n={n}
             citation={byNumber.get(n)}

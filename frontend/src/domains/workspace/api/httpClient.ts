@@ -109,6 +109,9 @@ export const httpClient: WorkspaceClient = {
       workspaceViewSchema,
       postJson(createWorkspaceRequestSchema.parse(body)),
     ),
+  deleteWorkspace: async (id) => {
+    await send(workspacePath(id), { method: 'DELETE' });
+  },
   uploadSeedFiles: (id, files) => {
     const form = new FormData();
     for (const file of files) form.append('files', file);

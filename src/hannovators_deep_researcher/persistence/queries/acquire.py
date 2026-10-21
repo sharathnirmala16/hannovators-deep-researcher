@@ -1,4 +1,4 @@
-"""Citation links for acquired sources. Duplicate links are skipped, never raised."""
+"""Citation links for acquired sources (duplicates are skipped, never raised) and lookups."""
 
 from collections.abc import Iterable
 
@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from hannovators_deep_researcher.models.enums import SourceLinkKind
 from hannovators_deep_researcher.persistence.repositories import Repositories
-from hannovators_deep_researcher.persistence.tables import SourceLinkRow
+from hannovators_deep_researcher.persistence.tables import SourceLinkRow, SourceRow
 
 
 async def add_links(
@@ -32,3 +32,15 @@ async def add_links(
             for source, target, kind in new
         )
     return len(new)
+
+
+async def source_id_by_external_id(
+    repositories: Repositories, workspace_id: str, external_id: str
+) -> str | None:
+    """The id of the workspace source with this `external_id`, or None."""
+
+    statement = select(SourceRow.id).where(
+        SourceRow.workspace_id == workspace_id, SourceRow.external_id == external_id
+    )
+    async with repositories.transaction() as session:
+        return (await session.execute(statement)).scalar_one_or_none()

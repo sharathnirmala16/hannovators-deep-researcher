@@ -484,6 +484,12 @@ class WorkspaceStateService:
         self._repositories = repositories
         self._data_dir = data_dir
 
+    @property
+    def data_dir(self) -> Path | None:
+        """The root that holds `workspaces/`; None means the default `data_root()`."""
+
+        return self._data_dir
+
     async def require_workspace(self, workspace_id: str) -> WorkspaceRow:
         row = await self._repositories.get_workspace(workspace_id)
         if row is None:

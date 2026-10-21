@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+
+import { parseMarkdown, textRuns } from '@/shared/lib/markdown';
+import { MarkdownBlocks } from '@/shared/ui/markdown';
 
 import { fetchSnapshot } from '../api/fetchSnapshot';
 import { markQuote } from '../model/markQuote';
@@ -31,7 +34,58 @@ function Marked({ text, quote }: { text: string; quote: string | null }) {
   );
 }
 
-/** Web source: the saved snapshot text with the claim's quote marked. */
+function QuoteCallout({ quote }: { quote: string }) {
+  return (
+    <blockquote className="border-l-2 border-marker-ink pl-3 font-serif leading-relaxed">
+      <mark className="rounded-sm bg-marker px-0.5 text-foreground">
+        {quote}
+      </mark>
+    </blockquote>
+  );
+}
+
+/** The snapshot rendered as markdown, with the quote marked where it appears. */
+function SnapshotDocument({
+  text,
+  quote,
+}: {
+  text: string;
+  quote: string | null;
+}) {
+  const blocks = useMemo(() => parseMarkdown(text), [text]);
+  const found = useMemo(
+    () =>
+      !quote ||
+      textRuns(blocks).some((run) =>
+        markQuote(run, quote).some((segment) => segment.marked),
+      ),
+    [blocks, quote],
+  );
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.querySelector('mark')?.scrollIntoView?.({ block: 'center' });
+  }, [blocks, quote]);
+
+  return (
+    <div ref={ref} className="flex min-w-0 flex-col gap-4">
+      {found || !quote ? null : (
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">
+            The quoted passage, not found word for word in the page:
+          </p>
+          <QuoteCallout quote={quote} />
+        </div>
+      )}
+      <MarkdownBlocks
+        blocks={blocks}
+        className="reading text-sm leading-6 text-foreground"
+        text={(run) => <Marked text={run} quote={quote} />}
+      />
+    </div>
+  );
+}
+
+/** Web source: the saved snapshot as markdown with the claim's quote marked. */
 export function SnapshotView({ url, quote }: SnapshotViewProps) {
   const [load, setLoad] = useState<SnapshotLoad | null>(null);
 
@@ -55,11 +109,7 @@ export function SnapshotView({ url, quote }: SnapshotViewProps) {
       ? current.message
       : 'The snapshot file is not available.';
   if (current?.status === 'ready') {
-    return (
-      <div className="rounded-md bg-muted p-4 font-serif text-sm leading-relaxed whitespace-pre-wrap">
-        <Marked text={current.text} quote={quote} />
-      </div>
-    );
+    return <SnapshotDocument text={current.text} quote={quote} />;
   }
   return (
     <div className="space-y-2 rounded-md bg-muted p-4 text-sm">
@@ -68,13 +118,7 @@ export function SnapshotView({ url, quote }: SnapshotViewProps) {
           ? 'Loading the snapshot.'
           : `${problem} Only the extracted quote is shown.`}
       </p>
-      {quote ? (
-        <blockquote className="border-l-2 border-marker-ink pl-3 font-serif leading-relaxed">
-          <mark className="rounded-sm bg-marker px-0.5 text-foreground">
-            {quote}
-          </mark>
-        </blockquote>
-      ) : null}
+      {quote ? <QuoteCallout quote={quote} /> : null}
     </div>
   );
 }

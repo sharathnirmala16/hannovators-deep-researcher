@@ -106,6 +106,14 @@ def resolve_data_path(relative_path: str, *, root: Path | None = None) -> Path:
     return resolved
 
 
+def workspace_path(workspace_id: str) -> str:
+    """Return the stored relative path of a workspace folder (`workspaces/<workspace_id>`)."""
+
+    if not _SAFE_ID.match(workspace_id):
+        raise UnsafePathError(f"unsafe identifier: {workspace_id!r}")
+    return f"{WORKSPACES_DIR}/{workspace_id}"
+
+
 def source_path(workspace_id: str, source_id: str, filename: str) -> str:
     """Return the stored relative path of a file in a source folder."""
 

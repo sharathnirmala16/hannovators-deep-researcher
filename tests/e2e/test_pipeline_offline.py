@@ -176,3 +176,13 @@ async def test_offline_deep_research_adds_cited_web_sources(client: httpx.AsyncC
     }
     assert cited and cited <= set(web)
     assert {web[source_id]["search_intent"] for source_id in cited} == {"DEEP_RESEARCH"}
+
+    # The report itself is one RAW source with its markdown snapshot; reads are idempotent.
+    report_id = record["report_source_id"]
+    assert report_id in web and report_id not in cited
+    assert web[report_id]["status"] == "RAW"
+    assert web[report_id]["raw_url"].endswith("/snapshot.md")
+    again = (await client.get(f"{base}/deep-research")).json()
+    assert again["report_source_id"] == report_id
+    sources = (await client.get(base)).json()["sources"]
+    assert sum(source["id"] == report_id for source in sources) == 1
