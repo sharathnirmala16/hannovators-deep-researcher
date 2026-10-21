@@ -297,6 +297,8 @@ Font License 1.1.
 - Nebius and NVIDIA, for the hackathon and the models.
 - [Tavily](https://tavily.com), for the AI search API credits.
 - [Qwen](https://qwenlm.github.io), for the Qwen3 Embedding model.
+- Jev System One by [Command Code](https://commandcode.ai), for the decision model behind screening and highlight
+  choices.
 - [Cognition Labs](https://cognition.ai), for the Devin Max plan that we used during the hackathon.
 - Li et al., for the Quicker workflow in
   [npj Digital Medicine (2025)](https://www.nature.com/articles/s41746-025-02273-y).
