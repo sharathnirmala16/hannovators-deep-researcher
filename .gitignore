@@ -27,6 +27,7 @@ FEEDBACK/
 .agents/communication/
 .archive/
 test_reports/
+demo-video.mp4
 
 # JavaScript dependencies and generated output
 node_modules/
