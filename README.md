@@ -6,11 +6,11 @@ answer opens the exact highlighted sentence in its source PDF, and every model c
 
 ![Demo of the Hannovators Deep Researcher workbench](demo-video.gif)
 
-![The research workspace for "Safe daily intake of creatine": the PICOTS scope and run stages, the GRADE evidence profile, and the citation graph with the selected study](docs/screenshots/research.png)
-
 > **Status: prototype.** We built this project during a hackathon. It is still in development as a
 > personal project, so expect rough edges, breaking changes, and missing features. Do not use it for clinical
 > decisions.
+
+![The research workspace for "Safe daily intake of creatine": the PICOTS scope and run stages, the GRADE evidence profile, and the citation graph with the selected study](docs/screenshots/research.png)
 
 ## About the project
 
